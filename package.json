@@ -1,5 +1,5 @@
 {
-  "name": "aboaly_",
+  "name": "StorageAnalyse",
   "private": true,
   "type": "module",
   "version": "0.0.0",
@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "eslint . --fix", 
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "npm run build && electron-builder"
+    "electron:build": "npm run build && electron-builder",
+    "py": "cd back_end && uvicorn app:app --host 0.0.0.0 --port 8080 --reload",
+    "py_prod": "cd back_end && python main_https.py"
   },
   "dependencies": {
     "@fontsource/roboto": "5.2.7",

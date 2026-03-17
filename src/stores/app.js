@@ -1,8 +1,9 @@
-// Utilities
 import { defineStore } from 'pinia'
 
-export const useAppStore = defineStore('app', {
+export const useGlobalStore = defineStore('global', {
   state: () => ({
-    //
-  }),
+    Folderlist: [],
+    PartitionActual: null,
+  })
 })
+

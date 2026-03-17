@@ -1,5 +1,9 @@
 <template>
-  <HelloWorld/>
+
+  <div class=" flex items-center justify-center h-full">
+    chargement ....
+  </div>
+
 </template>
 
 <script setup>
@@ -13,6 +17,9 @@ import {
 const router = useRouter()
   //
   onMounted(() => {
-    router.replace('/auth/signin')
+    router.replace('/diskAnalize/homePage')
   })
 </script>
+
+
+
