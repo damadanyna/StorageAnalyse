@@ -1,0 +1,26 @@
+appId: com.monapp.storageanalyzer
+productName: StorageAnalyzer
+
+directories:
+  output: dist
+
+files:
+  - src/**/*
+  - "!src/**/*.map"
+
+# ✅ Embarque Python et le script dans resources/
+extraResources:
+  - from: resources/python-embed
+    to: python-embed
+    filter: ["**/*"]
+  - from: python
+    to: python
+    filter: ["*.py"]
+
+win:
+  target: nsis
+  icon: resources/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

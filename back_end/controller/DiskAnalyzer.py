@@ -62,9 +62,57 @@ class DiskAnalyzer:
             return f"{size_in_bytes / (1024**3):.2f} Go"
         else:
             return f"{size_in_bytes / (1024**2):.2f} Mo"
-    
+        
+    def _scan_children(self, folder_path: str, optimal_workers: int) -> list:
+        """Scan récursif de tous les sous-dossiers imbriqués"""
+        children = []
+        try:
+            subfolders = [
+                entry.path for entry in os.scandir(folder_path)
+                if entry.is_dir(follow_symlinks=False)
+            ]
+        except (PermissionError, OSError):
+            return children
+
+        if not subfolders:
+            return children
+
+        # Scan parallèle des tailles
+        child_results = []
+        with ThreadPoolExecutor(max_workers=optimal_workers) as executor:
+            child_futures = {
+                executor.submit(self.get_size_fast, p): p
+                for p in subfolders
+            }
+            for future in as_completed(child_futures):
+                p = child_futures[future]
+                try:
+                    child_size = future.result()
+                    child_results.append((p, os.path.basename(p), child_size))
+                except Exception:
+                    pass
+
+        child_results.sort(key=lambda x: x[2], reverse=True)
+        total_child_size = sum(s for _, _, s in child_results)
+
+        for full_path, name, size in child_results:
+            percent = round((size / total_child_size * 100) if total_child_size > 0 else 0, 2)
+            children.append({
+                "name":         name,
+                "size_bytes":   size,
+                "size_display": self.format_size(size),
+                "percent":      percent,
+                "child":        self._scan_children(full_path, optimal_workers)  # ← récursion
+            })
+
+        return children
+
+
     def analyze_root_folders(self):
-        """Analyse des dossiers à la racine avec threads"""
+        """Analyse des dossiers à la racine + tous les sous-dossiers récursivement"""
+
+        cache_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "folders.json")
+
         try:
             folders = [
                 entry.path for entry in os.scandir(self.path)
@@ -73,14 +121,12 @@ class DiskAnalyzer:
         except PermissionError:
             yield json.dumps({"error": f"Accès refusé à {self.path}"})
             return
-        
 
         if not folders:
             yield json.dumps({"error": "Aucun dossier trouvé."})
             return
 
-        # optimal_workers = min(32, (os.cpu_count() or 8) * 2)
-        optimal_workers = min(32, (os.cpu_count() or 8))
+        optimal_workers = min(32, os.cpu_count() or 8)
         results = []
 
         with ThreadPoolExecutor(max_workers=optimal_workers) as executor:
@@ -92,22 +138,79 @@ class DiskAnalyzer:
                 path = futures[future]
                 try:
                     size = future.result()
-                    results.append((os.path.basename(path), size))
+                    results.append((path, os.path.basename(path), size))
                 except Exception as e:
                     yield json.dumps({"error": str(e)})
 
-        # ✅ Tri APRÈS que tous les threads ont fini
-        results.sort(key=lambda x: x[1], reverse=True)
+        results.sort(key=lambda x: x[2], reverse=True)
 
-        # ✅ Un seul yield ici, après le tri
-        for name, size in results:
+        file = []
+        for full_path, name, size in results:
             percent = round((size / self.used * 100) if self.used > 0 else 0, 2)
-            yield json.dumps({
-                "name": name,
-                "size_bytes": size,
+            file.append({
+                "name":         name,
+                "size_bytes":   size,
                 "size_display": self.format_size(size),
-                "percent": percent
+                "percent":      percent,
+                "child":        self._scan_children(full_path, optimal_workers)  # ← récursif
             })
+
+        # Écriture AVANT les yields
+        try:
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(file, f, ensure_ascii=False, indent=2)
+            print(f"💾 folders.json sauvegardé → {cache_file}")
+        except OSError as e:
+            print(f"⚠️  Impossible d'écrire folders.json : {e}")
+
+        for entry in file:
+            yield json.dumps(entry)
+    
+    # def analyze_root_folders(self):
+    #     """Analyse des dossiers à la racine avec threads"""
+    #     try:
+    #         folders = [
+    #             entry.path for entry in os.scandir(self.path)
+    #             if entry.is_dir(follow_symlinks=False)
+    #         ]
+    #     except PermissionError:
+    #         yield json.dumps({"error": f"Accès refusé à {self.path}"})
+    #         return
+        
+
+    #     if not folders:
+    #         yield json.dumps({"error": "Aucun dossier trouvé."})
+    #         return
+
+    #     # optimal_workers = min(32, (os.cpu_count() or 8) * 2)
+    #     optimal_workers = min(32, (os.cpu_count() or 8))
+    #     results = []
+
+    #     with ThreadPoolExecutor(max_workers=optimal_workers) as executor:
+    #         futures = {
+    #             executor.submit(self.get_size_fast, path): path
+    #             for path in folders
+    #         }
+    #         for future in as_completed(futures):
+    #             path = futures[future]
+    #             try:
+    #                 size = future.result()
+    #                 results.append((os.path.basename(path), size))
+    #             except Exception as e:
+    #                 yield json.dumps({"error": str(e)})
+
+    #     # ✅ Tri APRÈS que tous les threads ont fini
+    #     results.sort(key=lambda x: x[1], reverse=True)
+
+    #     # ✅ Un seul yield ici, après le tri
+    #     for name, size in results:
+    #         percent = round((size / self.used * 100) if self.used > 0 else 0, 2)
+    #         yield json.dumps({
+    #             "name": name,
+    #             "size_bytes": size,
+    #             "size_display": self.format_size(size),
+    #             "percent": percent
+    #         })
 
     def get_size_fast(self, path: str) -> int:
         total = 0

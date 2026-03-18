@@ -21,38 +21,53 @@ def listpart():
     return result
 
 @router.get("/analyseSubfile")
-async def analyse_subfile(folder_name: str):
-    analyser = DiskAnalyzer("C:\\", max_workers=5)
-    queue = asyncio.Queue()
+async def analyse_root_folders():
+    
+    analyser = DiskAnalyzer("C:\\", max_workers=2)
+    loop = asyncio.get_event_loop()
 
-    async def producer():
-        loop = asyncio.get_event_loop()
-        
-        def run():
-            for item in analyser.analyze_subfolders(folder_name ):
-                # ✅ Push chaque résultat dans la queue dès qu'il est prêt
-                asyncio.run_coroutine_threadsafe(queue.put(item), loop)
-            asyncio.run_coroutine_threadsafe(queue.put(None), loop)  # signal fin
-
-        loop.run_in_executor(None, run)
-
-    async def generator():
-        asyncio.create_task(producer())
-        while True:
-            item = await queue.get()
-            if item is None:  # fin du stream
-                break
-            yield f"data: {item}\n\n"
-
-    return StreamingResponse(
-        generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "Access-Control-Allow-Origin": "*"
-        }
+    # ✅ Force l'exécution COMPLÈTE du générateur dans un thread
+    # → folders.json sera écrit AVANT de retourner la réponse
+    results = await loop.run_in_executor(
+        None,
+        lambda: list(analyser.analyze_root_folders())  # list() consomme tout
     )
+
+    return JSONResponse(content=results)
+
+# @router.get("/analyseSubfile")
+# async def analyse_subfile(folder_name: str):
+#     analyser = DiskAnalyzer("C:\\", max_workers=5)
+#     queue = asyncio.Queue()
+
+#     async def producer():
+#         loop = asyncio.get_event_loop()
+        
+#         def run():
+#             for item in analyser.analyze_subfolders(folder_name ):
+#                 # ✅ Push chaque résultat dans la queue dès qu'il est prêt
+#                 asyncio.run_coroutine_threadsafe(queue.put(item), loop)
+#             asyncio.run_coroutine_threadsafe(queue.put(None), loop)  # signal fin
+
+#         loop.run_in_executor(None, run)
+
+#     async def generator():
+#         asyncio.create_task(producer())
+#         while True:
+#             item = await queue.get()
+#             if item is None:  # fin du stream
+#                 break
+#             yield f"data: {item}\n\n"
+
+#     return StreamingResponse(
+#         generator(),
+#         media_type="text/event-stream",
+#         headers={
+#             "Cache-Control": "no-cache",
+#             "X-Accel-Buffering": "no",
+#             "Access-Control-Allow-Origin": "*"
+#         }
+#     )
 
 # # --- SIGNUP ---
 # @router.post("/signup")
