@@ -1,22 +1,25 @@
 """
 mft_reader.py
-─────────────────────────────────────────────────────────────────
-Énumération NTFS via FSCTL_ENUM_USN_DATA + FSCTL_GET_NTFS_FILE_RECORD.
-Passe 3 : GetFileAttributesEx pour les fichiers verrouillés.
+-----------------------------------------------------------------
+Enumeration NTFS via FSCTL_ENUM_USN_DATA + FSCTL_GET_NTFS_FILE_RECORD.
+Passe 3 : GetFileAttributesEx pour les fichiers verrouilles.
 
-⚠️  PRÉREQUIS : Windows, droits Administrateur
+[!]  PREREQUIS : Windows, droits Administrateur
 UTILISATION :
-    python mft_reader.py              → scan C:\\ par défaut
-    python mft_reader.py D:\\         → scan le volume D:
-    python mft_reader.py C:\\ --json  → exporte dans mft_output.json
-─────────────────────────────────────────────────────────────────
+    python mft_reader.py              -> scan C:\\ par defaut
+    python mft_reader.py D:\\         -> scan le volume D:
+    python mft_reader.py C:\\ --json  -> exporte dans mft_output.json
+-----------------------------------------------------------------
 """
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 import os, sys, json, struct, ctypes, ctypes.wintypes, argparse
 from datetime import datetime
 from collections import defaultdict
 
-# ── Win32 constants ───────────────────────────────────────────────
+# -- Win32 constants -----------------------------------------------
 GENERIC_READ               = 0x80000000
 FILE_SHARE_READ            = 0x00000001
 FILE_SHARE_WRITE           = 0x00000002
@@ -39,7 +42,7 @@ ATTR_DATA          = 0x80
 ATTR_END           = 0xFFFFFFFF
 NTFS_OUTPUT_HEADER = 12
 
-# ── kernel32 ──────────────────────────────────────────────────────
+# -- kernel32 ------------------------------------------------------
 _k32 = ctypes.WinDLL("kernel32", use_last_error=True)
 _k32.CreateFileW.restype  = ctypes.c_void_p
 _k32.CreateFileW.argtypes = [
@@ -55,7 +58,7 @@ _k32.DeviceIoControl.argtypes = [
 _k32.CloseHandle.restype  = ctypes.wintypes.BOOL
 _k32.CloseHandle.argtypes = [ctypes.c_void_p]
 
-# GetFileAttributesExW pour les fichiers verrouillés
+# GetFileAttributesExW pour les fichiers verrouilles
 class WIN32_FILE_ATTRIBUTE_DATA(ctypes.Structure):
     _fields_ = [
         ("dwFileAttributes",  ctypes.wintypes.DWORD),
@@ -85,7 +88,7 @@ def open_volume(drive_letter: str):
     return handle
 
 
-# ── Énumération USN ───────────────────────────────────────────────
+# -- Enumeration USN -----------------------------------------------
 
 def enum_usn_data(handle):
     next_ref  = 0
@@ -138,7 +141,7 @@ def enum_usn_data(handle):
             pos += rec_len
 
 
-# ── Taille via FSCTL_GET_NTFS_FILE_RECORD ─────────────────────────
+# -- Taille via FSCTL_GET_NTFS_FILE_RECORD -------------------------
 
 class _INPUT(ctypes.Structure):
     _fields_ = [("FileReferenceNumber", ctypes.c_ulonglong)]
@@ -164,8 +167,8 @@ NS_PRIORITY    = {1: 3, 3: 2, 0: 1, 2: 0}
 def get_file_size_fsctl(handle, file_ref: int, out_buf, bytes_ret) -> int:
     """
     Taille depuis MFT record via FSCTL_GET_NTFS_FILE_RECORD.
-    Lit $DATA (non-résident) ET $FILE_NAME, retourne le maximum.
-    Cas reparse point : $DATA résident contient ~137 bytes (tag),
+    Lit $DATA (non-resident) ET $FILE_NAME, retourne le maximum.
+    Cas reparse point : $DATA resident contient ~137 bytes (tag),
     la vraie taille est dans $FILE_NAME.
     """
     in_s = _INPUT(FileReferenceNumber=file_ref)
@@ -199,19 +202,19 @@ def get_file_size_fsctl(handle, file_ref: int, out_buf, bytes_ret) -> int:
 
         if at == ATTR_DATA:
             if rec_data[offset + 8] == 0:
-                # Résident : on ne prend cette taille QUE si pas de $DATA non-résident
+                # Resident : on ne prend cette taille QUE si pas de $DATA non-resident
                 cl = struct.unpack_from("<I", rec_data, offset + 0x10)[0]
                 if cl > 0 and data_size == 0:
                     data_size = cl
             else:
-                # Non-résident : source la plus fiable → priorité absolue
+                # Non-resident : source la plus fiable -> priorite absolue
                 if offset + 0x38 <= len(rec_data):
                     real = struct.unpack_from("<Q", rec_data, offset + 0x30)[0]
                     if real > 0:
-                        data_size = real  # non-résident écrase le résident
+                        data_size = real  # non-resident ecrase le resident
 
         elif at == ATTR_FILE_NAME:
-            if rec_data[offset + 8] == 0:   # toujours résident
+            if rec_data[offset + 8] == 0:   # toujours resident
                 co      = struct.unpack_from("<H", rec_data, offset + 0x14)[0]
                 cl      = struct.unpack_from("<I", rec_data, offset + 0x10)[0]
                 content = rec_data[offset + co: offset + co + cl]
@@ -225,10 +228,10 @@ def get_file_size_fsctl(handle, file_ref: int, out_buf, bytes_ret) -> int:
 
         offset += al
 
-    # Logique de sélection finale :
-    # - $DATA non-résident  → toujours prioritaire (fichier normal)
-    # - $DATA résident petit + fn_size grand → reparse/sparse → prendre fn_size
-    # - Pas de $DATA        → prendre fn_size
+    # Logique de selection finale :
+    # - $DATA non-resident  -> toujours prioritaire (fichier normal)
+    # - $DATA resident petit + fn_size grand -> reparse/sparse -> prendre fn_size
+    # - Pas de $DATA        -> prendre fn_size
     if data_size > 0 and fn_size > 0:
         # Si fn_size >> data_size c'est un reparse point (ex: ISO sparse)
         # On prend le maximum
@@ -238,8 +241,8 @@ def get_file_size_fsctl(handle, file_ref: int, out_buf, bytes_ret) -> int:
 
 def get_file_size_fallback(path: str) -> int:
     """
-    Fallback pour les fichiers verrouillés :
-    GetFileAttributesExW lit les métadonnées sans ouvrir le fichier.
+    Fallback pour les fichiers verrouilles :
+    GetFileAttributesExW lit les metadonnees sans ouvrir le fichier.
     Fonctionne sur hiberfil.sys, pagefile.sys, etc.
     """
     info = WIN32_FILE_ATTRIBUTE_DATA()
@@ -249,7 +252,7 @@ def get_file_size_fallback(path: str) -> int:
     return (info.nFileSizeHigh << 32) | info.nFileSizeLow
 
 
-# ── Lecteur principal ─────────────────────────────────────────────
+# -- Lecteur principal ---------------------------------------------
 
 class MFTReader:
     def __init__(self, drive: str):
@@ -258,16 +261,10 @@ class MFTReader:
         self.records     : dict[int, dict] = {}
         self.folder_tree : dict[int, list] = defaultdict(list)
 
-    def _check_admin(self):
-        try:    return ctypes.windll.shell32.IsUserAnAdmin()
-        except: return False
-
     def open(self):
-        if not self._check_admin():
-            raise PermissionError("Droits administrateur requis.")
-        print(f"📂 Ouverture du volume {self.drive}: ...")
+        print(f"[*] Ouverture du volume {self.drive}: ...")
         self.handle = open_volume(self.drive)
-        print("✅ Volume ouvert")
+        print("[OK] Volume ouvert")
 
     def close(self):
         if self.handle:
@@ -278,8 +275,8 @@ class MFTReader:
         if not self.handle:
             raise RuntimeError("Appelle open() d'abord.")
 
-        # ── Passe 1 : USN enumeration ─────────────────────────────
-        print("📖 Passe 1 — Énumération USN...")
+        # -- Passe 1 : USN enumeration -----------------------------
+        print("[>] Passe 1 ? Enumeration USN...")
         n_files = n_dirs = 0
 
         for ref, parent, name, is_dir in enum_usn_data(self.handle):
@@ -295,14 +292,14 @@ class MFTReader:
             if max_records and (n_files + n_dirs) >= max_records:
                 break
             if (n_files + n_dirs) % 100_000 == 0 and (n_files + n_dirs) > 0:
-                print(f"   {n_files+n_dirs:,} entrées "
+                print(f"   {n_files+n_dirs:,} entrees "
                       f"({n_files:,} fichiers, {n_dirs:,} dossiers)...")
 
-        print(f"✅ Passe 1 : {n_files+n_dirs:,} entrées "
+        print(f"[OK] Passe 1 : {n_files+n_dirs:,} entrees "
               f"({n_files:,} fichiers, {n_dirs:,} dossiers)")
 
-        # ── Passe 2 : tailles via FSCTL ───────────────────────────
-        print("📏 Passe 2 — Lecture des tailles (FSCTL_GET_NTFS_FILE_RECORD)...")
+        # -- Passe 2 : tailles via FSCTL ---------------------------
+        print("[~] Passe 2 ? Lecture des tailles (FSCTL_GET_NTFS_FILE_RECORD)...")
         file_refs   = [r for r, rec in self.records.items() if not rec["is_dir"]]
         total_files = len(file_refs)
         found = done = 0
@@ -317,18 +314,18 @@ class MFTReader:
                 found += 1
             done += 1
             if done % 100_000 == 0:
-                print(f"   {done/total_files*100:.0f}% — "
+                print(f"   {done/total_files*100:.0f}% ? "
                       f"{done:,}/{total_files:,} ({found:,} avec taille)")
 
-        print(f"✅ Passe 2 : {found:,}/{total_files:,} fichiers avec taille")
+        print(f"[OK] Passe 2 : {found:,}/{total_files:,} fichiers avec taille")
 
-        # ── Passe 3 : fallback GetFileAttributesEx ────────────────
-        # Pour les ~37k fichiers dont FSCTL a échoué (verrouillés, sparse...)
+        # -- Passe 3 : fallback GetFileAttributesEx ----------------
+        # Pour les ~37k fichiers dont FSCTL a echoue (verrouilles, sparse...)
         zero_refs = [r for r, rec in self.records.items()
                      if not rec["is_dir"] and rec["file_size"] == 0]
 
         if zero_refs:
-            print(f"📏 Passe 3 — Fallback sur {len(zero_refs):,} fichiers "
+            print(f"[~] Passe 3 ? Fallback sur {len(zero_refs):,} fichiers "
                   f"(GetFileAttributesEx)...")
 
             # Reconstruit les chemins complets pour GetFileAttributesExW
@@ -342,15 +339,15 @@ class MFTReader:
                     self.records[ref]["file_size"] = size
                     found3 += 1
 
-            print(f"✅ Passe 3 : {found3:,}/{len(zero_refs):,} tailles récupérées")
+            print(f"[OK] Passe 3 : {found3:,}/{len(zero_refs):,} tailles recuperees")
 
-        # ── Résumé final ──────────────────────────────────────────
+        # -- Resume final ------------------------------------------
         total_gb = sum(rec["file_size"] for rec in self.records.values()
                        if not rec["is_dir"]) / 1024**3
         remaining_zero = sum(1 for rec in self.records.values()
                              if not rec["is_dir"] and rec["file_size"] == 0)
-        print(f"📊 Total compté : {total_gb:.2f} GB "
-              f"({remaining_zero:,} fichiers encore à 0)")
+        print(f"[=] Total compte : {total_gb:.2f} GB "
+              f"({remaining_zero:,} fichiers encore a 0)")
 
     def _get_full_path_fast(self, ref: int, _depth: int = 0) -> str:
         """Reconstruit le chemin complet d'un fichier."""
@@ -367,7 +364,7 @@ class MFTReader:
             return ""
         return f"{parent_path}\\{rec['name']}"
 
-    # ── Tailles dossiers ──────────────────────────────────────────
+    # -- Tailles dossiers ------------------------------------------
 
     def compute_folder_sizes(self) -> dict:
         sizes = {}
@@ -390,6 +387,7 @@ class MFTReader:
             if not rec or not rec["is_dir"]: continue
             size = sizes.get(ref, 0)
             results.append({"record_number": ref, "name": rec["name"],
+                             "is_dir": True,
                              "size_bytes": size, "size_display": _fmt(size),
                              "child": self._ch(ref, sizes, 1, max_depth)})
         results.sort(key=lambda x: x["size_bytes"], reverse=True)
@@ -402,17 +400,46 @@ class MFTReader:
             rec = self.records.get(ref)
             if not rec or not rec["is_dir"]: continue
             size = sizes.get(ref, 0)
-            out.append({"record_number": ref, "name": rec["name"],
-                        "size_bytes": size, "size_display": _fmt(size),
-                        "child": self._ch(ref, sizes, depth+1, max_depth)})
-        out.sort(key=lambda x: x["size_bytes"], reverse=True)
+            # Compte les fichiers directs pour info
+            file_count = sum(1 for r in self.folder_tree.get(ref, [])
+                             if not self.records.get(r, {}).get("is_dir", True))
+            out.append({
+                "record_number": ref,
+                "name":          rec["name"],
+                "is_dir":        True,
+                "size_bytes":    size,
+                "size_display":  _fmt(size),
+                "file_count":    file_count,
+                "child":         self._ch(ref, sizes, depth+1, max_depth)
+            })
+        out.sort(key=lambda x: -x["size_bytes"])
         return out
+
+    def get_folder_files(self, folder_ref: int) -> list:
+        """Retourne les fichiers directs d un dossier (charge a la demande)."""
+        files = []
+        for ref in self.folder_tree.get(folder_ref, []):
+            rec = self.records.get(ref)
+            if not rec or rec["is_dir"]: continue
+            name = rec["name"]
+            ext  = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+            files.append({
+                "record_number": ref,
+                "name":          name,
+                "is_dir":        False,
+                "ext":           ext,
+                "size_bytes":    rec["file_size"],
+                "size_display":  _fmt(rec["file_size"]),
+                "child":         []
+            })
+        files.sort(key=lambda x: -x["size_bytes"])
+        return files
 
     def export_json(self, path, max_depth=None):
         s = self.build_summary(max_depth=max_depth)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(s, f, ensure_ascii=False, indent=2, default=str)
-        print(f"💾 Exporté → {path} ({len(s)} dossiers racine)")
+        print(f"[S] Exporte -> {path} ({len(s)} dossiers racine)")
 
 
 def _fmt(n):
@@ -423,7 +450,7 @@ def _fmt(n):
 
 def main_electron():
     """
-    Point d'entrée compatible CLI et Electron.
+    Point d'entree compatible CLI et Electron.
 
     Usage CLI :
         python mft_reader.py C:\\ --json
@@ -443,6 +470,8 @@ def main_electron():
                    help="Exporte dans mft_output.json (mode CLI)")
     p.add_argument("--max-records", type=int,  default=None,
                    help="Limite records lus (tests)")
+    p.add_argument("--files",       type=int,  default=None,
+                   help="Retourne les fichiers du dossier ref donne")
     a = p.parse_args()
 
     r = MFTReader(a.drive)
@@ -450,14 +479,26 @@ def main_electron():
         start = datetime.now()
         r.open()
         r.read_all_records(max_records=a.max_records)
+
+        # Mode --files : retourne les fichiers directs d un dossier
+        if a.files is not None:
+            files = r.get_folder_files(a.files)
+            if a.output:
+                with open(a.output, "w", encoding="utf-8") as f:
+                    json.dump(files, f, ensure_ascii=False, default=str)
+                print(f"[OK] {len(files)} fichiers -> {a.output}", flush=True)
+            else:
+                print(json.dumps(files, ensure_ascii=False, default=str))
+            return
+
         summary = r.build_summary(max_depth=a.depth)
         elapsed = (datetime.now() - start).total_seconds()
 
         if a.output:
-            # Mode Electron : écrit dans le fichier spécifié par index.js
+            # Mode Electron : ecrit dans le fichier specifie par index.js
             with open(a.output, "w", encoding="utf-8") as f:
                 json.dump(summary, f, ensure_ascii=False, default=str)
-            print(f"✅ Exporté → {a.output} ({len(summary)} dossiers, {elapsed:.1f}s)",
+            print(f"[OK] Exporte -> {a.output} ({len(summary)} dossiers, {elapsed:.1f}s)",
                   flush=True)
 
         elif a.json:
@@ -468,17 +509,17 @@ def main_electron():
 
         else:
             # Mode CLI console
-            print(f"\n⏱️  Terminé en {elapsed:.2f}s\n")
+            print(f"\n[t]  Termine en {elapsed:.2f}s\n")
             print(f"{'Dossier':<40} {'Taille':>12}")
-            print("─" * 54)
+            print("-" * 54)
             for f in summary[:20]:
                 print(f"{f['name']:<40} {f['size_display']:>12}")
 
     except PermissionError as e:
-        print(f"❌ {e}", file=sys.stderr, flush=True)
+        print(f"[ERR] {e}", file=sys.stderr, flush=True)
         sys.exit(1)
     except Exception as e:
-        print(f"❌ {e}", file=sys.stderr, flush=True)
+        print(f"[ERR] {e}", file=sys.stderr, flush=True)
         import traceback; traceback.print_exc()
         sys.exit(1)
     finally:

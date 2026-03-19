@@ -20,102 +20,98 @@ function getScriptPath() {
   return join(__dirname, '..', '..', 'python', 'mft_reader.py')
 }
 
-// ── Handler IPC ───────────────────────────────────────────────
 ipcMain.handle('mft:scan', async (event, { drive = 'C', depth = null } = {}) => {
   const pythonExe  = getPythonPath()
   const scriptPath = getScriptPath()
 
-  const { mkdir } = await import('fs/promises')
+  const { mkdir, writeFile, readFile, unlink, access } = await import('fs/promises')
   const tempDir = 'C:\\Temp'
   await mkdir(tempDir, { recursive: true })
 
   const ts      = Date.now()
   const outFile = `${tempDir}\\mft_out_${ts}.json`
+  const ps1File = `${tempDir}\\mft_scan_${ts}.ps1`
 
   const args = [scriptPath, drive, '--output', outFile]
   if (depth !== null) args.push('--depth', String(depth))
 
-  console.log('🐍 Python:', pythonExe)
-  console.log('📜 Script:', scriptPath)
-  console.log('📂 Output:', outFile)
-  console.log('⚙️  Args:', args)
+  const esc      = s => s.replace(/'/g, "''")
+  const argsList = args.map(a => `'${esc(a)}'`).join(', ')
 
-  const { readFile, unlink, access } = await import('fs/promises')
+  // ✅ Sans RedirectStandardOutput — incompatible avec -Verb RunAs
+  const ps1 = `$p = Start-Process -FilePath '${esc(pythonExe)}' -ArgumentList @(${argsList}) -Verb RunAs -WindowStyle Hidden -PassThru -Wait; if ($p) { exit $p.ExitCode } else { exit 1 }`
+
+  console.log('[*] PS1:', ps1)
+  console.log('[*] Output:', outFile)
+
+  await writeFile(ps1File, ps1, 'utf-8')
 
   return new Promise((resolve, reject) => {
-    // ✅ spawn direct — pas de RunAs, pas de PowerShell intermédiaire
-    // L'app Electron doit être lancée en admin (via le manifest ou manuellement)
-    const proc = spawn(pythonExe, args, {
-      windowsHide: false,   // false pour voir la fenêtre Python si erreur
-      stdio: ['ignore', 'pipe', 'pipe']
+    const ps = spawn('powershell', [
+      '-NoProfile', '-NonInteractive',
+      '-ExecutionPolicy', 'Bypass',
+      '-File', ps1File
+    ], { windowsHide: true })
+
+    let psStderr = ''
+    ps.stderr.on('data', chunk => {
+      psStderr += chunk.toString()
+      console.error('[PS stderr]', chunk.toString().trim())
+    })
+    ps.stdout.on('data', chunk => {
+      console.log('[PS stdout]', chunk.toString().trim())
     })
 
-    let stdout = ''
-    let stderr = ''
+    ps.on('close', async code => {
+      unlink(ps1File).catch(() => {})
+      console.log('[*] PowerShell exit code:', code)
 
-    proc.stdout.on('data', chunk => {
-      stdout += chunk.toString()
-      console.log('[Python stdout]', chunk.toString().trim())
-    })
-    proc.stderr.on('data', chunk => {
-      stderr += chunk.toString()
-      console.error('[Python stderr]', chunk.toString().trim())
-    })
+      // ✅ Polling : attend jusqu'à 5 minutes que Python crée le fichier JSON
+      const maxWait   = 5 * 60 * 1000   // 5 min
+      const interval  = 2000             // vérifie toutes les 2s
+      const startWait = Date.now()
 
-    proc.on('close', async code => {
-      console.log('Python exit code:', code)
-      console.log('Python stdout:', stdout)
-      console.log('Python stderr:', stderr)
+      const waitForFile = async () => {
+        while (Date.now() - startWait < maxWait) {
+          try {
+            await access(outFile)
+            console.log('[OK] Fichier JSON trouve')
 
-      if (code !== 0) {
+            const data   = await readFile(outFile, 'utf-8')
+            const parsed = JSON.parse(data.trim())
+            unlink(outFile).catch(() => {})
+            resolve(parsed)
+            return
+          } catch {
+            // Fichier pas encore prêt — attend
+            await new Promise(r => setTimeout(r, interval))
+          }
+        }
         reject(new Error(
-          `Python a échoué (code ${code})\n` +
-          `Stderr: ${stderr}\nStdout: ${stdout}`
+          `Timeout : Python n'a pas cree le fichier JSON en 5 minutes.\n` +
+          `Code PS: ${code}\nPS stderr: ${psStderr}`
         ))
-        return
       }
 
-      try {
-        await access(outFile)
-      } catch {
-        reject(new Error(
-          `Python n'a pas créé le fichier JSON.\n` +
-          `Stderr: ${stderr}\nStdout: ${stdout}`
-        ))
-        return
-      }
-
-      try {
-        const data   = await readFile(outFile, 'utf-8')
-        const parsed = JSON.parse(data.trim())
-        unlink(outFile).catch(() => {})
-        resolve(parsed)
-      } catch (e) {
-        reject(new Error(`Lecture JSON échouée : ${e.message}`))
-      }
+      waitForFile()
     })
 
-    proc.on('error', err => {
-      reject(new Error(`Python introuvable : ${err.message}\nChemin: ${pythonExe}`))
+    ps.on('error', err => {
+      reject(new Error(`PowerShell introuvable : ${err.message}`))
     })
   })
 })
 
-// ── Fenêtre principale ────────────────────────────────────────
 function createWindow(devServerUrl = null) {
   const preloadPath = join(__dirname, '..', 'preload', 'index.js')
-  console.log('✅ Preload path:', preloadPath)
-
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 1280, height: 800,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false
     }
   })
-
   if (devServerUrl) {
     win.loadURL(devServerUrl)
     win.webContents.openDevTools()
@@ -124,10 +120,8 @@ function createWindow(devServerUrl = null) {
   }
 }
 
-// ── Cycle de vie app ──────────────────────────────────────────
 app.whenReady().then(() => {
   const devServerUrl = process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:3000'
-  console.log('Dev server URL:', devServerUrl)
   createWindow(devServerUrl)
 })
 

@@ -20,6 +20,7 @@ extraResources:
 win:
   target: nsis
   icon: resources/icon.ico
+  requestedExecutionLevel: requireAdministrator  # ✅ Demande les droits admin au lancement
 
 nsis:
   oneClick: false
