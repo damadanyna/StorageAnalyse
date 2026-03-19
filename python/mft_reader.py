@@ -1,13 +1,10 @@
 """
 mft_reader.py
 ─────────────────────────────────────────────────────────────────
-Lecture directe du MFT (Master File Table) NTFS sur Windows.
+Énumération NTFS via FSCTL_ENUM_USN_DATA + FSCTL_GET_NTFS_FILE_RECORD.
+Passe 3 : GetFileAttributesEx pour les fichiers verrouillés.
 
-⚠️  PRÉREQUIS :
-    - Windows uniquement (NTFS)
-    - Droits Administrateur obligatoires (accès raw au volume)
-    - pip install pywin32
-
+⚠️  PRÉREQUIS : Windows, droits Administrateur
 UTILISATION :
     python mft_reader.py              → scan C:\\ par défaut
     python mft_reader.py D:\\         → scan le volume D:
@@ -15,550 +12,476 @@ UTILISATION :
 ─────────────────────────────────────────────────────────────────
 """
 
-import os
-import sys
-import json
-import struct
-import ctypes
-import argparse
+import os, sys, json, struct, ctypes, ctypes.wintypes, argparse
 from datetime import datetime
 from collections import defaultdict
 
+# ── Win32 constants ───────────────────────────────────────────────
+GENERIC_READ               = 0x80000000
+FILE_SHARE_READ            = 0x00000001
+FILE_SHARE_WRITE           = 0x00000002
+OPEN_EXISTING              = 3
+INVALID_HANDLE             = ctypes.c_void_p(-1).value
+FSCTL_ENUM_USN_DATA        = 0x900B3
+FSCTL_GET_NTFS_FILE_RECORD = 0x90068
+FILE_ATTRIBUTE_DIRECTORY   = 0x10
+READ_BUFFER_SIZE           = 65536
 
-# ─────────────────────────────────────────────────────────────────
-# CONSTANTES MFT / NTFS
-# ─────────────────────────────────────────────────────────────────
+USN_OFF_RECORD_LEN   = 0
+USN_OFF_FILE_REF     = 8
+USN_OFF_PARENT_REF   = 16
+USN_OFF_FILE_ATTR    = 52
+USN_OFF_FILENAME_LEN = 56
+USN_OFF_FILENAME_OFF = 58
 
-MFT_RECORD_SIZE         = 1024          # taille standard d'un record MFT
-SIGNATURE_FILE          = b"FILE"       # signature d'un record valide
-ATTR_STANDARD_INFO      = 0x10          # $STANDARD_INFORMATION
-ATTR_FILE_NAME          = 0x30          # $FILE_NAME
-ATTR_DATA               = 0x80          # $DATA
-ATTR_END                = 0xFFFFFFFF    # marqueur de fin des attributs
+SIGNATURE_FILE     = b"FILE"
+ATTR_DATA          = 0x80
+ATTR_END           = 0xFFFFFFFF
+NTFS_OUTPUT_HEADER = 12
 
-# Flags de record
-FLAG_IN_USE             = 0x0001
-FLAG_DIRECTORY          = 0x0002
+# ── kernel32 ──────────────────────────────────────────────────────
+_k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+_k32.CreateFileW.restype  = ctypes.c_void_p
+_k32.CreateFileW.argtypes = [
+    ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD,
+    ctypes.c_void_p, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD,
+    ctypes.c_void_p]
+_k32.DeviceIoControl.restype  = ctypes.wintypes.BOOL
+_k32.DeviceIoControl.argtypes = [
+    ctypes.c_void_p, ctypes.wintypes.DWORD,
+    ctypes.c_void_p, ctypes.wintypes.DWORD,
+    ctypes.c_void_p, ctypes.wintypes.DWORD,
+    ctypes.POINTER(ctypes.wintypes.DWORD), ctypes.c_void_p]
+_k32.CloseHandle.restype  = ctypes.wintypes.BOOL
+_k32.CloseHandle.argtypes = [ctypes.c_void_p]
 
-# Namespace $FILE_NAME
-NAMESPACE_POSIX         = 0
-NAMESPACE_WIN32         = 1
-NAMESPACE_DOS           = 2
-NAMESPACE_WIN32_DOS     = 3
+# GetFileAttributesExW pour les fichiers verrouillés
+class WIN32_FILE_ATTRIBUTE_DATA(ctypes.Structure):
+    _fields_ = [
+        ("dwFileAttributes",  ctypes.wintypes.DWORD),
+        ("ftCreationTime",    ctypes.wintypes.FILETIME),
+        ("ftLastAccessTime",  ctypes.wintypes.FILETIME),
+        ("ftLastWriteTime",   ctypes.wintypes.FILETIME),
+        ("nFileSizeHigh",     ctypes.wintypes.DWORD),
+        ("nFileSizeLow",      ctypes.wintypes.DWORD),
+    ]
 
+_k32.GetFileAttributesExW.restype  = ctypes.wintypes.BOOL
+_k32.GetFileAttributesExW.argtypes = [
+    ctypes.c_wchar_p,
+    ctypes.c_int,       # GET_FILEEX_INFO_LEVELS = 0
+    ctypes.c_void_p,
+]
 
-# ─────────────────────────────────────────────────────────────────
-# ACCÈS RAW AU VOLUME (WIN32 API)
-# ─────────────────────────────────────────────────────────────────
 
 def open_volume(drive_letter: str):
-    """
-    Ouvre un accès raw au volume NTFS.
-    Ex : drive_letter = 'C'
-    Retourne un handle Windows ou lève une exception.
-    """
-    import win32file
-    import win32con
-
-    volume_path = f"\\\\.\\{drive_letter.rstrip(':\\/')}:"
-    handle = win32file.CreateFile(
-        volume_path,
-        win32con.GENERIC_READ,
-        win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE,
-        None,
-        win32con.OPEN_EXISTING,
-        win32con.FILE_ATTRIBUTE_NORMAL,
-        None
-    )
-    if handle == win32file.INVALID_HANDLE_VALUE:
-        raise OSError(f"Impossible d'ouvrir le volume {volume_path}. Droits admin requis.")
+    letter = drive_letter.rstrip(":\\/")[0].upper()
+    path   = f"\\\\.\\{letter}:"
+    handle = _k32.CreateFileW(
+        path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+        None, OPEN_EXISTING, 0, None)
+    if handle == INVALID_HANDLE or handle is None:
+        raise OSError(f"Impossible d'ouvrir {path} (err={ctypes.get_last_error()}). Admin requis.")
     return handle
 
 
-def read_bytes(handle, offset: int, size: int) -> bytes:
-    """Lit `size` octets à partir de `offset` dans le volume."""
-    import win32file
-    win32file.SetFilePointer(handle, offset, 0)  # 0 = FILE_BEGIN
-    _, data = win32file.ReadFile(handle, size)
+# ── Énumération USN ───────────────────────────────────────────────
+
+def enum_usn_data(handle):
+    next_ref  = 0
+    max_usn   = 0x7FFFFFFFFFFFFFFF
+    out_buf   = ctypes.create_string_buffer(READ_BUFFER_SIZE)
+    bytes_ret = ctypes.wintypes.DWORD(0)
+    seen_refs = set()
+
+    while True:
+        in_buf = struct.pack("<QQQ", next_ref, 0, max_usn)
+        ok = _k32.DeviceIoControl(
+            handle, FSCTL_ENUM_USN_DATA,
+            in_buf, len(in_buf),
+            out_buf, READ_BUFFER_SIZE,
+            ctypes.byref(bytes_ret), None)
+
+        nb = bytes_ret.value
+        if nb < 8:
+            break
+
+        new_next = struct.unpack_from("<Q", out_buf.raw, 0)[0]
+
+        if new_next == next_ref or new_next in seen_refs:
+            break
+
+        seen_refs.add(next_ref)
+        next_ref = new_next
+
+        pos = 8
+        while pos + 60 <= nb:
+            rec_len = struct.unpack_from("<I", out_buf.raw, pos + USN_OFF_RECORD_LEN)[0]
+            if rec_len == 0 or rec_len > nb:
+                break
+
+            file_ref   = struct.unpack_from("<Q", out_buf.raw, pos + USN_OFF_FILE_REF)[0]
+            parent_ref = struct.unpack_from("<Q", out_buf.raw, pos + USN_OFF_PARENT_REF)[0]
+            file_attr  = struct.unpack_from("<I", out_buf.raw, pos + USN_OFF_FILE_ATTR)[0]
+            fn_len     = struct.unpack_from("<H", out_buf.raw, pos + USN_OFF_FILENAME_LEN)[0]
+            fn_off     = struct.unpack_from("<H", out_buf.raw, pos + USN_OFF_FILENAME_OFF)[0]
+
+            name_start = pos + fn_off
+            name_end   = name_start + fn_len
+            name = out_buf.raw[name_start:name_end].decode("utf-16-le", errors="replace") \
+                   if name_end <= nb else ""
+
+            ref    = file_ref   & 0x0000FFFFFFFFFFFF
+            parent = parent_ref & 0x0000FFFFFFFFFFFF
+
+            yield ref, parent, name, bool(file_attr & FILE_ATTRIBUTE_DIRECTORY)
+            pos += rec_len
+
+
+# ── Taille via FSCTL_GET_NTFS_FILE_RECORD ─────────────────────────
+
+class _INPUT(ctypes.Structure):
+    _fields_ = [("FileReferenceNumber", ctypes.c_ulonglong)]
+
+
+def _apply_fixup(data: bytearray) -> bytearray:
+    uo = struct.unpack_from("<H", data, 4)[0]
+    uc = struct.unpack_from("<H", data, 6)[0]
+    if uo == 0 or uc < 2: return data
+    us = data[uo: uo+2]
+    for i in range(1, uc):
+        se = i * 512 - 2
+        if se + 2 > len(data): break
+        if data[se:se+2] == us:
+            fx = data[uo+i*2: uo+i*2+2]
+            data[se] = fx[0]; data[se+1] = fx[1]
     return data
 
 
-# ─────────────────────────────────────────────────────────────────
-# PARSING DU BOOT SECTOR (VBR)
-# ─────────────────────────────────────────────────────────────────
+ATTR_FILE_NAME = 0x30
+NS_PRIORITY    = {1: 3, 3: 2, 0: 1, 2: 0}
 
-class NTFSBootSector:
-    """Parse le Volume Boot Record pour extraire les paramètres NTFS."""
+def get_file_size_fsctl(handle, file_ref: int, out_buf, bytes_ret) -> int:
+    """
+    Taille depuis MFT record via FSCTL_GET_NTFS_FILE_RECORD.
+    Lit $DATA (non-résident) ET $FILE_NAME, retourne le maximum.
+    Cas reparse point : $DATA résident contient ~137 bytes (tag),
+    la vraie taille est dans $FILE_NAME.
+    """
+    in_s = _INPUT(FileReferenceNumber=file_ref)
+    ok   = _k32.DeviceIoControl(
+        handle, FSCTL_GET_NTFS_FILE_RECORD,
+        ctypes.byref(in_s), ctypes.sizeof(in_s),
+        out_buf, len(out_buf),
+        ctypes.byref(bytes_ret), None)
 
-    def __init__(self, data: bytes):
-        # Octets par secteur (offset 0x0B, 2 bytes)
-        self.bytes_per_sector    = struct.unpack_from("<H", data, 0x0B)[0]
-        # Secteurs par cluster (offset 0x0D, 1 byte)
-        self.sectors_per_cluster = struct.unpack_from("<B", data, 0x0D)[0]
-        # LCN du $MFT (offset 0x30, 8 bytes)
-        self.mft_lcn             = struct.unpack_from("<Q", data, 0x30)[0]
-        # Taille d'un record MFT (offset 0x40, 1 byte signé)
-        clusters_per_record      = struct.unpack_from("<b", data, 0x40)[0]
+    if not ok or bytes_ret.value < NTFS_OUTPUT_HEADER + 8:
+        return 0
 
-        self.bytes_per_cluster   = self.bytes_per_sector * self.sectors_per_cluster
+    rec_len  = struct.unpack_from("<I", out_buf.raw, 8)[0]
+    rec_data = bytearray(out_buf.raw[NTFS_OUTPUT_HEADER: NTFS_OUTPUT_HEADER + rec_len])
 
-        # Si valeur négative : taille = 2^|valeur|
-        if clusters_per_record < 0:
-            self.record_size = 2 ** abs(clusters_per_record)
-        else:
-            self.record_size = clusters_per_record * self.bytes_per_cluster
+    if rec_data[:4] != SIGNATURE_FILE:
+        return 0
 
-        # Offset absolu du $MFT dans le volume
-        self.mft_offset = self.mft_lcn * self.bytes_per_cluster
+    rec_data   = _apply_fixup(rec_data)
+    offset     = struct.unpack_from("<H", rec_data, 0x14)[0]
+    data_size  = 0   # taille depuis $DATA
+    fn_size    = 0   # taille depuis $FILE_NAME (meilleur namespace)
+    fn_ns      = -1  # namespace courant
 
-    def __repr__(self):
-        return (
-            f"NTFSBootSector("
-            f"bytes_per_sector={self.bytes_per_sector}, "
-            f"bytes_per_cluster={self.bytes_per_cluster}, "
-            f"record_size={self.record_size}, "
-            f"mft_offset=0x{self.mft_offset:X})"
-        )
+    while offset + 4 <= len(rec_data):
+        at = struct.unpack_from("<I", rec_data, offset)[0]
+        if at == ATTR_END: break
+        if offset + 8 > len(rec_data): break
+        al = struct.unpack_from("<I", rec_data, offset + 4)[0]
+        if al == 0 or offset + al > len(rec_data): break
 
-
-# ─────────────────────────────────────────────────────────────────
-# PARSING D'UN RECORD MFT
-# ─────────────────────────────────────────────────────────────────
-
-class MFTRecord:
-    """Parse un record MFT de 1024 octets."""
-
-    __slots__ = (
-        "record_number", "is_valid", "is_directory", "is_in_use",
-        "parent_ref", "file_size", "name", "namespace",
-        "created", "modified",
-    )
-
-    def __init__(self, data: bytes, record_number: int):
-        self.record_number = record_number
-        self.is_valid      = False
-        self.is_directory  = False
-        self.is_in_use     = False
-        self.parent_ref    = None
-        self.file_size     = 0
-        self.name          = ""
-        self.namespace     = -1
-        self.created       = None
-        self.modified      = None
-
-        # Vérifie la signature "FILE"
-        if data[:4] != SIGNATURE_FILE:
-            return
-
-        self.is_valid = True
-
-        # Flags (offset 0x16, 2 bytes)
-        flags = struct.unpack_from("<H", data, 0x16)[0]
-        self.is_in_use    = bool(flags & FLAG_IN_USE)
-        self.is_directory = bool(flags & FLAG_DIRECTORY)
-
-        # Applique la correction Update Sequence (fixup)
-        data = self._apply_fixup(bytearray(data))
-
-        # Offset du premier attribut (offset 0x14, 2 bytes)
-        attr_offset = struct.unpack_from("<H", data, 0x14)[0]
-
-        # Parcourt les attributs
-        self._parse_attributes(data, attr_offset)
-
-    def _apply_fixup(self, data: bytearray) -> bytearray:
-        """Corrige les Update Sequence Array pour la lecture des secteurs."""
-        usa_offset = struct.unpack_from("<H", data, 0x04)[0]
-        usa_count  = struct.unpack_from("<H", data, 0x06)[0]
-
-        if usa_offset == 0 or usa_count < 2:
-            return data
-
-        update_seq = data[usa_offset: usa_offset + 2]
-
-        for i in range(1, usa_count):
-            sector_end = i * 512 - 2
-            if sector_end + 2 > len(data):
-                break
-            # Vérifie que le marqueur correspond
-            if data[sector_end: sector_end + 2] == update_seq:
-                fix = data[usa_offset + i * 2: usa_offset + i * 2 + 2]
-                data[sector_end]     = fix[0]
-                data[sector_end + 1] = fix[1]
-
-        return data
-
-    def _parse_attributes(self, data: bytes, offset: int):
-        """Parcourt et parse les attributs du record."""
-        while offset + 4 <= len(data):
-            attr_type = struct.unpack_from("<I", data, offset)[0]
-
-            if attr_type == ATTR_END:
-                break
-
-            # Taille de l'attribut (offset + 4, 4 bytes)
-            if offset + 8 > len(data):
-                break
-            attr_len = struct.unpack_from("<I", data, offset + 4)[0]
-            if attr_len == 0 or offset + attr_len > len(data):
-                break
-
-            # Attribut résident ou non-résident ?
-            non_resident = data[offset + 8]
-
-            if non_resident == 0:
-                # Résident : offset du contenu (offset + 0x14, 2 bytes)
-                content_offset = struct.unpack_from("<H", data, offset + 0x14)[0]
-                content_len    = struct.unpack_from("<I", data, offset + 0x10)[0]
-                content_start  = offset + content_offset
-                content_end    = content_start + content_len
-                content        = data[content_start:content_end]
-
-                if attr_type == ATTR_STANDARD_INFO and len(content) >= 48:
-                    self._parse_standard_info(content)
-
-                elif attr_type == ATTR_FILE_NAME and len(content) >= 66:
-                    self._parse_file_name(content)
-
+        if at == ATTR_DATA:
+            if rec_data[offset + 8] == 0:
+                # Résident : on ne prend cette taille QUE si pas de $DATA non-résident
+                cl = struct.unpack_from("<I", rec_data, offset + 0x10)[0]
+                if cl > 0 and data_size == 0:
+                    data_size = cl
             else:
-                # Non-résident : taille réelle (offset + 0x30, 8 bytes)
-                if attr_type == ATTR_DATA and offset + 0x38 <= len(data):
-                    real_size = struct.unpack_from("<Q", data, offset + 0x30)[0]
-                    if real_size > 0:
-                        self.file_size = real_size
+                # Non-résident : source la plus fiable → priorité absolue
+                if offset + 0x38 <= len(rec_data):
+                    real = struct.unpack_from("<Q", rec_data, offset + 0x30)[0]
+                    if real > 0:
+                        data_size = real  # non-résident écrase le résident
 
-            offset += attr_len
+        elif at == ATTR_FILE_NAME:
+            if rec_data[offset + 8] == 0:   # toujours résident
+                co      = struct.unpack_from("<H", rec_data, offset + 0x14)[0]
+                cl      = struct.unpack_from("<I", rec_data, offset + 0x10)[0]
+                content = rec_data[offset + co: offset + co + cl]
+                if len(content) >= 0x38:
+                    ns      = content[0x41] if len(content) > 0x41 else -1
+                    fn_real = struct.unpack_from("<Q", content, 0x30)[0]
+                    # Garde la taille du meilleur namespace (WIN32 prioritaire)
+                    if NS_PRIORITY.get(ns, -1) > NS_PRIORITY.get(fn_ns, -1):
+                        fn_size = fn_real
+                        fn_ns   = ns
 
-    def _parse_standard_info(self, content: bytes):
-        """Parse $STANDARD_INFORMATION : timestamps."""
-        # Timestamps FILETIME (100ns depuis 1601-01-01)
-        created_ft  = struct.unpack_from("<Q", content, 0)[0]
-        modified_ft = struct.unpack_from("<Q", content, 8)[0]
+        offset += al
 
-        self.created  = self._filetime_to_datetime(created_ft)
-        self.modified = self._filetime_to_datetime(modified_ft)
-
-    def _parse_file_name(self, content: bytes):
-        """Parse $FILE_NAME : nom du fichier + référence parent."""
-        # Référence du parent (8 bytes, les 6 premiers = numéro de record)
-        parent_ref_raw = struct.unpack_from("<Q", content, 0)[0]
-        parent_ref     = parent_ref_raw & 0x0000FFFFFFFFFFFF  # masque sur 48 bits
-
-        # Namespace (offset 0x41, 1 byte)
-        namespace = content[0x41] if len(content) > 0x41 else -1
-
-        # Longueur du nom (offset 0x40, 1 byte) en caractères UTF-16
-        name_len = content[0x40] if len(content) > 0x40 else 0
-        name_start = 0x42
-        name_end   = name_start + name_len * 2
-
-        if name_end <= len(content):
-            name = content[name_start:name_end].decode("utf-16-le", errors="replace")
-        else:
-            name = ""
-
-        # Taille du fichier dans $FILE_NAME (offset 0x30, 8 bytes)
-        allocated_size = struct.unpack_from("<Q", content, 0x28)[0]
-        real_size      = struct.unpack_from("<Q", content, 0x30)[0]
-
-        # Priorité des namespaces : WIN32 > WIN32_DOS > POSIX > DOS
-        priority = {
-            NAMESPACE_WIN32:     3,
-            NAMESPACE_WIN32_DOS: 2,
-            NAMESPACE_POSIX:     1,
-            NAMESPACE_DOS:       0,
-        }
-        current_priority = priority.get(self.namespace, -1)
-        new_priority     = priority.get(namespace, -1)
-
-        if new_priority > current_priority:
-            self.name       = name
-            self.namespace  = namespace
-            self.parent_ref = parent_ref
-            if real_size > 0 and self.file_size == 0:
-                self.file_size = real_size
-
-    @staticmethod
-    def _filetime_to_datetime(filetime: int):
-        """Convertit un FILETIME Windows en datetime Python."""
-        if filetime == 0:
-            return None
-        try:
-            # FILETIME = 100ns depuis 1601-01-01
-            # Unix epoch = 1970-01-01 → delta = 116444736000000000 * 100ns
-            unix_timestamp = (filetime - 116444736000000000) / 10_000_000
-            return datetime.utcfromtimestamp(unix_timestamp)
-        except (OSError, OverflowError, ValueError):
-            return None
+    # Logique de sélection finale :
+    # - $DATA non-résident  → toujours prioritaire (fichier normal)
+    # - $DATA résident petit + fn_size grand → reparse/sparse → prendre fn_size
+    # - Pas de $DATA        → prendre fn_size
+    if data_size > 0 and fn_size > 0:
+        # Si fn_size >> data_size c'est un reparse point (ex: ISO sparse)
+        # On prend le maximum
+        return max(data_size, fn_size)
+    return data_size or fn_size
 
 
-# ─────────────────────────────────────────────────────────────────
-# LECTEUR MFT PRINCIPAL
-# ─────────────────────────────────────────────────────────────────
+def get_file_size_fallback(path: str) -> int:
+    """
+    Fallback pour les fichiers verrouillés :
+    GetFileAttributesExW lit les métadonnées sans ouvrir le fichier.
+    Fonctionne sur hiberfil.sys, pagefile.sys, etc.
+    """
+    info = WIN32_FILE_ATTRIBUTE_DATA()
+    ok   = _k32.GetFileAttributesExW(path, 0, ctypes.byref(info))
+    if not ok:
+        return 0
+    return (info.nFileSizeHigh << 32) | info.nFileSizeLow
+
+
+# ── Lecteur principal ─────────────────────────────────────────────
 
 class MFTReader:
-    """
-    Lit le MFT d'un volume NTFS et reconstruit l'arborescence complète.
-    """
-
     def __init__(self, drive: str):
-        """
-        drive : lettre du lecteur, ex. 'C' ou 'C:\\' ou 'C:/'
-        """
         self.drive       = drive.rstrip(":\\/")[0].upper()
         self.handle      = None
-        self.boot        = None
-        self.records     = {}          # record_number → MFTRecord
-        self.folder_tree = defaultdict(list)   # parent_ref → [children record_numbers]
+        self.records     : dict[int, dict] = {}
+        self.folder_tree : dict[int, list] = defaultdict(list)
 
     def _check_admin(self):
-        """Vérifie les droits administrateur."""
-        try:
-            return ctypes.windll.shell32.IsUserAnAdmin()
-        except Exception:
-            return False
+        try:    return ctypes.windll.shell32.IsUserAnAdmin()
+        except: return False
 
     def open(self):
-        """Ouvre le volume et lit le boot sector."""
         if not self._check_admin():
-            raise PermissionError(
-                "Droits administrateur requis pour lire le MFT.\n"
-                "Lance le script avec 'Exécuter en tant qu'administrateur'."
-            )
-
+            raise PermissionError("Droits administrateur requis.")
         print(f"📂 Ouverture du volume {self.drive}: ...")
         self.handle = open_volume(self.drive)
-
-        # Lit les 512 premiers octets = VBR
-        vbr_data   = read_bytes(self.handle, 0, 512)
-        self.boot  = NTFSBootSector(vbr_data)
-        print(f"✅ Boot sector lu : {self.boot}")
+        print("✅ Volume ouvert")
 
     def close(self):
-        """Ferme le handle du volume."""
         if self.handle:
-            import win32file
-            win32file.CloseHandle(self.handle)
+            _k32.CloseHandle(self.handle)
             self.handle = None
 
     def read_all_records(self, max_records: int = None):
-        """
-        Lit tous les records MFT et les stocke dans self.records.
-
-        max_records : limite optionnelle (utile pour les tests)
-        """
-        if not self.handle or not self.boot:
+        if not self.handle:
             raise RuntimeError("Appelle open() d'abord.")
 
-        record_size = self.boot.record_size
-        mft_offset  = self.boot.mft_offset
+        # ── Passe 1 : USN enumeration ─────────────────────────────
+        print("📖 Passe 1 — Énumération USN...")
+        n_files = n_dirs = 0
 
-        print(f"📖 Lecture du MFT depuis l'offset 0x{mft_offset:X}...")
-
-        # Lit d'abord le record 0 ($MFT lui-même) pour connaître la taille totale
-        mft_record_0_data = read_bytes(self.handle, mft_offset, record_size)
-        mft_record_0      = MFTRecord(mft_record_0_data, 0)
-        total_mft_size    = mft_record_0.file_size
-        total_records     = total_mft_size // record_size if total_mft_size else 0
-
-        print(f"📊 Taille du MFT : {total_mft_size / (1024**2):.1f} Mo → {total_records:,} records estimés")
-
-        if max_records:
-            total_records = min(total_records, max_records)
-
-        # Lecture par blocs pour minimiser les appels système
-        BATCH_SIZE = 256  # records par batch
-        batch_bytes = BATCH_SIZE * record_size
-
-        read_count = 0
-        valid_count = 0
-
-        for batch_start in range(0, total_records, BATCH_SIZE):
-            offset = mft_offset + batch_start * record_size
-            try:
-                batch_data = read_bytes(self.handle, offset, batch_bytes)
-            except Exception as e:
-                print(f"⚠️  Erreur lecture offset 0x{offset:X} : {e}")
+        for ref, parent, name, is_dir in enum_usn_data(self.handle):
+            if not name:
                 continue
+            self.records[ref] = {"name": name, "parent": parent,
+                                  "is_dir": is_dir, "file_size": 0}
+            if parent != ref:
+                self.folder_tree[parent].append(ref)
+            if is_dir: n_dirs += 1
+            else:      n_files += 1
 
-            for i in range(BATCH_SIZE):
-                record_number = batch_start + i
-                if record_number >= total_records:
-                    break
+            if max_records and (n_files + n_dirs) >= max_records:
+                break
+            if (n_files + n_dirs) % 100_000 == 0 and (n_files + n_dirs) > 0:
+                print(f"   {n_files+n_dirs:,} entrées "
+                      f"({n_files:,} fichiers, {n_dirs:,} dossiers)...")
 
-                start = i * record_size
-                end   = start + record_size
-                record_data = batch_data[start:end]
+        print(f"✅ Passe 1 : {n_files+n_dirs:,} entrées "
+              f"({n_files:,} fichiers, {n_dirs:,} dossiers)")
 
-                if len(record_data) < record_size:
-                    break
+        # ── Passe 2 : tailles via FSCTL ───────────────────────────
+        print("📏 Passe 2 — Lecture des tailles (FSCTL_GET_NTFS_FILE_RECORD)...")
+        file_refs   = [r for r, rec in self.records.items() if not rec["is_dir"]]
+        total_files = len(file_refs)
+        found = done = 0
 
-                record = MFTRecord(record_data, record_number)
-                read_count += 1
+        out_buf   = ctypes.create_string_buffer(NTFS_OUTPUT_HEADER + 4096)
+        bytes_ret = ctypes.wintypes.DWORD(0)
 
-                if record.is_valid and record.is_in_use and record.name:
-                    self.records[record_number] = record
-                    valid_count += 1
+        for ref in file_refs:
+            size = get_file_size_fsctl(self.handle, ref, out_buf, bytes_ret)
+            if size > 0:
+                self.records[ref]["file_size"] = size
+                found += 1
+            done += 1
+            if done % 100_000 == 0:
+                print(f"   {done/total_files*100:.0f}% — "
+                      f"{done:,}/{total_files:,} ({found:,} avec taille)")
 
-                    # Construit l'arbre parent → enfants
-                    if record.parent_ref is not None and record.parent_ref != record_number:
-                        self.folder_tree[record.parent_ref].append(record_number)
+        print(f"✅ Passe 2 : {found:,}/{total_files:,} fichiers avec taille")
 
-            # Progression
-            if batch_start % (BATCH_SIZE * 100) == 0 and batch_start > 0:
-                pct = batch_start / total_records * 100
-                print(f"   {pct:.1f}% — {valid_count:,} entrées valides lues...")
+        # ── Passe 3 : fallback GetFileAttributesEx ────────────────
+        # Pour les ~37k fichiers dont FSCTL a échoué (verrouillés, sparse...)
+        zero_refs = [r for r, rec in self.records.items()
+                     if not rec["is_dir"] and rec["file_size"] == 0]
 
-        print(f"✅ Lecture terminée : {valid_count:,} entrées valides sur {read_count:,} records lus")
+        if zero_refs:
+            print(f"📏 Passe 3 — Fallback sur {len(zero_refs):,} fichiers "
+                  f"(GetFileAttributesEx)...")
 
-    def get_full_path(self, record_number: int, _depth: int = 0) -> str:
-        """Reconstruit le chemin complet d'un record."""
-        if _depth > 64:  # protection contre les cycles
-            return "..."
+            # Reconstruit les chemins complets pour GetFileAttributesExW
+            found3 = 0
+            for ref in zero_refs:
+                path = self._get_full_path_fast(ref)
+                if not path:
+                    continue
+                size = get_file_size_fallback(path)
+                if size > 0:
+                    self.records[ref]["file_size"] = size
+                    found3 += 1
 
-        record = self.records.get(record_number)
-        if not record:
-            return f"{self.drive}:\\"
+            print(f"✅ Passe 3 : {found3:,}/{len(zero_refs):,} tailles récupérées")
 
-        parent_ref = record.parent_ref
-        if parent_ref is None or parent_ref == record_number or parent_ref == 5:
-            # Record 5 = racine du volume
-            return f"{self.drive}:\\{record.name}"
+        # ── Résumé final ──────────────────────────────────────────
+        total_gb = sum(rec["file_size"] for rec in self.records.values()
+                       if not rec["is_dir"]) / 1024**3
+        remaining_zero = sum(1 for rec in self.records.values()
+                             if not rec["is_dir"] and rec["file_size"] == 0)
+        print(f"📊 Total compté : {total_gb:.2f} GB "
+              f"({remaining_zero:,} fichiers encore à 0)")
 
-        parent_path = self.get_full_path(parent_ref, _depth + 1)
-        return f"{parent_path}\\{record.name}"
+    def _get_full_path_fast(self, ref: int, _depth: int = 0) -> str:
+        """Reconstruit le chemin complet d'un fichier."""
+        if _depth > 64:
+            return ""
+        rec = self.records.get(ref)
+        if not rec:
+            return ""
+        parent = rec["parent"]
+        if parent is None or parent == ref or parent == 5:
+            return f"{self.drive}:\\{rec['name']}"
+        parent_path = self._get_full_path_fast(parent, _depth + 1)
+        if not parent_path:
+            return ""
+        return f"{parent_path}\\{rec['name']}"
+
+    # ── Tailles dossiers ──────────────────────────────────────────
 
     def compute_folder_sizes(self) -> dict:
-        """
-        Calcule la taille de chaque dossier en sommant
-        récursivement la taille de tous ses fichiers enfants.
-        Retourne un dict : record_number → taille_totale_bytes
-        """
         sizes = {}
-
-        def accumulate(record_number: int) -> int:
-            if record_number in sizes:
-                return sizes[record_number]
-
-            record = self.records.get(record_number)
-            total = 0
-
-            if record and not record.is_directory:
-                total = record.file_size
-            else:
-                for child_number in self.folder_tree.get(record_number, []):
-                    total += accumulate(child_number)
-
-            sizes[record_number] = total
-            return total
-
-        # Calcule pour tous les dossiers
-        for record_number, record in self.records.items():
-            if record.is_directory:
-                accumulate(record_number)
-
+        def acc(ref):
+            if ref in sizes: return sizes[ref]
+            rec = self.records.get(ref)
+            t   = rec["file_size"] if rec and not rec["is_dir"] else \
+                  sum(acc(c) for c in self.folder_tree.get(ref, []))
+            sizes[ref] = t
+            return t
+        for ref, rec in self.records.items():
+            if rec["is_dir"]: acc(ref)
         return sizes
 
-    def build_summary(self, max_depth: int = None) -> list:
-        """max_depth=None → arborescence complète sans limite."""
-        sizes = self.compute_folder_sizes()
-        ROOT_REF = 5
-        root_children = self.folder_tree.get(ROOT_REF, [])
-
+    def build_summary(self, max_depth=None):
+        sizes   = self.compute_folder_sizes()
         results = []
-        for record_number in root_children:
-            record = self.records.get(record_number)
-            if not record or not record.is_directory:
-                continue
-
-            size = sizes.get(record_number, 0)
-            results.append({
-                "record_number": record_number,
-                "name":          record.name,
-                "size_bytes":    size,
-                "size_display":  self._format_size(size),
-                "child":         self._build_children(record_number, sizes, depth=1, max_depth=max_depth)
-            })
-
+        for ref in self.folder_tree.get(5, []):
+            rec = self.records.get(ref)
+            if not rec or not rec["is_dir"]: continue
+            size = sizes.get(ref, 0)
+            results.append({"record_number": ref, "name": rec["name"],
+                             "size_bytes": size, "size_display": _fmt(size),
+                             "child": self._ch(ref, sizes, 1, max_depth)})
         results.sort(key=lambda x: x["size_bytes"], reverse=True)
         return results
 
-    def _build_children(self, parent_number: int, sizes: dict, depth: int, max_depth: int = None) -> list:
-        """Construit récursivement la liste des enfants — sans limite si max_depth=None."""
-        
-        # Arrêt uniquement si max_depth est défini
-        if max_depth is not None and depth >= max_depth:
-            return []
+    def _ch(self, parent, sizes, depth, max_depth):
+        if max_depth is not None and depth >= max_depth: return []
+        out = []
+        for ref in self.folder_tree.get(parent, []):
+            rec = self.records.get(ref)
+            if not rec or not rec["is_dir"]: continue
+            size = sizes.get(ref, 0)
+            out.append({"record_number": ref, "name": rec["name"],
+                        "size_bytes": size, "size_display": _fmt(size),
+                        "child": self._ch(ref, sizes, depth+1, max_depth)})
+        out.sort(key=lambda x: x["size_bytes"], reverse=True)
+        return out
 
-        children = []
-        for child_number in self.folder_tree.get(parent_number, []):
-            child = self.records.get(child_number)
-            if not child or not child.is_directory:
-                continue
-
-            size = sizes.get(child_number, 0)
-            children.append({
-                "record_number": child_number,
-                "name":          child.name,
-                "size_bytes":    size,
-                "size_display":  self._format_size(size),
-                "child":         self._build_children(child_number, sizes, depth + 1, max_depth)
-            })
-
-        children.sort(key=lambda x: x["size_bytes"], reverse=True)
-        return children
-
-    @staticmethod
-    def _format_size(size_bytes: int) -> str:
-        if size_bytes < 1024:
-            return f"{size_bytes} B"
-        elif size_bytes < 1024 ** 2:
-            return f"{size_bytes / 1024:.2f} KB"
-        elif size_bytes < 1024 ** 3:
-            return f"{size_bytes / 1024 ** 2:.2f} MB"
-        elif size_bytes < 1024 ** 4:
-            return f"{size_bytes / 1024 ** 3:.2f} GB"
-        else:
-            return f"{size_bytes / 1024 ** 4:.2f} TB"
-
-    def export_json(self, output_path: str, max_depth: int = 2):
-        """Exporte le résumé dans un fichier JSON."""
-        summary = self.build_summary(max_depth=max_depth)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(summary, f, ensure_ascii=False, indent=2, default=str)
-        print(f"💾 Exporté → {output_path} ({len(summary)} dossiers racine)")
+    def export_json(self, path, max_depth=None):
+        s = self.build_summary(max_depth=max_depth)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(s, f, ensure_ascii=False, indent=2, default=str)
+        print(f"💾 Exporté → {path} ({len(s)} dossiers racine)")
 
 
-# ─────────────────────────────────────────────────────────────────
-# POINT D'ENTRÉE
-# ─────────────────────────────────────────────────────────────────
-# python/mft_reader.py
-# Ajoute cette fonction à la fin, remplace main()
+def _fmt(n):
+    for u, t in (("TB",1024**4),("GB",1024**3),("MB",1024**2),("KB",1024)):
+        if n >= t: return f"{n/t:.2f} {u}"
+    return f"{n} B"
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("drive",     nargs="?", default="C")
-    parser.add_argument("--depth",   type=int,  default=None)
-    parser.add_argument("--output",  type=str,  default=None)  # ← nouveau
-    args = parser.parse_args()
 
-    reader = MFTReader(args.drive)
+def main_electron():
+    """
+    Point d'entrée compatible CLI et Electron.
+
+    Usage CLI :
+        python mft_reader.py C:\\ --json
+        python mft_reader.py C:\\ --depth 3
+
+    Usage Electron (depuis index.js) :
+        python mft_reader.py C --output "C:\\tmp\\result.json" --depth 3
+    """
+    p = argparse.ArgumentParser(description="Lecteur MFT NTFS via USN + FSCTL")
+    p.add_argument("drive",         nargs="?", default="C:\\",
+                   help="Lettre du lecteur (ex: C ou C:\\)")
+    p.add_argument("--depth",       type=int,  default=None,
+                   help="Profondeur max de l'arborescence")
+    p.add_argument("--output",      type=str,  default=None,
+                   help="Chemin JSON de sortie (mode Electron)")
+    p.add_argument("--json",        action="store_true",
+                   help="Exporte dans mft_output.json (mode CLI)")
+    p.add_argument("--max-records", type=int,  default=None,
+                   help="Limite records lus (tests)")
+    a = p.parse_args()
+
+    r = MFTReader(a.drive)
     try:
-        reader.open()
-        reader.read_all_records()
-        summary = reader.build_summary(max_depth=args.depth)
+        start = datetime.now()
+        r.open()
+        r.read_all_records(max_records=a.max_records)
+        summary = r.build_summary(max_depth=a.depth)
+        elapsed = (datetime.now() - start).total_seconds()
 
-        if args.output:
-            # ✅ Écrit dans le fichier spécifié par Electron
-            with open(args.output, 'w', encoding='utf-8') as f:
+        if a.output:
+            # Mode Electron : écrit dans le fichier spécifié par index.js
+            with open(a.output, "w", encoding="utf-8") as f:
                 json.dump(summary, f, ensure_ascii=False, default=str)
+            print(f"✅ Exporté → {a.output} ({len(summary)} dossiers, {elapsed:.1f}s)",
+                  flush=True)
+
+        elif a.json:
+            # Mode CLI --json
+            out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "mft_output.json")
+            r.export_json(out, max_depth=a.depth)
+
         else:
-            # Fallback stdout
-            print(json.dumps(summary, ensure_ascii=False, default=str))
-            sys.stdout.flush()
+            # Mode CLI console
+            print(f"\n⏱️  Terminé en {elapsed:.2f}s\n")
+            print(f"{'Dossier':<40} {'Taille':>12}")
+            print("─" * 54)
+            for f in summary[:20]:
+                print(f"{f['name']:<40} {f['size_display']:>12}")
 
+    except PermissionError as e:
+        print(f"❌ {e}", file=sys.stderr, flush=True)
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ {e}", file=sys.stderr, flush=True)
+        import traceback; traceback.print_exc()
+        sys.exit(1)
     finally:
-        reader.close()
-
+        r.close()
 if __name__ == "__main__":
-    main()
+    main_electron()

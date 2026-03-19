@@ -1,0 +1,257 @@
+{
+  "total_read": 500000,
+  "valid_in_use": 204921,
+  "base_records": 201884,
+  "ext_records": 3037,
+  "base_with_name": 201604,
+  "base_no_name": 280,
+  "base_no_data": 7164,
+  "base_data_nonzero": 143843,
+  "has_attr_list": 3317,
+  "total_file_size_from_data": 349787219940,
+  "total_file_size_from_fn": 3518138175,
+  "size_discrepancy_count": 110,
+  "users_files": [],
+  "zero_size_examples": [
+    {
+      "rn": 3,
+      "name": "$Volume",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 9,
+      "name": "$Secure",
+      "fn_real": 0,
+      "has_attr_list": true,
+      "attr_list_refs_count": 1,
+      "base_ref": 0
+    },
+    {
+      "rn": 24,
+      "name": "$Quota",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 25,
+      "name": "$ObjId",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 26,
+      "name": "$Reparse",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 53,
+      "name": "hiberfil.sys",
+      "fn_real": 0,
+      "has_attr_list": true,
+      "attr_list_refs_count": 1,
+      "base_ref": 0
+    },
+    {
+      "rn": 58,
+      "name": "tscancellation-3b5cf75ea6b3713338ab.tmp7403",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 279,
+      "name": "LOG.old",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 280,
+      "name": "OUTLOOK_16_0_19328_20158-20251119T1140190279-23592.etl",
+      "fn_real": 0,
+      "has_attr_list": true,
+      "attr_list_refs_count": 4,
+      "base_ref": 0
+    },
+    {
+      "rn": 286,
+      "name": "settings.dat.LOG2",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 304,
+      "name": "mat-debug-22588.log",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 309,
+      "name": "mat-debug-23232.log",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 459,
+      "name": "tscancellation-36004694fd49b7ba3c76.tmp3856",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 661,
+      "name": "{63299DEA-DA51-46E2-B882-990ED58CBA26}.scratch",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 673,
+      "name": "LOG.old",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 683,
+      "name": "mat-debug-12876.log",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 705,
+      "name": "1",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 743,
+      "name": "cancellation-bg-212.tmp",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 761,
+      "name": "LOG",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 881,
+      "name": "container.dat",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 889,
+      "name": "heavy_ad_intervention_opt_out.db-journal",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 925,
+      "name": "LOG.old",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 1256,
+      "name": "mat-debug-23732.log",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 2708,
+      "name": "ipfsrv.lock",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 2715,
+      "name": "tscancellation-1c3e81851a7889a6d3e1.tmp18141",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 2740,
+      "name": "LOG",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 2827,
+      "name": "mat-debug-33404.log",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 2849,
+      "name": "mat-debug-17004.log",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 2879,
+      "name": "mat-debug-21796.log",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    },
+    {
+      "rn": 3062,
+      "name": "pubpol77.dat",
+      "fn_real": 0,
+      "has_attr_list": false,
+      "attr_list_refs_count": 0,
+      "base_ref": 0
+    }
+  ]
+}
