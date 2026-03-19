@@ -386,10 +386,34 @@ class MFTReader:
             rec = self.records.get(ref)
             if not rec or not rec["is_dir"]: continue
             size = sizes.get(ref, 0)
-            results.append({"record_number": ref, "name": rec["name"],
-                             "is_dir": True,
-                             "size_bytes": size, "size_display": _fmt(size),
-                             "child": self._ch(ref, sizes, 1, max_depth)})
+
+            # Fichiers directs du dossier racine
+            files = []
+            for fref in self.folder_tree.get(ref, []):
+                frec = self.records.get(fref)
+                if not frec or frec["is_dir"]: continue
+                fname = frec["name"]
+                fext  = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+                files.append({
+                    "record_number": fref,
+                    "name":          fname,
+                    "is_dir":        False,
+                    "ext":           fext,
+                    "size_bytes":    frec["file_size"],
+                    "size_display":  _fmt(frec["file_size"]),
+                })
+            files.sort(key=lambda x: -x["size_bytes"])
+
+            results.append({
+                "record_number": ref,
+                "name":          rec["name"],
+                "is_dir":        True,
+                "size_bytes":    size,
+                "size_display":  _fmt(size),
+                "file_count":    len(files),
+                "files":         files,
+                "child":         self._ch(ref, sizes, 1, max_depth)
+            })
         results.sort(key=lambda x: x["size_bytes"], reverse=True)
         return results
 
@@ -400,16 +424,32 @@ class MFTReader:
             rec = self.records.get(ref)
             if not rec or not rec["is_dir"]: continue
             size = sizes.get(ref, 0)
-            # Compte les fichiers directs pour info
-            file_count = sum(1 for r in self.folder_tree.get(ref, [])
-                             if not self.records.get(r, {}).get("is_dir", True))
+
+            # Collecte les fichiers directs de ce dossier
+            files = []
+            for fref in self.folder_tree.get(ref, []):
+                frec = self.records.get(fref)
+                if not frec or frec["is_dir"]: continue
+                fname = frec["name"]
+                fext  = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+                files.append({
+                    "record_number": fref,
+                    "name":          fname,
+                    "is_dir":        False,
+                    "ext":           fext,
+                    "size_bytes":    frec["file_size"],
+                    "size_display":  _fmt(frec["file_size"]),
+                })
+            files.sort(key=lambda x: -x["size_bytes"])
+
             out.append({
                 "record_number": ref,
                 "name":          rec["name"],
                 "is_dir":        True,
                 "size_bytes":    size,
                 "size_display":  _fmt(size),
-                "file_count":    file_count,
+                "file_count":    len(files),
+                "files":         files,
                 "child":         self._ch(ref, sizes, depth+1, max_depth)
             })
         out.sort(key=lambda x: -x["size_bytes"])

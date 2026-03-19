@@ -7,11 +7,15 @@
       :active="false"
       rounded="lg"
       class="folder-item"
-      @click="hasChildren ? $emit('toggle', folder.record_number) : null"
+      @click="toggleFolder"
     >
       <template #prepend>
+        <v-progress-circular
+          v-if="loadingFiles"
+          indeterminate size="14" width="2" class="mr-1"
+        />
         <v-icon
-          v-if="hasChildren"
+          v-else-if="hasChildren || folder.file_count > 0"
           :icon="isExpanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"
           size="18" class="mr-1" color="medium-emphasis"
         />
@@ -23,7 +27,12 @@
         />
       </template>
 
-      <v-list-item-title class="folder-name">{{ folder.name }}</v-list-item-title>
+      <v-list-item-title class="folder-name">
+        {{ folder.name }}
+        <span v-if="folder.file_count > 0" class="text-caption text-disabled ml-1">
+          ({{ folder.file_count }} fichiers)
+        </span>
+      </v-list-item-title>
 
       <template #append>
         <div class="folder-stats">
@@ -69,24 +78,34 @@
           />
           <div class="folder-info">
             <span class="text-caption text-disabled">{{ folder.size_display }}</span>
-            <v-chip :color="barColor(percent)" size="x-small" variant="tonal" class="ml-2">
-              {{ percent }}%
-            </v-chip>
           </div>
         </div>
       </template>
     </v-list-item>
 
     <!-- ── Enfants récursifs ── -->
-    <template v-if="folder.is_dir !== false && isExpanded && hasChildren">
+    <template v-if="folder.is_dir !== false && isExpanded">
+      <!-- Sous-dossiers (depuis JSON initial) -->
       <FolderItem
         v-for="child in folder.child"
         :key="child.record_number"
         :folder="child"
         :depth="depth + 1"
         :parent-size="folder.size_bytes"
+        :drive="drive"
         :expanded-ids="expandedIds"
-        @toggle="$emit('toggle', $event)"
+        @toggle="emit('toggle', $event)"
+      />
+      <!-- Fichiers chargés à la demande -->
+      <FolderItem
+        v-for="file in loadedFiles"
+        :key="file.record_number"
+        :folder="file"
+        :depth="depth + 1"
+        :parent-size="folder.size_bytes"
+        :drive="drive"
+        :expanded-ids="expandedIds"
+        @toggle="emit('toggle', $event)"
       />
     </template>
 
@@ -95,19 +114,46 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
-  folder:      { type: Object, required: true },
-  depth:       { type: Number, default: 0 },
-  expandedIds: { type: Set,    required: true },
-  parentSize:  { type: Number, default: 0 },
+  folder:      { type: Object,  required: true },
+  depth:       { type: Number,  default: 0 },
+  expandedIds: { type: Set,     required: true },
+  parentSize:  { type: Number,  default: 0 },
+  drive:       { type: String,  default: 'C' },
 })
 
-defineEmits(['toggle'])
+const emit = defineEmits(['toggle'])
+
+const loadedFiles  = ref([])
+const loadingFiles = ref(false)
 
 const hasChildren = computed(() => props.folder.child?.length > 0)
 const isExpanded  = computed(() => props.expandedIds.has(props.folder.record_number))
+
+async function toggleFolder() {
+  // Si dossier vide et pas de fichiers → rien à faire
+  if (!hasChildren.value && !(props.folder.file_count > 0)) return
+
+  // ✅ Émet le toggle AVANT de charger (expand immédiat)
+  emit('toggle', props.folder.record_number)
+
+  // Charge les fichiers seulement si :
+  // - on est en train d'ouvrir (pas de fermeture)
+  // - pas encore chargés
+  // - il y a des fichiers
+  if (!isExpanded.value && loadedFiles.value.length === 0 && props.folder.file_count > 0) {
+    loadingFiles.value = true
+    try {
+      loadedFiles.value = await window.mftAPI.getFiles(props.drive, props.folder.record_number)
+    } catch (e) {
+      console.error('Erreur chargement fichiers:', e)
+    } finally {
+      loadingFiles.value = false
+    }
+  }
+}
 
 const percent = computed(() => {
   if (props.folder.percent != null) return props.folder.percent
@@ -173,10 +219,8 @@ function fileColor(ext) { return FILE_COLORS[ext?.toLowerCase()] ?? 'grey' }
 <style scoped>
 .folder-item { cursor: pointer; min-height: 44px; transition: background-color 0.15s; }
 .folder-item:hover { background: rgba(var(--v-theme-primary), 0.05); }
-
 .file-item { cursor: default; min-height: 36px; transition: background-color 0.15s; }
 .file-item:hover { background: rgba(128,128,128, 0.04); }
-
 .folder-name {
   font-size: 13px; font-weight: 500;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;

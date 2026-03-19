@@ -26,21 +26,18 @@
       {
         "from": "resources/python-embed",
         "to": "python-embed",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
       },
       {
         "from": "python",
         "to": "python",
-        "filter": [
-          "*.py"
-        ]
+        "filter": ["*.py"]
       }
     ],
     "win": {
       "target": "nsis",
-      "icon": "resources/icon.ico"
+      "icon": "resources/icon.ico",
+      "requestedExecutionLevel": "requireAdministrator"
     },
     "nsis": {
       "oneClick": false,
