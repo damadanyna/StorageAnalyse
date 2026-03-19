@@ -55,25 +55,29 @@
 
     <!-- ── Loading ── -->
     <v-row v-if="loading" justify="center" class="my-8">
-      <v-col cols="auto" class="text-center">
+      <div class="flex h-full items-center w-full justify-center">
+        <v-col cols="auto" class="text-center">
         <v-progress-circular indeterminate color="primary" size="48" />
         <p class="mt-3 text-medium-emphasis">Lecture du MFT en cours...</p>
       </v-col>
+      </div>
     </v-row>
 
     <!-- ── Arborescence ── -->
-    <v-card v-if="!loading && folders.length" variant="outlined">
-      <v-list density="compact" nav>
-        <FolderItem
-          v-for="folder in folders"
-          :key="folder.record_number"
-          :folder="folder"
-          :depth="0"
-          :expanded-ids="expandedIds"
-          @toggle="toggleFolder"
-        />
-      </v-list>
-    </v-card>
+    <div class=" overflow-auto max-h-[87vh]">
+      <v-card v-if="!loading && folders.length" variant="outlined">
+        <v-list density="compact" nav>
+          <FolderItem
+            v-for="folder in folders"
+            :key="folder.record_number"
+            :folder="folder"
+            :depth="0"
+            :expanded-ids="expandedIds"
+            @toggle="toggleFolder"
+          />
+        </v-list>
+      </v-card>
+    </div>
 
     <!-- ── État vide ── -->
     <v-row v-if="!loading && !folders.length && !error" justify="center" class="my-8">
