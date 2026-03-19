@@ -6,7 +6,6 @@ import path, { join, dirname } from 'path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname  = dirname(__filename)
 
-// ── Chemins Python ────────────────────────────────────────────
 function getPythonPath() {
   if (app.isPackaged) {
     return join(process.resourcesPath, 'python-embed', 'python.exe')
@@ -25,56 +24,80 @@ function getScriptPath() {
 ipcMain.handle('mft:scan', async (event, { drive = 'C', depth = null } = {}) => {
   const pythonExe  = getPythonPath()
   const scriptPath = getScriptPath()
-  const outFile    = path.join(app.getPath('temp'), `mft_out_${Date.now()}.json`)
+
+  const { mkdir } = await import('fs/promises')
+  const tempDir = 'C:\\Temp'
+  await mkdir(tempDir, { recursive: true })
+
+  const ts      = Date.now()
+  const outFile = `${tempDir}\\mft_out_${ts}.json`
 
   const args = [scriptPath, drive, '--output', outFile]
   if (depth !== null) args.push('--depth', String(depth))
 
-  // ✅ Backslash simple — correct pour PowerShell
-  const argList    = args.map(a => `'${a}'`).join(',')
-  const ps1Content = `Start-Process -FilePath '${pythonExe}' -ArgumentList @(${argList}) -Verb RunAs -WindowStyle Hidden -Wait`
-  const ps1File    = path.join(app.getPath('temp'), `mft_scan_${Date.now()}.ps1`)
+  console.log('🐍 Python:', pythonExe)
+  console.log('📜 Script:', scriptPath)
+  console.log('📂 Output:', outFile)
+  console.log('⚙️  Args:', args)
 
-  console.log('📄 PS1 content:\n', ps1Content)
-
-  const { writeFile, readFile, unlink, access } = await import('fs/promises')
-  await writeFile(ps1File, ps1Content, 'utf-8')
+  const { readFile, unlink, access } = await import('fs/promises')
 
   return new Promise((resolve, reject) => {
-    const ps = spawn('powershell', [
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy', 'Bypass',
-      '-File', ps1File
-    ], { windowsHide: true })
+    // ✅ spawn direct — pas de RunAs, pas de PowerShell intermédiaire
+    // L'app Electron doit être lancée en admin (via le manifest ou manuellement)
+    const proc = spawn(pythonExe, args, {
+      windowsHide: false,   // false pour voir la fenêtre Python si erreur
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
 
+    let stdout = ''
     let stderr = ''
-    ps.stderr.on('data', chunk => { stderr += chunk.toString() })
 
-    // ✅ Bloc close corrigé
-    ps.on('close', async code => {
-      unlink(ps1File).catch(() => {})
-      console.log('PowerShell exit code:', code)
+    proc.stdout.on('data', chunk => {
+      stdout += chunk.toString()
+      console.log('[Python stdout]', chunk.toString().trim())
+    })
+    proc.stderr.on('data', chunk => {
+      stderr += chunk.toString()
+      console.error('[Python stderr]', chunk.toString().trim())
+    })
 
-      // Vérifie si Python a bien créé le fichier JSON
-      try {
-        await access(outFile)
-        console.log('✅ Fichier JSON trouvé')
-      } catch {
-        reject(new Error(`Python n'a pas créé le fichier JSON. Code PS: ${code}. Stderr: ${stderr}`))
+    proc.on('close', async code => {
+      console.log('Python exit code:', code)
+      console.log('Python stdout:', stdout)
+      console.log('Python stderr:', stderr)
+
+      if (code !== 0) {
+        reject(new Error(
+          `Python a échoué (code ${code})\n` +
+          `Stderr: ${stderr}\nStdout: ${stdout}`
+        ))
         return
       }
 
       try {
-        const data = await readFile(outFile, 'utf-8')
-        resolve(JSON.parse(data.trim()))
+        await access(outFile)
+      } catch {
+        reject(new Error(
+          `Python n'a pas créé le fichier JSON.\n` +
+          `Stderr: ${stderr}\nStdout: ${stdout}`
+        ))
+        return
+      }
+
+      try {
+        const data   = await readFile(outFile, 'utf-8')
+        const parsed = JSON.parse(data.trim())
         unlink(outFile).catch(() => {})
+        resolve(parsed)
       } catch (e) {
         reject(new Error(`Lecture JSON échouée : ${e.message}`))
       }
     })
 
-    ps.on('error', err => reject(new Error(`PowerShell introuvable : ${err.message}`)))
+    proc.on('error', err => {
+      reject(new Error(`Python introuvable : ${err.message}\nChemin: ${pythonExe}`))
+    })
   })
 })
 
