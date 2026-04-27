@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./signin-BB-EswR-.js","./signin-Dpq9KUaf.css"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./signin-Byi-TEp2.js","./signin-Dpq9KUaf.css"])))=>i.map(i=>d[i]);
 /**
 * @vue/shared v3.5.27
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
@@ -13134,7 +13134,7 @@ const routes = [
   {
     path: "/",
     name: "/",
-    component: () => __vitePreload(() => import("./index-zCBf9YYK.js"), true ? [] : void 0, import.meta.url)
+    component: () => __vitePreload(() => import("./index-ChNQU5qb.js"), true ? [] : void 0, import.meta.url)
     /* no children */
   },
   {
@@ -13145,13 +13145,13 @@ const routes = [
       {
         path: "signin",
         name: "/auth/signin",
-        component: () => __vitePreload(() => import("./signin-BB-EswR-.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./signin-Byi-TEp2.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url)
         /* no children */
       },
       {
         path: "signup",
         name: "/auth/signup",
-        component: () => __vitePreload(() => import("./signup-BhxiOCwr.js"), true ? [] : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./signup-C1W8l0WN.js"), true ? [] : void 0, import.meta.url)
         /* no children */
       }
     ]
@@ -13164,7 +13164,7 @@ const routes = [
       {
         path: "homePage",
         name: "/diskAnalize/homePage",
-        component: () => __vitePreload(() => import("./homePage-EX9IYYOJ.js"), true ? [] : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./homePage-cmG67BoZ.js"), true ? [] : void 0, import.meta.url)
         /* no children */
       }
     ]
@@ -23806,12 +23806,24 @@ const _hoisted_6 = { class: "text-body-1 font-weight-medium" };
 const _hoisted_7 = { class: "text-body-1 font-weight-medium" };
 const _hoisted_8 = { class: "text-body-1 font-weight-medium" };
 const _hoisted_9 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_10 = { class: "mt-4 flex items-center justify-between gap-3 flex-wrap" };
-const _hoisted_11 = { class: "flex items-center justify-between gap-3" };
-const _hoisted_12 = { class: "text-body-2 font-weight-medium" };
-const _hoisted_13 = { class: "text-body-2 text-medium-emphasis" };
-const _hoisted_14 = { class: "text-caption text-disabled" };
-const _hoisted_15 = { class: "overflow-auto max-h-[87vh]" };
+const _hoisted_10 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_11 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_12 = { class: "text-body-2 font-weight-medium text-truncate" };
+const _hoisted_13 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_14 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_15 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_16 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_17 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_18 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_19 = { class: "text-body-1 font-weight-medium mt-1" };
+const _hoisted_20 = { class: "text-body-2 text-medium-emphasis mt-1" };
+const _hoisted_21 = { class: "mt-4 flex items-center justify-between gap-3 flex-wrap" };
+const _hoisted_22 = { class: "flex items-center justify-between gap-3" };
+const _hoisted_23 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_24 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_25 = { class: "text-caption text-disabled" };
+const _hoisted_26 = { class: "overflow-auto max-h-[87vh]" };
+const DASHBOARD_GRACE_MS = 6e3;
 const _sfc_main$1 = {
   __name: "DiskTree",
   setup(__props) {
@@ -23825,8 +23837,24 @@ const _sfc_main$1 = {
     const drives = /* @__PURE__ */ ref(["C"]);
     const scanStartedAt = /* @__PURE__ */ ref(null);
     const scanFinishedAt = /* @__PURE__ */ ref(null);
+    const dashboardVisible = /* @__PURE__ */ ref(false);
+    let dashboardHideTimer = null;
     let removeProgressListener = null;
+    function clearDashboardHideTimer() {
+      if (dashboardHideTimer) {
+        clearTimeout(dashboardHideTimer);
+        dashboardHideTimer = null;
+      }
+    }
+    function scheduleDashboardHide() {
+      clearDashboardHideTimer();
+      dashboardHideTimer = setTimeout(() => {
+        dashboardVisible.value = false;
+      }, DASHBOARD_GRACE_MS);
+    }
     async function startScan() {
+      clearDashboardHideTimer();
+      dashboardVisible.value = true;
       loading.value = true;
       error.value = null;
       folders.value = [];
@@ -23844,6 +23872,7 @@ const _sfc_main$1 = {
       } finally {
         loading.value = false;
         scanFinishedAt.value = Date.now();
+        scheduleDashboardHide();
       }
     }
     const scanInfoLabelMap = {
@@ -23905,6 +23934,67 @@ const _sfc_main$1 = {
     const currentStageLabel = computed(() => {
       return progressStageLabel(progressEvents.value.at(-1)?.stage);
     });
+    const isDashboardVisible = computed(() => loading.value || dashboardVisible.value);
+    const latestProgressByStage = computed(() => {
+      const map = {};
+      for (const entry of progressEvents.value) {
+        if (entry?.type === "progress" && entry.stage) {
+          map[entry.stage] = entry;
+        }
+      }
+      return map;
+    });
+    const latestAnalysisEvent = computed(() => {
+      for (let index = progressEvents.value.length - 1; index >= 0; index -= 1) {
+        const entry = progressEvents.value[index];
+        if (entry?.type === "progress" && Number.isFinite(entry.processedCount)) {
+          return entry;
+        }
+      }
+      return null;
+    });
+    const currentAnalyzedFile = computed(() => {
+      return latestAnalysisEvent.value?.currentFile ?? "Initialisation...";
+    });
+    const totalFilesLabel = computed(() => {
+      const total = latestAnalysisEvent.value?.totalFiles ?? latestAnalysisEvent.value?.totalCount;
+      if (!Number.isFinite(total)) return "Calcul en cours";
+      return new Intl.NumberFormat("fr-FR").format(total);
+    });
+    const processedFilesLabel = computed(() => {
+      const processed = latestAnalysisEvent.value?.processedCount;
+      if (!Number.isFinite(processed)) return "0";
+      return new Intl.NumberFormat("fr-FR").format(processed);
+    });
+    const recentAnalyzedFiles = computed(() => {
+      const recent = [];
+      const seen2 = /* @__PURE__ */ new Set();
+      for (let index = progressEvents.value.length - 1; index >= 0; index -= 1) {
+        const currentFile = progressEvents.value[index]?.currentFile;
+        if (!currentFile || seen2.has(currentFile)) continue;
+        seen2.add(currentFile);
+        recent.push(currentFile);
+        if (recent.length >= 12) break;
+      }
+      return recent;
+    });
+    function formatInteger(value, fallback = "0") {
+      if (!Number.isFinite(value)) return fallback;
+      return new Intl.NumberFormat("fr-FR").format(value);
+    }
+    const passOneFilesLabel = computed(() => formatInteger(latestProgressByStage.value["usn-enum"]?.totalFiles));
+    const passOneDirsLabel = computed(() => formatInteger(latestProgressByStage.value["usn-enum"]?.totalDirs));
+    const passTwoSizedFilesLabel = computed(() => formatInteger(latestProgressByStage.value["mft-read"]?.filesWithSize));
+    const passThreeRecoveredLabel = computed(() => formatInteger(latestProgressByStage.value.fallback?.filesRecovered));
+    const analysisSpeedLabel = computed(() => {
+      if (!scanStartedAt.value) return "0 fichier/s";
+      const lastCount = latestProgressByStage.value["mft-read"]?.processedCount ?? latestProgressByStage.value.fallback?.processedCount ?? latestAnalysisEvent.value?.processedCount;
+      if (!Number.isFinite(lastCount) || lastCount <= 0) return "0 fichier/s";
+      const end = loading.value ? Date.now() : scanFinishedAt.value ?? Date.now();
+      const elapsedSeconds = Math.max(1, (end - scanStartedAt.value) / 1e3);
+      const speed = lastCount / elapsedSeconds;
+      return `${speed >= 10 ? speed.toFixed(0) : speed.toFixed(1)} fichier/s`;
+    });
     const displayProgressEvents = computed(() => {
       return [...progressEvents.value].reverse();
     });
@@ -23924,6 +24014,11 @@ const _sfc_main$1 = {
     };
     const lastProgressType = computed(() => progressEvents.value.at(-1)?.type ?? "status");
     const estimatedProgress = computed(() => {
+      const structuredProcessed = latestAnalysisEvent.value?.processedCount;
+      const structuredTotal = latestAnalysisEvent.value?.totalCount ?? latestAnalysisEvent.value?.totalFiles;
+      if (Number.isFinite(structuredProcessed) && Number.isFinite(structuredTotal) && structuredTotal > 0) {
+        return Math.min(100, Math.max(0, Math.round(structuredProcessed / structuredTotal * 100)));
+      }
       const lastEntry = progressEvents.value.at(-1);
       if (!lastEntry) return 0;
       const stageValue = progressPercentByStage[lastEntry.stage] ?? 0;
@@ -23975,10 +24070,12 @@ const _sfc_main$1 = {
         if (!scanStartedAt.value) scanStartedAt.value = Date.now();
         if (payload.type === "success" || payload.type === "error") {
           scanFinishedAt.value = Date.now();
+          scheduleDashboardHide();
         }
       });
     });
     onBeforeUnmount(() => {
+      clearDashboardHideTimer();
       removeProgressListener?.();
       removeProgressListener = null;
     });
@@ -24105,7 +24202,7 @@ const _sfc_main$1 = {
             ]),
             _: 1
           })) : createCommentVNode("", true),
-          loading.value ? (openBlock(), createBlock(VRow, {
+          isDashboardVisible.value ? (openBlock(), createBlock(VRow, {
             key: 1,
             justify: "center",
             class: "my-8"
@@ -24270,12 +24367,207 @@ const _sfc_main$1 = {
                               })
                             ]),
                             _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[11] || (_cache[11] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichiers a analyser", -1)),
+                                  createBaseVNode("div", _hoisted_10, toDisplayString(totalFilesLabel.value), 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[12] || (_cache[12] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichiers analyses", -1)),
+                                  createBaseVNode("div", _hoisted_11, toDisplayString(processedFilesLabel.value), 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[13] || (_cache[13] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichier en cours", -1)),
+                                  createBaseVNode("div", _hoisted_12, toDisplayString(currentAnalyzedFile.value), 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[14] || (_cache[14] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Vitesse analyse", -1)),
+                                  createBaseVNode("div", _hoisted_13, toDisplayString(analysisSpeedLabel.value), 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[15] || (_cache[15] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 1", -1)),
+                                  createBaseVNode("div", _hoisted_14, toDisplayString(passOneFilesLabel.value) + " fichiers", 1),
+                                  createBaseVNode("div", _hoisted_15, toDisplayString(passOneDirsLabel.value) + " dossiers", 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[16] || (_cache[16] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 2", -1)),
+                                  createBaseVNode("div", _hoisted_16, toDisplayString(passTwoSizedFilesLabel.value) + " tailles trouvees", 1),
+                                  createBaseVNode("div", _hoisted_17, "sur " + toDisplayString(totalFilesLabel.value) + " fichiers", 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[17] || (_cache[17] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 3", -1)),
+                                  createBaseVNode("div", _hoisted_18, toDisplayString(passThreeRecoveredLabel.value) + " tailles recuperees", 1),
+                                  _cache[18] || (_cache[18] = createBaseVNode("div", { class: "text-body-2 text-medium-emphasis" }, "fallback fichiers verrouilles", -1))
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
                           })
                         ]),
                         _: 1
                       }),
-                      createBaseVNode("div", _hoisted_10, [
-                        _cache[12] || (_cache[12] = createBaseVNode("div", { class: "text-subtitle-2" }, "Journal complet du chargement", -1)),
+                      createVNode(VCard, {
+                        variant: "tonal",
+                        color: "primary",
+                        class: "mt-4 pa-3"
+                      }, {
+                        default: withCtx(() => [
+                          _cache[19] || (_cache[19] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Avancement detaille", -1)),
+                          createBaseVNode("div", _hoisted_19, toDisplayString(processedFilesLabel.value) + " / " + toDisplayString(totalFilesLabel.value), 1),
+                          createBaseVNode("div", _hoisted_20, toDisplayString(currentProgressMessage.value), 1)
+                        ]),
+                        _: 1
+                      }),
+                      createVNode(VCard, {
+                        variant: "outlined",
+                        class: "mt-4 pa-3"
+                      }, {
+                        default: withCtx(() => [
+                          _cache[21] || (_cache[21] = createBaseVNode("div", { class: "text-subtitle-2 mb-2" }, "Derniers fichiers analyses", -1)),
+                          createVNode(VList, {
+                            density: "compact",
+                            class: "recent-files-list"
+                          }, {
+                            default: withCtx(() => [
+                              (openBlock(true), createElementBlock(Fragment, null, renderList(recentAnalyzedFiles.value, (file, index) => {
+                                return openBlock(), createBlock(VListItem, {
+                                  key: `${file}-${index}`,
+                                  "min-height": "32"
+                                }, {
+                                  default: withCtx(() => [
+                                    createVNode(VListItemTitle, { class: "text-body-2 text-truncate" }, {
+                                      default: withCtx(() => [
+                                        createTextVNode(toDisplayString(file), 1)
+                                      ]),
+                                      _: 2
+                                    }, 1024)
+                                  ]),
+                                  _: 2
+                                }, 1024);
+                              }), 128)),
+                              recentAnalyzedFiles.value.length === 0 ? (openBlock(), createBlock(VListItem, {
+                                key: 0,
+                                "min-height": "32"
+                              }, {
+                                default: withCtx(() => [
+                                  createVNode(VListItemTitle, { class: "text-body-2 text-medium-emphasis" }, {
+                                    default: withCtx(() => [..._cache[20] || (_cache[20] = [
+                                      createTextVNode("Aucun fichier encore remonte par l analyse.", -1)
+                                    ])]),
+                                    _: 1
+                                  })
+                                ]),
+                                _: 1
+                              })) : createCommentVNode("", true)
+                            ]),
+                            _: 1
+                          })
+                        ]),
+                        _: 1
+                      }),
+                      createBaseVNode("div", _hoisted_21, [
+                        _cache[23] || (_cache[23] = createBaseVNode("div", { class: "text-subtitle-2" }, "Journal complet du chargement", -1)),
                         createVNode(VBtn, {
                           variant: "text",
                           size: "small",
@@ -24283,7 +24575,7 @@ const _sfc_main$1 = {
                           disabled: loading.value || progressEvents.value.length === 0,
                           onClick: clearProgressHistory
                         }, {
-                          default: withCtx(() => [..._cache[11] || (_cache[11] = [
+                          default: withCtx(() => [..._cache[22] || (_cache[22] = [
                             createTextVNode(" Effacer ", -1)
                           ])]),
                           _: 1
@@ -24303,12 +24595,12 @@ const _sfc_main$1 = {
                               size: "small"
                             }, {
                               default: withCtx(() => [
-                                createBaseVNode("div", _hoisted_11, [
+                                createBaseVNode("div", _hoisted_22, [
                                   createBaseVNode("div", null, [
-                                    createBaseVNode("div", _hoisted_12, toDisplayString(progressStageLabel(entry.stage)), 1),
-                                    createBaseVNode("div", _hoisted_13, toDisplayString(entry.message), 1)
+                                    createBaseVNode("div", _hoisted_23, toDisplayString(progressStageLabel(entry.stage)), 1),
+                                    createBaseVNode("div", _hoisted_24, toDisplayString(entry.message), 1)
                                   ]),
-                                  createBaseVNode("div", _hoisted_14, toDisplayString(formatProgressTime(entry.timestamp)), 1)
+                                  createBaseVNode("div", _hoisted_25, toDisplayString(formatProgressTime(entry.timestamp)), 1)
                                 ])
                               ]),
                               _: 2
@@ -24326,7 +24618,7 @@ const _sfc_main$1 = {
             ]),
             _: 1
           })) : createCommentVNode("", true),
-          createBaseVNode("div", _hoisted_15, [
+          createBaseVNode("div", _hoisted_26, [
             !loading.value && folders.value.length ? (openBlock(), createBlock(VCard, {
               key: 0,
               variant: "outlined"
@@ -24370,12 +24662,12 @@ const _sfc_main$1 = {
                     size: "64",
                     color: "medium-emphasis"
                   }, {
-                    default: withCtx(() => [..._cache[13] || (_cache[13] = [
+                    default: withCtx(() => [..._cache[24] || (_cache[24] = [
                       createTextVNode("mdi-folder-search-outline", -1)
                     ])]),
                     _: 1
                   }),
-                  _cache[14] || (_cache[14] = createBaseVNode("p", { class: "mt-3 text-medium-emphasis" }, "Lance un scan pour voir l'arborescence", -1))
+                  _cache[25] || (_cache[25] = createBaseVNode("p", { class: "mt-3 text-medium-emphasis" }, "Lance un scan pour voir l'arborescence", -1))
                 ]),
                 _: 1
               })
@@ -24388,7 +24680,7 @@ const _sfc_main$1 = {
     };
   }
 };
-const DiskTree = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-6805307e"]]);
+const DiskTree = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-0f511a57"]]);
 const makeVAppProps = propsFactory({
   ...makeComponentProps(),
   ...omit(makeLayoutProps(), ["fullHeight"]),

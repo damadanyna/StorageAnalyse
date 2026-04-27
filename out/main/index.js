@@ -40,6 +40,7 @@ const mftCache = {
   tree: {}
   // parent_ref -> [child_refs]
 };
+const PYTHON_PROGRESS_PREFIX = "__SCAN_PROGRESS__";
 function emitScanProgress(target, payload) {
   target?.send("mft:scan-progress", {
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
@@ -105,6 +106,14 @@ function runPythonJson(args, options = {}) {
     attachLineBuffer(child.stderr, (line) => {
       stderr += `${line}
 `;
+      if (line.startsWith(PYTHON_PROGRESS_PREFIX)) {
+        try {
+          const payload = JSON.parse(line.slice(PYTHON_PROGRESS_PREFIX.length));
+          onProgress?.({ type: "progress", stage: payload.stage ?? "scan", ...payload });
+          return;
+        } catch {
+        }
+      }
       onProgress?.({ type: "log", stage: inferStage(line), message: line });
     });
     child.on("close", (code) => {

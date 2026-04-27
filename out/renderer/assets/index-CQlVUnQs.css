@@ -47748,6 +47748,9 @@ html.overflow-y-hidden {
 .mb-10 {
   margin-bottom: 2.5rem;
 }
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
 .mb-3 {
   margin-bottom: 0.75rem;
 }
@@ -47771,6 +47774,9 @@ html.overflow-y-hidden {
 }
 .mr-2 {
   margin-right: 0.5rem;
+}
+.mt-1 {
+  margin-top: 0.25rem;
 }
 .mt-3 {
   margin-top: 0.75rem;
@@ -49838,8 +49844,12 @@ html, body {
     background-position-x: var(--v-progress-linear-height);
   }
 }
-.progress-timeline[data-v-6805307e] {
+.progress-timeline[data-v-0f511a57] {
   max-height: 320px;
+  overflow: auto;
+}
+.recent-files-list[data-v-0f511a57] {
+  max-height: 220px;
   overflow: auto;
 }
 /**
