@@ -11,7 +11,7 @@
     >
       <template #prepend>
         <v-progress-circular
-          v-if="loadingFiles"
+          v-if="loadingFiles || loadingChildren"
           indeterminate size="14" width="2" class="mr-1"
         />
         <v-icon
@@ -45,7 +45,7 @@
           <div class="folder-info">
             <span class="text-caption text-medium-emphasis">{{ folder.size_display }}</span>
             <v-chip :color="barColor(percent)" size="x-small" variant="tonal" class="ml-2">
-              {{ percent }}%
+              {{ percentLabel }}
             </v-chip>
           </div>
         </div>
@@ -78,6 +78,9 @@
           />
           <div class="folder-info">
             <span class="text-caption text-disabled">{{ folder.size_display }}</span>
+            <v-chip :color="barColor(percent)" size="x-small" variant="tonal" class="ml-2">
+              {{ percentLabel }}
+            </v-chip>
           </div>
         </div>
       </template>
@@ -87,11 +90,12 @@
     <template v-if="folder.is_dir !== false && isExpanded">
       <!-- Sous-dossiers (depuis JSON initial) -->
       <FolderItem
-        v-for="child in folder.child"
+        v-for="child in localChildren"
         :key="child.record_number"
         :folder="child"
         :depth="depth + 1"
         :parent-size="folder.size_bytes"
+        :total-size="totalSize"
         :drive="drive"
         :expanded-ids="expandedIds"
         @toggle="emit('toggle', $event)"
@@ -103,6 +107,7 @@
         :folder="file"
         :depth="depth + 1"
         :parent-size="folder.size_bytes"
+        :total-size="totalSize"
         :drive="drive"
         :expanded-ids="expandedIds"
         @toggle="emit('toggle', $event)"
@@ -121,15 +126,22 @@ const props = defineProps({
   depth:       { type: Number,  default: 0 },
   expandedIds: { type: Set,     required: true },
   parentSize:  { type: Number,  default: 0 },
+  totalSize:   { type: Number,  default: 0 },
   drive:       { type: String,  default: 'C' },
 })
 
 const emit = defineEmits(['toggle'])
 
+const loadedChildren = ref([])
 const loadedFiles  = ref([])
 const loadingFiles = ref(false)
+const loadingChildren = ref(false)
 
-const hasChildren = computed(() => props.folder.child?.length > 0)
+const localChildren = computed(() => {
+  if (props.folder.child?.length) return props.folder.child
+  return loadedChildren.value
+})
+const hasChildren = computed(() => (props.folder.child_count ?? localChildren.value.length) > 0)
 const isExpanded  = computed(() => props.expandedIds.has(props.folder.record_number))
 
 async function toggleFolder() {
@@ -143,22 +155,42 @@ async function toggleFolder() {
   // - on est en train d'ouvrir (pas de fermeture)
   // - pas encore chargés
   // - il y a des fichiers
-  if (!isExpanded.value && loadedFiles.value.length === 0 && props.folder.file_count > 0) {
-    loadingFiles.value = true
-    try {
-      loadedFiles.value = await window.mftAPI.getFiles(props.drive, props.folder.record_number)
-    } catch (e) {
-      console.error('Erreur chargement fichiers:', e)
-    } finally {
-      loadingFiles.value = false
+  if (!isExpanded.value) {
+    if (loadedChildren.value.length === 0 && !props.folder.child?.length && (props.folder.child_count ?? 0) > 0) {
+      loadingChildren.value = true
+      try {
+        loadedChildren.value = await window.mftAPI.getChildren(props.drive, props.folder.record_number)
+      } catch (e) {
+        console.error('Erreur chargement sous-dossiers:', e)
+      } finally {
+        loadingChildren.value = false
+      }
+    }
+
+    if (loadedFiles.value.length === 0 && props.folder.file_count > 0) {
+      loadingFiles.value = true
+      try {
+        loadedFiles.value = await window.mftAPI.getFiles(props.drive, props.folder.record_number)
+      } catch (e) {
+        console.error('Erreur chargement fichiers:', e)
+      } finally {
+        loadingFiles.value = false
+      }
     }
   }
 }
 
 const percent = computed(() => {
-  if (props.folder.percent != null) return props.folder.percent
-  if (!props.parentSize || !props.folder.size_bytes) return 0
-  return Math.round((props.folder.size_bytes / props.parentSize) * 100)
+  const baseSize = props.totalSize || props.parentSize
+  if (!baseSize || !props.folder.size_bytes) return 0
+  return Math.min(100, (props.folder.size_bytes / baseSize) * 100)
+})
+
+const percentLabel = computed(() => {
+  if (percent.value >= 10) return `${Math.round(percent.value)}%`
+  if (percent.value >= 1) return `${percent.value.toFixed(1)}%`
+  if (percent.value > 0) return `${percent.value.toFixed(2)}%`
+  return '0%'
 })
 
 const folderColor = computed(() => {

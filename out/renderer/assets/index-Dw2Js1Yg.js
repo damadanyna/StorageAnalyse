@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./signin-iT6OLT3r.js","./signin-D-vfNATw.css"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./signin-BB-EswR-.js","./signin-Dpq9KUaf.css"])))=>i.map(i=>d[i]);
 /**
 * @vue/shared v3.5.27
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
@@ -13134,7 +13134,7 @@ const routes = [
   {
     path: "/",
     name: "/",
-    component: () => __vitePreload(() => import("./index-CPkN9Pp4.js"), true ? [] : void 0, import.meta.url)
+    component: () => __vitePreload(() => import("./index-zCBf9YYK.js"), true ? [] : void 0, import.meta.url)
     /* no children */
   },
   {
@@ -13145,13 +13145,13 @@ const routes = [
       {
         path: "signin",
         name: "/auth/signin",
-        component: () => __vitePreload(() => import("./signin-iT6OLT3r.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./signin-BB-EswR-.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url)
         /* no children */
       },
       {
         path: "signup",
         name: "/auth/signup",
-        component: () => __vitePreload(() => import("./signup-BrvsGal4.js"), true ? [] : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./signup-BhxiOCwr.js"), true ? [] : void 0, import.meta.url)
         /* no children */
       }
     ]
@@ -13164,7 +13164,7 @@ const routes = [
       {
         path: "homePage",
         name: "/diskAnalize/homePage",
-        component: () => __vitePreload(() => import("./homePage-DGWwwizv.js"), true ? [] : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./homePage-EX9IYYOJ.js"), true ? [] : void 0, import.meta.url)
         /* no children */
       }
     ]
@@ -17929,11 +17929,11 @@ const _hoisted_1$1 = {
   class: "text-caption text-disabled ml-1"
 };
 const _hoisted_2$1 = { class: "folder-stats" };
-const _hoisted_3 = { class: "folder-info" };
-const _hoisted_4 = { class: "text-caption text-medium-emphasis" };
-const _hoisted_5 = { class: "folder-stats" };
-const _hoisted_6 = { class: "folder-info" };
-const _hoisted_7 = { class: "text-caption text-disabled" };
+const _hoisted_3$1 = { class: "folder-info" };
+const _hoisted_4$1 = { class: "text-caption text-medium-emphasis" };
+const _hoisted_5$1 = { class: "folder-stats" };
+const _hoisted_6$1 = { class: "folder-info" };
+const _hoisted_7$1 = { class: "text-caption text-disabled" };
 const _sfc_main$2 = {
   __name: "FolderItem",
   props: {
@@ -17941,34 +17941,59 @@ const _sfc_main$2 = {
     depth: { type: Number, default: 0 },
     expandedIds: { type: Set, required: true },
     parentSize: { type: Number, default: 0 },
+    totalSize: { type: Number, default: 0 },
     drive: { type: String, default: "C" }
   },
   emits: ["toggle"],
   setup(__props, { emit: __emit }) {
     const props = __props;
     const emit2 = __emit;
+    const loadedChildren = /* @__PURE__ */ ref([]);
     const loadedFiles = /* @__PURE__ */ ref([]);
     const loadingFiles = /* @__PURE__ */ ref(false);
-    const hasChildren = computed(() => props.folder.child?.length > 0);
+    const loadingChildren = /* @__PURE__ */ ref(false);
+    const localChildren = computed(() => {
+      if (props.folder.child?.length) return props.folder.child;
+      return loadedChildren.value;
+    });
+    const hasChildren = computed(() => (props.folder.child_count ?? localChildren.value.length) > 0);
     const isExpanded = computed(() => props.expandedIds.has(props.folder.record_number));
     async function toggleFolder() {
       if (!hasChildren.value && !(props.folder.file_count > 0)) return;
       emit2("toggle", props.folder.record_number);
-      if (!isExpanded.value && loadedFiles.value.length === 0 && props.folder.file_count > 0) {
-        loadingFiles.value = true;
-        try {
-          loadedFiles.value = await window.mftAPI.getFiles(props.drive, props.folder.record_number);
-        } catch (e) {
-          console.error("Erreur chargement fichiers:", e);
-        } finally {
-          loadingFiles.value = false;
+      if (!isExpanded.value) {
+        if (loadedChildren.value.length === 0 && !props.folder.child?.length && (props.folder.child_count ?? 0) > 0) {
+          loadingChildren.value = true;
+          try {
+            loadedChildren.value = await window.mftAPI.getChildren(props.drive, props.folder.record_number);
+          } catch (e) {
+            console.error("Erreur chargement sous-dossiers:", e);
+          } finally {
+            loadingChildren.value = false;
+          }
+        }
+        if (loadedFiles.value.length === 0 && props.folder.file_count > 0) {
+          loadingFiles.value = true;
+          try {
+            loadedFiles.value = await window.mftAPI.getFiles(props.drive, props.folder.record_number);
+          } catch (e) {
+            console.error("Erreur chargement fichiers:", e);
+          } finally {
+            loadingFiles.value = false;
+          }
         }
       }
     }
     const percent = computed(() => {
-      if (props.folder.percent != null) return props.folder.percent;
-      if (!props.parentSize || !props.folder.size_bytes) return 0;
-      return Math.round(props.folder.size_bytes / props.parentSize * 100);
+      const baseSize = props.totalSize || props.parentSize;
+      if (!baseSize || !props.folder.size_bytes) return 0;
+      return Math.min(100, props.folder.size_bytes / baseSize * 100);
+    });
+    const percentLabel = computed(() => {
+      if (percent.value >= 10) return `${Math.round(percent.value)}%`;
+      if (percent.value >= 1) return `${percent.value.toFixed(1)}%`;
+      if (percent.value > 0) return `${percent.value.toFixed(2)}%`;
+      return "0%";
     });
     const folderColor = computed(() => {
       const colors = ["amber", "orange", "deep-orange", "brown", "blue-grey"];
@@ -18090,7 +18115,7 @@ const _sfc_main$2 = {
           onClick: toggleFolder
         }, {
           prepend: withCtx(() => [
-            loadingFiles.value ? (openBlock(), createBlock(VProgressCircular, {
+            loadingFiles.value || loadingChildren.value ? (openBlock(), createBlock(VProgressCircular, {
               key: 0,
               indeterminate: "",
               size: "14",
@@ -18125,8 +18150,8 @@ const _sfc_main$2 = {
                 height: "6",
                 class: "folder-bar"
               }, null, 8, ["model-value", "color"]),
-              createBaseVNode("div", _hoisted_3, [
-                createBaseVNode("span", _hoisted_4, toDisplayString(__props.folder.size_display), 1),
+              createBaseVNode("div", _hoisted_3$1, [
+                createBaseVNode("span", _hoisted_4$1, toDisplayString(__props.folder.size_display), 1),
                 createVNode(VChip, {
                   color: barColor(percent.value),
                   size: "x-small",
@@ -18134,7 +18159,7 @@ const _sfc_main$2 = {
                   class: "ml-2"
                 }, {
                   default: withCtx(() => [
-                    createTextVNode(toDisplayString(percent.value) + "% ", 1)
+                    createTextVNode(toDisplayString(percentLabel.value), 1)
                   ]),
                   _: 1
                 }, 8, ["color"])
@@ -18171,7 +18196,7 @@ const _sfc_main$2 = {
             }, 8, ["color"])
           ]),
           append: withCtx(() => [
-            createBaseVNode("div", _hoisted_5, [
+            createBaseVNode("div", _hoisted_5$1, [
               createVNode(VProgressLinear, {
                 "model-value": percent.value,
                 color: barColor(percent.value),
@@ -18180,8 +18205,19 @@ const _sfc_main$2 = {
                 height: "4",
                 class: "folder-bar"
               }, null, 8, ["model-value", "color"]),
-              createBaseVNode("div", _hoisted_6, [
-                createBaseVNode("span", _hoisted_7, toDisplayString(__props.folder.size_display), 1)
+              createBaseVNode("div", _hoisted_6$1, [
+                createBaseVNode("span", _hoisted_7$1, toDisplayString(__props.folder.size_display), 1),
+                createVNode(VChip, {
+                  color: barColor(percent.value),
+                  size: "x-small",
+                  variant: "tonal",
+                  class: "ml-2"
+                }, {
+                  default: withCtx(() => [
+                    createTextVNode(toDisplayString(percentLabel.value), 1)
+                  ]),
+                  _: 1
+                }, 8, ["color"])
               ])
             ])
           ]),
@@ -18196,16 +18232,17 @@ const _sfc_main$2 = {
           _: 1
         }, 8, ["style"])),
         __props.folder.is_dir !== false && isExpanded.value ? (openBlock(), createElementBlock(Fragment, { key: 2 }, [
-          (openBlock(true), createElementBlock(Fragment, null, renderList(__props.folder.child, (child) => {
+          (openBlock(true), createElementBlock(Fragment, null, renderList(localChildren.value, (child) => {
             return openBlock(), createBlock(_component_FolderItem, {
               key: child.record_number,
               folder: child,
               depth: __props.depth + 1,
               "parent-size": __props.folder.size_bytes,
+              "total-size": __props.totalSize,
               drive: __props.drive,
               "expanded-ids": __props.expandedIds,
               onToggle: _cache[0] || (_cache[0] = ($event) => emit2("toggle", $event))
-            }, null, 8, ["folder", "depth", "parent-size", "drive", "expanded-ids"]);
+            }, null, 8, ["folder", "depth", "parent-size", "total-size", "drive", "expanded-ids"]);
           }), 128)),
           (openBlock(true), createElementBlock(Fragment, null, renderList(loadedFiles.value, (file) => {
             return openBlock(), createBlock(_component_FolderItem, {
@@ -18213,10 +18250,11 @@ const _sfc_main$2 = {
               folder: file,
               depth: __props.depth + 1,
               "parent-size": __props.folder.size_bytes,
+              "total-size": __props.totalSize,
               drive: __props.drive,
               "expanded-ids": __props.expandedIds,
               onToggle: _cache[1] || (_cache[1] = ($event) => emit2("toggle", $event))
-            }, null, 8, ["folder", "depth", "parent-size", "drive", "expanded-ids"]);
+            }, null, 8, ["folder", "depth", "parent-size", "total-size", "drive", "expanded-ids"]);
           }), 128))
         ], 64)) : createCommentVNode("", true),
         __props.depth === 0 && __props.folder.is_dir !== false ? (openBlock(), createBlock(VDivider, {
@@ -18228,7 +18266,7 @@ const _sfc_main$2 = {
     };
   }
 };
-const FolderItem = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-8eb9c682"]]);
+const FolderItem = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-24738dae"]]);
 const VAlertTitle = createSimpleFunctional("v-alert-title");
 const makeVBtnGroupProps = propsFactory({
   baseColor: String,
@@ -23466,8 +23504,314 @@ const VSelect = genericComponent()({
     }, vTextFieldRef);
   }
 });
-const _hoisted_1 = { class: "flex h-full items-center w-full justify-center" };
-const _hoisted_2 = { class: "overflow-auto max-h-[87vh]" };
+const makeVSheetProps = propsFactory({
+  color: String,
+  ...makeBorderProps(),
+  ...makeComponentProps(),
+  ...makeDimensionProps(),
+  ...makeElevationProps(),
+  ...makeLocationProps(),
+  ...makePositionProps(),
+  ...makeRoundedProps(),
+  ...makeTagProps(),
+  ...makeThemeProps()
+}, "VSheet");
+const VSheet = genericComponent()({
+  name: "VSheet",
+  props: makeVSheetProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      backgroundColorClasses,
+      backgroundColorStyles
+    } = useBackgroundColor(() => props.color);
+    const {
+      borderClasses
+    } = useBorder(props);
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    const {
+      elevationClasses
+    } = useElevation(props);
+    const {
+      locationStyles
+    } = useLocation(props);
+    const {
+      positionClasses
+    } = usePosition(props);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    useRender(() => createVNode(props.tag, {
+      "class": normalizeClass(["v-sheet", themeClasses.value, backgroundColorClasses.value, borderClasses.value, elevationClasses.value, positionClasses.value, roundedClasses.value, props.class]),
+      "style": normalizeStyle([backgroundColorStyles.value, dimensionStyles.value, locationStyles.value, props.style])
+    }, slots));
+    return {};
+  }
+});
+const makeVTimelineDividerProps = propsFactory({
+  dotColor: String,
+  fillDot: Boolean,
+  hideDot: Boolean,
+  icon: IconValue,
+  iconColor: String,
+  lineColor: String,
+  ...makeComponentProps(),
+  ...makeRoundedProps(),
+  ...makeSizeProps(),
+  ...makeElevationProps()
+}, "VTimelineDivider");
+const VTimelineDivider = genericComponent()({
+  name: "VTimelineDivider",
+  props: makeVTimelineDividerProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      sizeClasses,
+      sizeStyles
+    } = useSize(props, "v-timeline-divider__dot");
+    const {
+      backgroundColorStyles,
+      backgroundColorClasses
+    } = useBackgroundColor(() => props.dotColor);
+    const {
+      roundedClasses
+    } = useRounded(props, "v-timeline-divider__dot");
+    const {
+      elevationClasses
+    } = useElevation(props);
+    const {
+      backgroundColorClasses: lineColorClasses,
+      backgroundColorStyles: lineColorStyles
+    } = useBackgroundColor(() => props.lineColor);
+    useRender(() => createBaseVNode("div", {
+      "class": normalizeClass(["v-timeline-divider", {
+        "v-timeline-divider--fill-dot": props.fillDot
+      }, props.class]),
+      "style": normalizeStyle(props.style)
+    }, [createBaseVNode("div", {
+      "class": normalizeClass(["v-timeline-divider__before", lineColorClasses.value]),
+      "style": normalizeStyle(lineColorStyles.value)
+    }, null), !props.hideDot && createBaseVNode("div", {
+      "key": "dot",
+      "class": normalizeClass(["v-timeline-divider__dot", elevationClasses.value, roundedClasses.value, sizeClasses.value]),
+      "style": normalizeStyle(sizeStyles.value)
+    }, [createBaseVNode("div", {
+      "class": normalizeClass(["v-timeline-divider__inner-dot", backgroundColorClasses.value, roundedClasses.value]),
+      "style": normalizeStyle(backgroundColorStyles.value)
+    }, [!slots.default ? createVNode(VIcon, {
+      "key": "icon",
+      "color": props.iconColor,
+      "icon": props.icon,
+      "size": props.size
+    }, null) : createVNode(VDefaultsProvider, {
+      "key": "icon-defaults",
+      "disabled": !props.icon,
+      "defaults": {
+        VIcon: {
+          color: props.iconColor,
+          icon: props.icon,
+          size: props.size
+        }
+      }
+    }, slots.default)])]), createBaseVNode("div", {
+      "class": normalizeClass(["v-timeline-divider__after", lineColorClasses.value]),
+      "style": normalizeStyle(lineColorStyles.value)
+    }, null)]));
+    return {};
+  }
+});
+const makeVTimelineItemProps = propsFactory({
+  density: String,
+  dotColor: String,
+  fillDot: Boolean,
+  hideDot: Boolean,
+  hideOpposite: {
+    type: Boolean,
+    default: void 0
+  },
+  icon: IconValue,
+  iconColor: String,
+  lineInset: [Number, String],
+  side: {
+    type: String,
+    validator: (v) => v == null || ["start", "end"].includes(v)
+  },
+  ...makeComponentProps(),
+  ...makeDimensionProps(),
+  ...makeElevationProps(),
+  ...makeRoundedProps(),
+  ...makeSizeProps(),
+  ...makeTagProps()
+}, "VTimelineItem");
+const VTimelineItem = genericComponent()({
+  name: "VTimelineItem",
+  props: makeVTimelineItemProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    const dotSize = /* @__PURE__ */ shallowRef(0);
+    const dotRef = /* @__PURE__ */ ref();
+    watch(dotRef, (newValue) => {
+      if (!newValue) return;
+      dotSize.value = newValue.$el.querySelector(".v-timeline-divider__dot")?.getBoundingClientRect().width ?? 0;
+    }, {
+      flush: "post"
+    });
+    useRender(() => createBaseVNode("div", {
+      "class": normalizeClass(["v-timeline-item", {
+        "v-timeline-item--fill-dot": props.fillDot,
+        "v-timeline-item--side-start": props.side === "start",
+        "v-timeline-item--side-end": props.side === "end"
+      }, props.class]),
+      "style": normalizeStyle([{
+        "--v-timeline-dot-size": convertToUnit(dotSize.value),
+        "--v-timeline-line-inset": props.lineInset ? `calc(var(--v-timeline-dot-size) / 2 + ${convertToUnit(props.lineInset)})` : convertToUnit(0)
+      }, props.style])
+    }, [createBaseVNode("div", {
+      "class": "v-timeline-item__body",
+      "style": normalizeStyle(dimensionStyles.value)
+    }, [slots.default?.()]), createVNode(VTimelineDivider, {
+      "ref": dotRef,
+      "hideDot": props.hideDot,
+      "icon": props.icon,
+      "iconColor": props.iconColor,
+      "size": props.size,
+      "elevation": props.elevation,
+      "dotColor": props.dotColor,
+      "fillDot": props.fillDot,
+      "rounded": props.rounded
+    }, {
+      default: slots.icon
+    }), props.density !== "compact" && createBaseVNode("div", {
+      "class": "v-timeline-item__opposite"
+    }, [!props.hideOpposite && slots.opposite?.()])]));
+    return {};
+  }
+});
+const makeVTimelineProps = propsFactory({
+  align: {
+    type: String,
+    default: "center",
+    validator: (v) => ["center", "start"].includes(v)
+  },
+  direction: {
+    type: String,
+    default: "vertical",
+    validator: (v) => ["vertical", "horizontal"].includes(v)
+  },
+  justify: {
+    type: String,
+    default: "auto",
+    validator: (v) => ["auto", "center"].includes(v)
+  },
+  side: {
+    type: String,
+    validator: (v) => v == null || ["start", "end"].includes(v)
+  },
+  lineThickness: {
+    type: [String, Number],
+    default: 2
+  },
+  lineColor: String,
+  truncateLine: {
+    type: String,
+    validator: (v) => ["start", "end", "both"].includes(v)
+  },
+  ...pick(makeVTimelineItemProps({
+    lineInset: 0
+  }), ["dotColor", "fillDot", "hideOpposite", "iconColor", "lineInset", "size"]),
+  ...makeComponentProps(),
+  ...makeDensityProps(),
+  ...makeTagProps(),
+  ...makeThemeProps()
+}, "VTimeline");
+const VTimeline = genericComponent()({
+  name: "VTimeline",
+  props: makeVTimelineProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      densityClasses
+    } = useDensity(props);
+    const {
+      rtlClasses
+    } = useRtl();
+    provideDefaults({
+      VTimelineDivider: {
+        lineColor: /* @__PURE__ */ toRef(() => props.lineColor)
+      },
+      VTimelineItem: {
+        density: /* @__PURE__ */ toRef(() => props.density),
+        dotColor: /* @__PURE__ */ toRef(() => props.dotColor),
+        fillDot: /* @__PURE__ */ toRef(() => props.fillDot),
+        hideOpposite: /* @__PURE__ */ toRef(() => props.hideOpposite),
+        iconColor: /* @__PURE__ */ toRef(() => props.iconColor),
+        lineColor: /* @__PURE__ */ toRef(() => props.lineColor),
+        lineInset: /* @__PURE__ */ toRef(() => props.lineInset),
+        size: /* @__PURE__ */ toRef(() => props.size)
+      }
+    });
+    const sideClasses = computed(() => {
+      const side = props.side ? props.side : props.density !== "default" ? "end" : null;
+      return side && `v-timeline--side-${side}`;
+    });
+    const truncateClasses = computed(() => {
+      const classes = ["v-timeline--truncate-line-start", "v-timeline--truncate-line-end"];
+      switch (props.truncateLine) {
+        case "both":
+          return classes;
+        case "start":
+          return classes[0];
+        case "end":
+          return classes[1];
+        default:
+          return null;
+      }
+    });
+    useRender(() => createVNode(props.tag, {
+      "class": normalizeClass(["v-timeline", `v-timeline--${props.direction}`, `v-timeline--align-${props.align}`, `v-timeline--justify-${props.justify}`, truncateClasses.value, {
+        "v-timeline--inset-line": !!props.lineInset
+      }, themeClasses.value, densityClasses.value, sideClasses.value, rtlClasses.value, props.class]),
+      "style": normalizeStyle([{
+        "--v-timeline-line-thickness": convertToUnit(props.lineThickness)
+      }, props.style])
+    }, slots));
+    return {};
+  }
+});
+const _hoisted_1 = { class: "flex items-center justify-between gap-4 flex-wrap" };
+const _hoisted_2 = { class: "text-h6" };
+const _hoisted_3 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_4 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_5 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_6 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_7 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_8 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_9 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_10 = { class: "mt-4 flex items-center justify-between gap-3 flex-wrap" };
+const _hoisted_11 = { class: "flex items-center justify-between gap-3" };
+const _hoisted_12 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_13 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_14 = { class: "text-caption text-disabled" };
+const _hoisted_15 = { class: "overflow-auto max-h-[87vh]" };
 const _sfc_main$1 = {
   __name: "DiskTree",
   setup(__props) {
@@ -23475,21 +23819,54 @@ const _sfc_main$1 = {
     const loading = /* @__PURE__ */ ref(false);
     const error = /* @__PURE__ */ ref(null);
     const expandedIds = /* @__PURE__ */ ref(/* @__PURE__ */ new Set());
+    const progressEvents = /* @__PURE__ */ ref([]);
+    const scanInfo = /* @__PURE__ */ ref(null);
     const selectedDrive = /* @__PURE__ */ ref("C");
-    const drives = ["C", "D", "E", "F"];
+    const drives = /* @__PURE__ */ ref(["C"]);
+    const scanStartedAt = /* @__PURE__ */ ref(null);
+    const scanFinishedAt = /* @__PURE__ */ ref(null);
+    let removeProgressListener = null;
     async function startScan() {
       loading.value = true;
       error.value = null;
       folders.value = [];
       expandedIds.value = /* @__PURE__ */ new Set();
+      scanInfo.value = null;
+      progressEvents.value = [];
+      scanStartedAt.value = Date.now();
+      scanFinishedAt.value = null;
       try {
-        folders.value = await window.mftAPI.scan(selectedDrive.value);
+        const result = await window.mftAPI.scan(selectedDrive.value, 1);
+        folders.value = result?.summary ?? [];
+        scanInfo.value = result?.scanInfo ?? null;
       } catch (e) {
         error.value = e.message;
       } finally {
         loading.value = false;
+        scanFinishedAt.value = Date.now();
       }
     }
+    const scanInfoLabelMap = {
+      cache: "Resultat depuis cache",
+      delta: "Resultat mis a jour par delta USN",
+      scan: "Resultat depuis scan reel"
+    };
+    const scanInfoColorMap = {
+      cache: "info",
+      delta: "warning",
+      scan: "success"
+    };
+    const scanInfoLabel = computed(() => {
+      const source = scanInfo.value?.source;
+      return scanInfoLabelMap[source] ?? "En attente";
+    });
+    const scanInfoColor = computed(() => {
+      const source = scanInfo.value?.source;
+      return scanInfoColorMap[source] ?? "secondary";
+    });
+    const totalScannedSize = computed(() => {
+      return folders.value.reduce((sum, folder) => sum + (folder.size_bytes || 0), 0);
+    });
     function toggleFolder(id) {
       const next = new Set(expandedIds.value);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -23508,6 +23885,103 @@ const _sfc_main$1 = {
     function collapseAll() {
       expandedIds.value = /* @__PURE__ */ new Set();
     }
+    const progressStageLabelMap = {
+      start: "Preparation",
+      open: "Ouverture du volume",
+      cache: "Cache",
+      delta: "Delta USN",
+      elevation: "Elevation",
+      "usn-enum": "Enumeration USN",
+      "mft-read": "Lecture du MFT",
+      fallback: "Fallback fichiers verrouilles",
+      finalize: "Finalisation",
+      done: "Termine",
+      error: "Erreur",
+      scan: "Analyse"
+    };
+    const currentProgressMessage = computed(() => {
+      return progressEvents.value.at(-1)?.message ?? "Initialisation du scan...";
+    });
+    const currentStageLabel = computed(() => {
+      return progressStageLabel(progressEvents.value.at(-1)?.stage);
+    });
+    const displayProgressEvents = computed(() => {
+      return [...progressEvents.value].reverse();
+    });
+    const progressPercentByStage = {
+      start: 5,
+      open: 10,
+      elevation: 15,
+      cache: 100,
+      delta: 75,
+      "usn-enum": 35,
+      "mft-read": 70,
+      fallback: 88,
+      finalize: 95,
+      done: 100,
+      error: 100,
+      scan: 50
+    };
+    const lastProgressType = computed(() => progressEvents.value.at(-1)?.type ?? "status");
+    const estimatedProgress = computed(() => {
+      const lastEntry = progressEvents.value.at(-1);
+      if (!lastEntry) return 0;
+      const stageValue = progressPercentByStage[lastEntry.stage] ?? 0;
+      const match = String(lastEntry.message ?? "").match(/(\d{1,3})%/);
+      if (match) {
+        const parsed = Number(match[1]);
+        if (Number.isFinite(parsed)) {
+          if (lastEntry.stage === "mft-read") return Math.max(stageValue, Math.min(95, parsed));
+          return Math.max(stageValue, Math.min(100, parsed));
+        }
+      }
+      return stageValue;
+    });
+    const elapsedLabel = computed(() => {
+      if (!scanStartedAt.value) return "0 s";
+      const end = loading.value ? Date.now() : scanFinishedAt.value ?? Date.now();
+      const seconds = Math.max(0, Math.round((end - scanStartedAt.value) / 1e3));
+      return `${seconds} s`;
+    });
+    function progressStageLabel(stage) {
+      return progressStageLabelMap[stage] ?? "Analyse";
+    }
+    function progressColor(type) {
+      if (type === "error") return "error";
+      if (type === "warning") return "warning";
+      if (type === "success") return "success";
+      return "primary";
+    }
+    function formatProgressTime(value) {
+      if (!value) return "";
+      return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+    function clearProgressHistory() {
+      progressEvents.value = [];
+      scanStartedAt.value = null;
+      scanFinishedAt.value = null;
+    }
+    onMounted(() => {
+      window.mftAPI.getDrives().then((availableDrives) => {
+        if (!Array.isArray(availableDrives) || availableDrives.length === 0) return;
+        drives.value = availableDrives;
+        if (!availableDrives.includes(selectedDrive.value)) {
+          selectedDrive.value = availableDrives[0];
+        }
+      }).catch(() => {
+      });
+      removeProgressListener = window.mftAPI.onScanProgress((payload) => {
+        progressEvents.value = [...progressEvents.value, payload];
+        if (!scanStartedAt.value) scanStartedAt.value = Date.now();
+        if (payload.type === "success" || payload.type === "error") {
+          scanFinishedAt.value = Date.now();
+        }
+      });
+    });
+    onBeforeUnmount(() => {
+      removeProgressListener?.();
+      removeProgressListener = null;
+    });
     return (_ctx, _cache) => {
       return openBlock(), createBlock(VContainer, { fluid: "" }, {
         default: withCtx(() => [
@@ -23521,13 +23995,13 @@ const _sfc_main$1 = {
                   createVNode(VSelect, {
                     modelValue: selectedDrive.value,
                     "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => selectedDrive.value = $event),
-                    items: drives,
+                    items: drives.value,
                     label: "Lecteur",
                     density: "compact",
                     variant: "outlined",
                     "hide-details": "",
                     style: { "width": "120px" }
-                  }, null, 8, ["modelValue"])
+                  }, null, 8, ["modelValue", "items"])
                 ]),
                 _: 1
               }),
@@ -23566,9 +24040,27 @@ const _sfc_main$1 = {
                 ]),
                 _: 1
               })) : createCommentVNode("", true),
+              scanInfo.value ? (openBlock(), createBlock(VCol, {
+                key: 1,
+                cols: "auto"
+              }, {
+                default: withCtx(() => [
+                  createVNode(VChip, {
+                    color: scanInfoColor.value,
+                    variant: "tonal",
+                    size: "small"
+                  }, {
+                    default: withCtx(() => [
+                      createTextVNode(toDisplayString(scanInfoLabel.value), 1)
+                    ]),
+                    _: 1
+                  }, 8, ["color"])
+                ]),
+                _: 1
+              })) : createCommentVNode("", true),
               createVNode(VSpacer),
               folders.value.length ? (openBlock(), createBlock(VCol, {
-                key: 1,
+                key: 2,
                 cols: "auto"
               }, {
                 default: withCtx(() => [
@@ -23619,26 +24111,222 @@ const _sfc_main$1 = {
             class: "my-8"
           }, {
             default: withCtx(() => [
-              createBaseVNode("div", _hoisted_1, [
-                createVNode(VCol, {
-                  cols: "auto",
-                  class: "text-center"
-                }, {
-                  default: withCtx(() => [
-                    createVNode(VProgressCircular, {
-                      indeterminate: "",
-                      color: "primary",
-                      size: "48"
-                    }),
-                    _cache[4] || (_cache[4] = createBaseVNode("p", { class: "mt-3 text-medium-emphasis" }, "Lecture du MFT en cours...", -1))
-                  ]),
-                  _: 1
-                })
-              ])
+              createVNode(VCol, {
+                cols: "12",
+                md: "9",
+                lg: "8"
+              }, {
+                default: withCtx(() => [
+                  createVNode(VCard, {
+                    variant: "outlined",
+                    class: "pa-4"
+                  }, {
+                    default: withCtx(() => [
+                      createBaseVNode("div", _hoisted_1, [
+                        createBaseVNode("div", null, [
+                          _cache[4] || (_cache[4] = createBaseVNode("div", { class: "text-overline text-medium-emphasis" }, "Dashboard d analyse", -1)),
+                          createBaseVNode("div", _hoisted_2, toDisplayString(loading.value ? "Lecture du MFT en cours" : "Dernier chargement termine"), 1),
+                          createBaseVNode("div", _hoisted_3, toDisplayString(currentProgressMessage.value), 1)
+                        ]),
+                        loading.value ? (openBlock(), createBlock(VProgressCircular, {
+                          key: 0,
+                          indeterminate: "",
+                          color: "primary",
+                          size: "52"
+                        })) : (openBlock(), createBlock(VChip, {
+                          key: 1,
+                          color: progressColor(lastProgressType.value),
+                          variant: "tonal"
+                        }, {
+                          default: withCtx(() => [
+                            createTextVNode(toDisplayString(loading.value ? "En cours" : "Termine"), 1)
+                          ]),
+                          _: 1
+                        }, 8, ["color"]))
+                      ]),
+                      createVNode(VProgressLinear, {
+                        class: "mt-4",
+                        "model-value": estimatedProgress.value,
+                        color: progressColor(lastProgressType.value),
+                        indeterminate: loading.value && estimatedProgress.value < 5,
+                        rounded: "",
+                        height: "10"
+                      }, null, 8, ["model-value", "color", "indeterminate"]),
+                      createVNode(VRow, {
+                        class: "mt-4",
+                        dense: ""
+                      }, {
+                        default: withCtx(() => [
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[5] || (_cache[5] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Etape", -1)),
+                                  createBaseVNode("div", _hoisted_4, toDisplayString(currentStageLabel.value), 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[6] || (_cache[6] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Evenements", -1)),
+                                  createBaseVNode("div", _hoisted_5, toDisplayString(progressEvents.value.length), 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[7] || (_cache[7] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Derniere source", -1)),
+                                  createBaseVNode("div", _hoisted_6, toDisplayString(scanInfoLabel.value), 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[8] || (_cache[8] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Progression estimee", -1)),
+                                  createBaseVNode("div", _hoisted_7, toDisplayString(estimatedProgress.value) + "%", 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[9] || (_cache[9] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Duree", -1)),
+                                  createBaseVNode("div", _hoisted_8, toDisplayString(elapsedLabel.value), 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          }),
+                          createVNode(VCol, {
+                            cols: "12",
+                            sm: "4"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(VSheet, {
+                                rounded: "lg",
+                                border: "",
+                                class: "pa-3"
+                              }, {
+                                default: withCtx(() => [
+                                  _cache[10] || (_cache[10] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Lecteur", -1)),
+                                  createBaseVNode("div", _hoisted_9, toDisplayString(selectedDrive.value) + ":", 1)
+                                ]),
+                                _: 1
+                              })
+                            ]),
+                            _: 1
+                          })
+                        ]),
+                        _: 1
+                      }),
+                      createBaseVNode("div", _hoisted_10, [
+                        _cache[12] || (_cache[12] = createBaseVNode("div", { class: "text-subtitle-2" }, "Journal complet du chargement", -1)),
+                        createVNode(VBtn, {
+                          variant: "text",
+                          size: "small",
+                          "prepend-icon": "mdi-delete-sweep-outline",
+                          disabled: loading.value || progressEvents.value.length === 0,
+                          onClick: clearProgressHistory
+                        }, {
+                          default: withCtx(() => [..._cache[11] || (_cache[11] = [
+                            createTextVNode(" Effacer ", -1)
+                          ])]),
+                          _: 1
+                        }, 8, ["disabled"])
+                      ]),
+                      createVNode(VTimeline, {
+                        density: "compact",
+                        side: "end",
+                        align: "start",
+                        class: "mt-4 progress-timeline"
+                      }, {
+                        default: withCtx(() => [
+                          (openBlock(true), createElementBlock(Fragment, null, renderList(displayProgressEvents.value, (entry, index) => {
+                            return openBlock(), createBlock(VTimelineItem, {
+                              key: `${entry.timestamp}-${index}`,
+                              "dot-color": progressColor(entry.type),
+                              size: "small"
+                            }, {
+                              default: withCtx(() => [
+                                createBaseVNode("div", _hoisted_11, [
+                                  createBaseVNode("div", null, [
+                                    createBaseVNode("div", _hoisted_12, toDisplayString(progressStageLabel(entry.stage)), 1),
+                                    createBaseVNode("div", _hoisted_13, toDisplayString(entry.message), 1)
+                                  ]),
+                                  createBaseVNode("div", _hoisted_14, toDisplayString(formatProgressTime(entry.timestamp)), 1)
+                                ])
+                              ]),
+                              _: 2
+                            }, 1032, ["dot-color"]);
+                          }), 128))
+                        ]),
+                        _: 1
+                      })
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              })
             ]),
             _: 1
           })) : createCommentVNode("", true),
-          createBaseVNode("div", _hoisted_2, [
+          createBaseVNode("div", _hoisted_15, [
             !loading.value && folders.value.length ? (openBlock(), createBlock(VCard, {
               key: 0,
               variant: "outlined"
@@ -23654,9 +24342,11 @@ const _sfc_main$1 = {
                         key: folder.record_number,
                         folder,
                         depth: 0,
+                        drive: selectedDrive.value,
+                        "total-size": totalScannedSize.value,
                         "expanded-ids": expandedIds.value,
                         onToggle: toggleFolder
-                      }, null, 8, ["folder", "expanded-ids"]);
+                      }, null, 8, ["folder", "drive", "total-size", "expanded-ids"]);
                     }), 128))
                   ]),
                   _: 1
@@ -23680,12 +24370,12 @@ const _sfc_main$1 = {
                     size: "64",
                     color: "medium-emphasis"
                   }, {
-                    default: withCtx(() => [..._cache[5] || (_cache[5] = [
+                    default: withCtx(() => [..._cache[13] || (_cache[13] = [
                       createTextVNode("mdi-folder-search-outline", -1)
                     ])]),
                     _: 1
                   }),
-                  _cache[6] || (_cache[6] = createBaseVNode("p", { class: "mt-3 text-medium-emphasis" }, "Lance un scan pour voir l'arborescence", -1))
+                  _cache[14] || (_cache[14] = createBaseVNode("p", { class: "mt-3 text-medium-emphasis" }, "Lance un scan pour voir l'arborescence", -1))
                 ]),
                 _: 1
               })
@@ -23698,6 +24388,7 @@ const _sfc_main$1 = {
     };
   }
 };
+const DiskTree = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-6805307e"]]);
 const makeVAppProps = propsFactory({
   ...makeComponentProps(),
   ...omit(makeLayoutProps(), ["fullHeight"]),
@@ -23782,7 +24473,7 @@ const _sfc_main = {
         default: withCtx(() => [
           createVNode(VMain, null, {
             default: withCtx(() => [
-              createVNode(_sfc_main$1)
+              createVNode(DiskTree)
             ]),
             _: 1
           })

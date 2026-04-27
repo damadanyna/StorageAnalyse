@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { spawn } from 'child_process'
 import { fileURLToPath } from 'url'
-import path, { join, dirname } from 'path'
+import { join, dirname } from 'path'
+import { tmpdir } from 'os'
+import { existsSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname  = dirname(__filename)
@@ -20,6 +22,19 @@ function getScriptPath() {
   return join(__dirname, '..', '..', 'python', 'mft_reader.py')
 }
 
+function normalizeDriveLetter(drive = 'C') {
+  return String(drive).trim().replace(/[:\\/]+$/g, '').charAt(0).toUpperCase() || 'C'
+}
+
+function getAvailableDrives() {
+  const drives = []
+  for (let code = 67; code <= 90; code += 1) {
+    const letter = String.fromCharCode(code)
+    if (existsSync(`${letter}:\\`)) drives.push(letter)
+  }
+  return drives
+}
+
 // ── Cache MFT en mémoire ──────────────────────────────────────
 // Stocke tous les records après le scan pour servir les fichiers
 // sans relancer Python
@@ -29,116 +44,284 @@ const mftCache = {
   tree:    {},      // parent_ref -> [child_refs]
 }
 
-function buildCache(summary, drive) {
-  mftCache.drive   = drive
-  mftCache.records = {}
-  mftCache.tree    = {}
+const PYTHON_PROGRESS_PREFIX = '__SCAN_PROGRESS__'
 
-  function indexNode(node, parentRef) {
-    mftCache.records[node.record_number] = {
-      name:         node.name,
-      is_dir:       node.is_dir !== false,
-      ext:          node.ext ?? '',
-      size_bytes:   node.size_bytes,
-      size_display: node.size_display,
-    }
-    if (parentRef != null) {
-      if (!mftCache.tree[parentRef]) mftCache.tree[parentRef] = []
-      mftCache.tree[parentRef].push(node.record_number)
-    }
-    if (node.child?.length) {
-      for (const child of node.child) {
-        indexNode(child, node.record_number)
-      }
-    }
-    // Indexe aussi les fichiers directs si présents
-    if (node.files?.length) {
-      for (const file of node.files) {
-        mftCache.records[file.record_number] = {
-          name:         file.name,
-          is_dir:       false,
-          ext:          file.ext ?? '',
-          size_bytes:   file.size_bytes,
-          size_display: file.size_display,
-        }
-        if (!mftCache.tree[node.record_number]) mftCache.tree[node.record_number] = []
-        mftCache.tree[node.record_number].push(file.record_number)
-      }
-    }
-  }
-
-  for (const node of summary) indexNode(node, null)
+function emitScanProgress(target, payload) {
+  target?.send('mft:scan-progress', {
+    timestamp: new Date().toISOString(),
+    ...payload,
+  })
 }
 
-// ── Lecture fichier JSON complet (avec fichiers) ──────────────
-function runPythonWithAdmin(args, tempDir) {
-  return new Promise(async (resolve, reject) => {
-    const { mkdir, writeFile, readFile, unlink, access } = await import('fs/promises')
-    await mkdir(tempDir, { recursive: true })
+function inferStage(message) {
+  const text = String(message || '').toLowerCase()
+  if (text.includes('cache usn')) return 'cache'
+  if (text.includes('delta usn')) return 'delta'
+  if (text.includes('ouverture du volume')) return 'open'
+  if (text.includes('passe 1')) return 'usn-enum'
+  if (text.includes('passe 2')) return 'mft-read'
+  if (text.includes('passe 3')) return 'fallback'
+  if (text.includes('expor')) return 'finalize'
+  return 'scan'
+}
 
-    const ts      = Date.now()
-    const outFile = `${tempDir}\\mft_out_${ts}.json`
-    const ps1File = `${tempDir}\\mft_scan_${ts}.ps1`
+function attachLineBuffer(stream, onLine) {
+  let buffer = ''
+  stream.on('data', chunk => {
+    buffer += chunk.toString()
+    const lines = buffer.split(/\r?\n/)
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+      onLine(trimmed)
+    }
+  })
+  stream.on('end', () => {
+    const trimmed = buffer.trim()
+    if (trimmed) onLine(trimmed)
+  })
+}
 
+function buildCache(payload, drive) {
+  mftCache.drive   = drive
+  mftCache.records = payload?.cache?.records ?? {}
+  mftCache.tree    = payload?.cache?.tree ?? {}
+}
+
+function parseJsonFromStdout(stdout) {
+  const lines = stdout
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index]
+    if (!line.startsWith('{') && !line.startsWith('[')) continue
+    return JSON.parse(line)
+  }
+
+  throw new Error(`Aucun JSON detecte dans la sortie Python. Extrait: ${stdout.slice(-500)}`)
+}
+
+function isAdminRequiredError(message) {
+  const text = String(message || '').toLowerCase()
+  return text.includes('admin requis') || text.includes('err=5') || text.includes('accès refusé') || text.includes('access denied')
+}
+
+function runPythonJson(args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const { onProgress } = options
     const pythonExe = getPythonPath()
-    const esc       = s => s.replace(/'/g, "''")
-    const argsList  = [...args, '--output', outFile].map(a => `'${esc(a)}'`).join(', ')
-    const ps1       = `$p = Start-Process -FilePath '${esc(pythonExe)}' -ArgumentList @(${argsList}) -Verb RunAs -WindowStyle Hidden -PassThru -Wait; if ($p) { exit $p.ExitCode } else { exit 1 }`
+    const child = spawn(pythonExe, [...args, '--stdout-json'], { windowsHide: true })
 
-    await writeFile(ps1File, ps1, 'utf-8')
+    let stdout = ''
+    let stderr = ''
 
-    const ps = spawn('powershell', [
-      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ps1File
-    ], { windowsHide: true })
-
-    let psStderr = ''
-    ps.stderr.on('data', c => { psStderr += c.toString() })
-    ps.stdout.on('data', c => console.log('[PS]', c.toString().trim()))
-
-    ps.on('close', async code => {
-      unlink(ps1File).catch(() => {})
-      console.log('[*] PS exit:', code)
-
-      const maxWait  = 5 * 60 * 1000
-      const start    = Date.now()
-      while (Date.now() - start < maxWait) {
-        try {
-          await access(outFile)
-          const data   = await readFile(outFile, 'utf-8')
-          const parsed = JSON.parse(data.trim())
-          unlink(outFile).catch(() => {})
-          resolve(parsed)
-          return
-        } catch {
-          await new Promise(r => setTimeout(r, 2000))
-        }
-      }
-      reject(new Error(`Timeout. Code PS: ${code}. ${psStderr}`))
+    child.stdout.on('data', chunk => {
+      stdout += chunk.toString()
     })
 
-    ps.on('error', err => reject(new Error(`PowerShell: ${err.message}`)))
+    attachLineBuffer(child.stderr, line => {
+      stderr += `${line}\n`
+      if (line.startsWith(PYTHON_PROGRESS_PREFIX)) {
+        try {
+          const payload = JSON.parse(line.slice(PYTHON_PROGRESS_PREFIX.length))
+          onProgress?.({ type: 'progress', stage: payload.stage ?? 'scan', ...payload })
+          return
+        } catch {
+          // Ignore malformed structured progress and fall through to plain log handling.
+        }
+      }
+      onProgress?.({ type: 'log', stage: inferStage(line), message: line })
+    })
+
+    child.on('close', code => {
+      if (code !== 0) {
+        reject(new Error(`Python exit ${code}: ${stderr || stdout}`))
+        return
+      }
+
+      try {
+        resolve(parseJsonFromStdout(stdout))
+      } catch (error) {
+        reject(new Error(`${error.message}\nStderr: ${stderr}`))
+      }
+    })
+
+    child.on('error', err => reject(new Error(`Python: ${err.message}`)))
   })
+}
+
+function runPythonJsonElevated(args, options = {}) {
+  return new Promise(async (resolve, reject) => {
+    const { onProgress } = options
+    const { mkdir, writeFile, readFile, unlink, access } = await import('fs/promises')
+    const tempDir = join(tmpdir(), 'StorageAnalyse', 'elevated-scan')
+    await mkdir(tempDir, { recursive: true })
+
+    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const stdoutPath = join(tempDir, `stdout-${stamp}.json`)
+    const stderrPath = join(tempDir, `stderr-${stamp}.log`)
+    const errorPath = join(tempDir, `launcher-${stamp}.log`)
+    const cmdPath = join(tempDir, `run-${stamp}.cmd`)
+    const scriptPath = join(tempDir, `launch-${stamp}.ps1`)
+
+    const escapedPs = value => String(value).replace(/'/g, "''")
+    const escapeBatch = value => String(value).replace(/\^/g, '^^').replace(/&/g, '^&').replace(/</g, '^<').replace(/>/g, '^>').replace(/\|/g, '^|').replace(/"/g, '""')
+    const commandLine = [
+      `"${escapeBatch(getPythonPath())}"`,
+      ...args.map(arg => `"${escapeBatch(arg)}"`),
+      '"--stdout-json"',
+      `1>"${escapeBatch(stdoutPath)}"`,
+      `2>"${escapeBatch(stderrPath)}"`,
+    ].join(' ')
+    const cmdScript = [
+      '@echo off',
+      'setlocal',
+      commandLine,
+      'exit /b %errorlevel%',
+    ].join('\r\n')
+    const psScript = [
+      "$ErrorActionPreference = 'Stop'",
+      'try {',
+      `  $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList '/d', '/c', '""${escapedPs(cmdPath)}""' -Verb RunAs -PassThru -Wait`,
+      '  if ($null -eq $proc) {',
+      `    Set-Content -Path '${escapedPs(errorPath)}' -Value 'Le processus elevé n a pas demarre.'`,
+      '    exit 1',
+      '  }',
+      '  exit $proc.ExitCode',
+      '} catch {',
+      `  Set-Content -Path '${escapedPs(errorPath)}' -Value $_.Exception.Message`,
+      '  exit 1',
+      '}',
+    ].join('\n')
+
+    await writeFile(cmdPath, cmdScript, 'utf8')
+    await writeFile(scriptPath, psScript, 'utf8')
+    onProgress?.({ type: 'status', stage: 'elevation', message: 'Demande d autorisation administrateur...' })
+
+    const child = spawn('powershell', [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath,
+    ], { windowsHide: true })
+
+    let launcherStderr = ''
+    child.stderr.on('data', chunk => {
+      launcherStderr += chunk.toString()
+    })
+
+    child.on('close', async code => {
+      try {
+        const payloadExists = await access(stdoutPath).then(() => true).catch(() => false)
+        const [stdout, stderr, launcherError] = await Promise.all([
+          payloadExists ? readFile(stdoutPath, 'utf8').catch(() => '') : '',
+          readFile(stderrPath, 'utf8').catch(() => ''),
+          readFile(errorPath, 'utf8').catch(() => ''),
+        ])
+
+        await Promise.all([
+          unlink(stdoutPath).catch(() => {}),
+          unlink(stderrPath).catch(() => {}),
+          unlink(errorPath).catch(() => {}),
+          unlink(cmdPath).catch(() => {}),
+          unlink(scriptPath).catch(() => {}),
+        ])
+
+        if (code !== 0 || !payloadExists) {
+          const detail = stderr || launcherError || launcherStderr || 'Elevation refusee, annulee, ou scan non produit.'
+          reject(new Error(`Python elevated exit ${code}: ${detail}`))
+          return
+        }
+
+        try {
+          onProgress?.({ type: 'status', stage: 'elevation', message: 'Scan elevé termine, lecture du resultat...' })
+          resolve(parseJsonFromStdout(stdout))
+        } catch (error) {
+          reject(new Error(`${error.message}\nStderr: ${stderr || launcherError || launcherStderr}`))
+        }
+      } catch (error) {
+        reject(error)
+      }
+    })
+
+    child.on('error', async err => {
+      await Promise.all([
+        unlink(stdoutPath).catch(() => {}),
+        unlink(stderrPath).catch(() => {}),
+        unlink(errorPath).catch(() => {}),
+        unlink(cmdPath).catch(() => {}),
+        unlink(scriptPath).catch(() => {}),
+      ])
+      reject(new Error(`PowerShell elevation: ${err.message}`))
+    })
+  })
+}
+
+async function runPythonJsonWithFallback(args, options = {}) {
+  try {
+    return await runPythonJson(args, options)
+  } catch (error) {
+    if (!isAdminRequiredError(error.message)) {
+      throw error
+    }
+    options.onProgress?.({ type: 'warning', stage: 'elevation', message: 'Privileges admin requis, bascule vers elevation...' })
+    return runPythonJsonElevated(args, options)
+  }
 }
 
 // ── Handler : scan complet ────────────────────────────────────
 ipcMain.handle('mft:scan', async (event, { drive = 'C', depth = null } = {}) => {
   const scriptPath = getScriptPath()
-  const args = [scriptPath, drive]
+  const normalizedDrive = normalizeDriveLetter(drive)
+  const availableDrives = getAvailableDrives()
+
+  if (!availableDrives.includes(normalizedDrive)) {
+    throw new Error(`Le lecteur ${normalizedDrive}: est introuvable ou non monte.`)
+  }
+
+  const args = [scriptPath, normalizedDrive]
   if (depth !== null) args.push('--depth', String(depth))
 
-  const summary = await runPythonWithAdmin(args, 'C:\\Temp')
+  emitScanProgress(event.sender, {
+    type: 'status',
+    stage: 'start',
+    message: `Initialisation du scan ${normalizedDrive}:`,
+  })
 
-  // Met en cache pour getFiles
-  buildCache(summary, drive)
-  console.log(`[*] Cache: ${Object.keys(mftCache.records).length} records`)
+  try {
+    const payload = await runPythonJsonWithFallback(args, {
+      onProgress: progress => emitScanProgress(event.sender, progress),
+    })
 
-  return summary
+    // Met en cache pour getFiles
+    buildCache(payload, normalizedDrive)
+    console.log(`[*] Cache: ${Object.keys(mftCache.records).length} records`)
+    emitScanProgress(event.sender, {
+      type: 'success',
+      stage: 'done',
+      message: 'Analyse terminee.',
+      scanInfo: payload.scan_info ?? null,
+    })
+
+    return {
+      summary: payload.summary ?? [],
+      scanInfo: payload.scan_info ?? null,
+    }
+  } catch (error) {
+    emitScanProgress(event.sender, {
+      type: 'error',
+      stage: 'error',
+      message: error.message,
+    })
+    throw error
+  }
 })
 
 // ── Handler : fichiers d'un dossier (depuis le cache) ─────────
 ipcMain.handle('mft:files', async (event, { drive = 'C', folderRef } = {}) => {
+  const normalizedDrive = normalizeDriveLetter(drive)
   // Si pas de cache ou mauvais drive → retourne tableau vide
-  if (!mftCache.drive || mftCache.drive !== drive) {
+  if (!mftCache.drive || mftCache.drive !== normalizedDrive) {
     console.warn('[!] Cache vide ou drive different')
     return []
   }
@@ -164,6 +347,39 @@ ipcMain.handle('mft:files', async (event, { drive = 'C', folderRef } = {}) => {
   files.sort((a, b) => b.size_bytes - a.size_bytes)
   console.log(`[*] getFiles(${folderRef}): ${files.length} fichiers`)
   return files
+})
+
+ipcMain.handle('mft:children', async (event, { drive = 'C', folderRef } = {}) => {
+  const normalizedDrive = normalizeDriveLetter(drive)
+  if (!mftCache.drive || mftCache.drive !== normalizedDrive) {
+    console.warn('[!] Cache vide ou drive different')
+    return []
+  }
+
+  const childRefs = mftCache.tree[String(folderRef)] ?? mftCache.tree[folderRef] ?? []
+  const folders = []
+
+  for (const ref of childRefs) {
+    const rec = mftCache.records[String(ref)] ?? mftCache.records[ref]
+    if (!rec || rec.is_dir === false) continue
+    folders.push({
+      record_number: rec.record_number ?? ref,
+      name:          rec.name,
+      is_dir:        true,
+      size_bytes:    rec.size_bytes,
+      size_display:  rec.size_display,
+      child_count:   rec.child_count ?? 0,
+      file_count:    rec.file_count ?? 0,
+      child:         []
+    })
+  }
+
+  folders.sort((a, b) => b.size_bytes - a.size_bytes)
+  return folders
+})
+
+ipcMain.handle('mft:drives', async () => {
+  return getAvailableDrives()
 })
 
 // ── Fenêtre principale ────────────────────────────────────────
@@ -196,9 +412,13 @@ function createWindow(devServerUrl = null) {
   }
 }
 
+function getDevServerUrl() {
+  if (app.isPackaged) return null
+  return process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:3000'
+}
+
 app.whenReady().then(() => {
-  const devServerUrl = process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:3000'
-  createWindow(devServerUrl)
+  createWindow(getDevServerUrl())
 })
 
 app.on('window-all-closed', () => {
@@ -207,7 +427,6 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    const devServerUrl = process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:3000'
-    createWindow(devServerUrl)
+    createWindow(getDevServerUrl())
   }
 })

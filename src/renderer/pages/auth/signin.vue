@@ -1,5 +1,5 @@
 <template>
-<div id="bg_img" class="    w-full flex flex-row justify-end items-center h-full">
+<div id="bg_img" :style="backgroundStyle" class="    w-full flex flex-row justify-end items-center h-full">
 
     <div class="flex justify-end flex-row sm:px-24 sm:w-[80vw] ">
         <div class="  sm:w-[50%] pa-12 " >
@@ -34,6 +34,11 @@ import {
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const backgroundImageUrl = new URL('../../../../public/img/bg.jpg', import.meta.url).href
+const backgroundStyle = {
+    backgroundImage: `url("${backgroundImageUrl}")`,
+}
+
 const user_form = ref(
     [{
             field: "",
@@ -65,7 +70,6 @@ const inscription_rout = () => {
 
 <style scoped>
 #bg_img {
-    background-image: url("../../../public/img/bg.jpg");
     background-size: cover;
 }
 </style>
