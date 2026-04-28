@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./signin-Byi-TEp2.js","./signin-Dpq9KUaf.css"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./signin-BtUQPOyN.js","./signin-Dpq9KUaf.css"])))=>i.map(i=>d[i]);
 /**
 * @vue/shared v3.5.27
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
@@ -13134,7 +13134,7 @@ const routes = [
   {
     path: "/",
     name: "/",
-    component: () => __vitePreload(() => import("./index-ChNQU5qb.js"), true ? [] : void 0, import.meta.url)
+    component: () => __vitePreload(() => import("./index-Ch0IRXcY.js"), true ? [] : void 0, import.meta.url)
     /* no children */
   },
   {
@@ -13145,13 +13145,13 @@ const routes = [
       {
         path: "signin",
         name: "/auth/signin",
-        component: () => __vitePreload(() => import("./signin-Byi-TEp2.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./signin-BtUQPOyN.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url)
         /* no children */
       },
       {
         path: "signup",
         name: "/auth/signup",
-        component: () => __vitePreload(() => import("./signup-C1W8l0WN.js"), true ? [] : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./signup-BJaTR3Po.js"), true ? [] : void 0, import.meta.url)
         /* no children */
       }
     ]
@@ -13164,7 +13164,7 @@ const routes = [
       {
         path: "homePage",
         name: "/diskAnalize/homePage",
-        component: () => __vitePreload(() => import("./homePage-cmG67BoZ.js"), true ? [] : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./homePage-D4pxV4wY.js"), true ? [] : void 0, import.meta.url)
         /* no children */
       }
     ]
@@ -23840,6 +23840,7 @@ const _sfc_main$1 = {
     const dashboardVisible = /* @__PURE__ */ ref(false);
     let dashboardHideTimer = null;
     let removeProgressListener = null;
+    let removeCacheUpdatedListener = null;
     function clearDashboardHideTimer() {
       if (dashboardHideTimer) {
         clearTimeout(dashboardHideTimer);
@@ -23873,6 +23874,37 @@ const _sfc_main$1 = {
         loading.value = false;
         scanFinishedAt.value = Date.now();
         scheduleDashboardHide();
+      }
+    }
+    async function loadDriveSummary(drive, { forceScan = false, keepDashboard = false } = {}) {
+      const normalizedDrive = String(drive || selectedDrive.value || "C").trim().replace(/[:\\/]+$/g, "").charAt(0).toUpperCase();
+      if (!normalizedDrive) return;
+      if (!forceScan) {
+        try {
+          const cached = await window.mftAPI.getSummary(normalizedDrive);
+          if (cached?.cached) {
+            folders.value = cached.summary ?? [];
+            scanInfo.value = cached.scanInfo ?? null;
+            error.value = null;
+            return;
+          }
+        } catch {
+        }
+      }
+      if (keepDashboard) {
+        await startScan();
+        return;
+      }
+      loading.value = true;
+      error.value = null;
+      try {
+        const result = await window.mftAPI.scan(normalizedDrive, 1);
+        folders.value = result?.summary ?? [];
+        scanInfo.value = result?.scanInfo ?? null;
+      } catch (e) {
+        error.value = e.message;
+      } finally {
+        loading.value = false;
       }
     }
     const scanInfoLabelMap = {
@@ -24057,12 +24089,13 @@ const _sfc_main$1 = {
       scanFinishedAt.value = null;
     }
     onMounted(() => {
-      window.mftAPI.getDrives().then((availableDrives) => {
+      window.mftAPI.getDrives().then(async (availableDrives) => {
         if (!Array.isArray(availableDrives) || availableDrives.length === 0) return;
         drives.value = availableDrives;
         if (!availableDrives.includes(selectedDrive.value)) {
           selectedDrive.value = availableDrives[0];
         }
+        await loadDriveSummary(selectedDrive.value, { forceScan: false, keepDashboard: false });
       }).catch(() => {
       });
       removeProgressListener = window.mftAPI.onScanProgress((payload) => {
@@ -24073,11 +24106,23 @@ const _sfc_main$1 = {
           scheduleDashboardHide();
         }
       });
+      removeCacheUpdatedListener = window.mftAPI.onCacheUpdated((payload) => {
+        if (!payload || payload.drive !== selectedDrive.value || loading.value) return;
+        folders.value = payload.summary ?? [];
+        scanInfo.value = payload.scanInfo ?? null;
+      });
+    });
+    watch(selectedDrive, async (nextDrive, previousDrive) => {
+      if (!nextDrive || nextDrive === previousDrive) return;
+      expandedIds.value = /* @__PURE__ */ new Set();
+      await loadDriveSummary(nextDrive, { forceScan: false, keepDashboard: false });
     });
     onBeforeUnmount(() => {
       clearDashboardHideTimer();
       removeProgressListener?.();
       removeProgressListener = null;
+      removeCacheUpdatedListener?.();
+      removeCacheUpdatedListener = null;
     });
     return (_ctx, _cache) => {
       return openBlock(), createBlock(VContainer, { fluid: "" }, {
@@ -24680,7 +24725,7 @@ const _sfc_main$1 = {
     };
   }
 };
-const DiskTree = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-0f511a57"]]);
+const DiskTree = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-1f456f0e"]]);
 const makeVAppProps = propsFactory({
   ...makeComponentProps(),
   ...omit(makeLayoutProps(), ["fullHeight"]),

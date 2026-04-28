@@ -253,7 +253,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import FolderItem from './FolderItem.vue'
 
 const folders       = ref([])
@@ -269,6 +269,7 @@ const scanFinishedAt = ref(null)
 const dashboardVisible = ref(false)
 let dashboardHideTimer = null
 let removeProgressListener = null
+let removeCacheUpdatedListener = null
 
 const DASHBOARD_GRACE_MS = 6000
 
@@ -308,6 +309,42 @@ async function startScan() {
     loading.value = false
     scanFinishedAt.value = Date.now()
     scheduleDashboardHide()
+  }
+}
+
+async function loadDriveSummary(drive, { forceScan = false, keepDashboard = false } = {}) {
+  const normalizedDrive = String(drive || selectedDrive.value || 'C').trim().replace(/[:\\/]+$/g, '').charAt(0).toUpperCase()
+  if (!normalizedDrive) return
+
+  if (!forceScan) {
+    try {
+      const cached = await window.mftAPI.getSummary(normalizedDrive)
+      if (cached?.cached) {
+        folders.value = cached.summary ?? []
+        scanInfo.value = cached.scanInfo ?? null
+        error.value = null
+        return
+      }
+    } catch {
+      // Fall through to an explicit scan if the summary is not available yet.
+    }
+  }
+
+  if (keepDashboard) {
+    await startScan()
+    return
+  }
+
+  loading.value = true
+  error.value = null
+  try {
+    const result = await window.mftAPI.scan(normalizedDrive, 1)
+    folders.value = result?.summary ?? []
+    scanInfo.value = result?.scanInfo ?? null
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
   }
 }
 
@@ -525,12 +562,13 @@ function clearProgressHistory() {
 
 onMounted(() => {
   window.mftAPI.getDrives()
-    .then(availableDrives => {
+    .then(async availableDrives => {
       if (!Array.isArray(availableDrives) || availableDrives.length === 0) return
       drives.value = availableDrives
       if (!availableDrives.includes(selectedDrive.value)) {
         selectedDrive.value = availableDrives[0]
       }
+      await loadDriveSummary(selectedDrive.value, { forceScan: false, keepDashboard: false })
     })
     .catch(() => {})
 
@@ -542,12 +580,26 @@ onMounted(() => {
       scheduleDashboardHide()
     }
   })
+
+  removeCacheUpdatedListener = window.mftAPI.onCacheUpdated(payload => {
+    if (!payload || payload.drive !== selectedDrive.value || loading.value) return
+    folders.value = payload.summary ?? []
+    scanInfo.value = payload.scanInfo ?? null
+  })
+})
+
+watch(selectedDrive, async (nextDrive, previousDrive) => {
+  if (!nextDrive || nextDrive === previousDrive) return
+  expandedIds.value = new Set()
+  await loadDriveSummary(nextDrive, { forceScan: false, keepDashboard: false })
 })
 
 onBeforeUnmount(() => {
   clearDashboardHideTimer()
   removeProgressListener?.()
   removeProgressListener = null
+  removeCacheUpdatedListener?.()
+  removeCacheUpdatedListener = null
 })
 </script>
 

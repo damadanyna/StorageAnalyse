@@ -1,4 +1,4 @@
-import { u as useRouter, o as onMounted, c as createElementBlock, a as openBlock } from "./index-IoOG4OA_.js";
+import { u as useRouter, o as onMounted, c as createElementBlock, a as openBlock } from "./index-BiNo5Db0.js";
 const _hoisted_1 = { class: "flex items-center justify-center h-full" };
 const _sfc_main = {
   __name: "index",

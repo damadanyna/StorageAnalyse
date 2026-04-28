@@ -15,7 +15,7 @@ import sys, io, builtins, tempfile
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
-import os, sys, json, struct, ctypes, ctypes.wintypes, argparse
+import os, sys, json, struct, ctypes, ctypes.wintypes, argparse, time
 from datetime import datetime
 from collections import defaultdict
 
@@ -364,6 +364,35 @@ def read_usn_delta(handle, start_usn: int, journal_state: dict, limit_usn: int |
         next_usn = returned_next
         if limit_usn is not None and next_usn >= limit_usn:
             break
+
+
+def wait_for_usn_change(handle, start_usn: int, journal_state: dict, timeout_ms: int = 1500) -> tuple[int, bool]:
+    out_buf = ctypes.create_string_buffer(4096)
+    bytes_ret = ctypes.wintypes.DWORD(0)
+    in_buf = struct.pack(
+        "<QIIQQQ",
+        start_usn,
+        USN_REASON_ANY,
+        0,
+        timeout_ms,
+        1,
+        journal_state["journal_id"],
+    )
+    ok = _k32.DeviceIoControl(
+        handle, FSCTL_READ_USN_JOURNAL,
+        in_buf, len(in_buf),
+        out_buf, len(out_buf),
+        ctypes.byref(bytes_ret), None,
+    )
+    if not ok:
+        raise OSError(f"READ_USN_JOURNAL attente a echoue (err={ctypes.get_last_error()})")
+
+    if bytes_ret.value < 8:
+        return start_usn, False
+
+    returned_next = struct.unpack_from("<Q", out_buf.raw, 0)[0]
+    has_records = bytes_ret.value > 8
+    return returned_next, has_records
 
 
 # -- Taille via FSCTL_GET_NTFS_FILE_RECORD -------------------------
@@ -1038,6 +1067,101 @@ def apply_usn_delta(handle, drive: str, cached_package: dict, current_journal: d
     return build_payload_from_state(drive, records, tree, max_depth=max_depth), delta_entries
 
 
+def resolve_scan_payload(reader: "MFTReader", max_depth=None) -> tuple[dict, dict | None]:
+    start = datetime.now()
+    current_journal = query_usn_journal(reader.handle)
+
+    cached_payload = load_scan_cache(reader.drive, current_journal)
+    if cached_payload is not None:
+        elapsed = (datetime.now() - start).total_seconds()
+        return annotate_payload(cached_payload, "cache", elapsed), current_journal
+
+    cached_package = load_scan_cache_package(reader.drive)
+    if current_journal is not None and cached_package is not None:
+        delta_payload, delta_entries = apply_usn_delta(
+            reader.handle,
+            reader.drive,
+            cached_package,
+            current_journal,
+            max_depth=max_depth,
+        )
+        if delta_payload is not None:
+            elapsed = (datetime.now() - start).total_seconds()
+            delta_payload = annotate_payload(delta_payload, "delta", elapsed, delta_entries)
+            save_scan_cache(reader.drive, current_journal, delta_payload)
+            return delta_payload, current_journal
+
+    reader.read_all_records()
+    sizes = reader.compute_folder_sizes()
+    payload = {
+        "summary": reader.build_summary(max_depth=max_depth),
+        "cache": reader.build_cache_payload(sizes),
+    }
+    elapsed = (datetime.now() - start).total_seconds()
+    payload = annotate_payload(payload, "scan", elapsed)
+    save_scan_cache(reader.drive, current_journal, payload)
+    return payload, current_journal
+
+
+def emit_watch_payload(drive: str, payload: dict, event_type: str = "update", delta_entries: int = 0):
+    envelope = {
+        "type": event_type,
+        "drive": drive,
+        "payload": payload,
+        "deltaEntries": delta_entries,
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+    }
+    builtins.print(json.dumps(envelope, ensure_ascii=False, default=str), flush=True)
+
+
+def watch_drive_updates(drive: str, max_depth=None, timeout_ms: int = 1500):
+    set_stdout_json_mode(True)
+    reader = MFTReader(drive)
+    reader.open()
+    try:
+        payload, journal_state = resolve_scan_payload(reader, max_depth=max_depth)
+        emit_watch_payload(reader.drive, payload, event_type="ready")
+
+        while True:
+            if journal_state is None:
+                time.sleep(2)
+                journal_state = query_usn_journal(reader.handle)
+                continue
+
+            next_usn, has_records = wait_for_usn_change(reader.handle, journal_state["next_usn"], journal_state, timeout_ms=timeout_ms)
+            refreshed_journal = query_usn_journal(reader.handle)
+            if refreshed_journal is None:
+                time.sleep(1)
+                continue
+            if not has_records and refreshed_journal["next_usn"] <= journal_state["next_usn"]:
+                journal_state = refreshed_journal
+                continue
+
+            cached_package = load_scan_cache_package(reader.drive)
+            delta_payload, delta_entries = apply_usn_delta(
+                reader.handle,
+                reader.drive,
+                cached_package,
+                refreshed_journal,
+                max_depth=max_depth,
+            )
+
+            if delta_payload is None:
+                print(f"[~] Watcher {reader.drive}: rescan complet apres changement journal USN")
+                payload, refreshed_journal = resolve_scan_payload(reader, max_depth=max_depth)
+                emit_watch_payload(reader.drive, payload, event_type="rescan")
+                journal_state = refreshed_journal or journal_state
+                continue
+
+            delta_payload = annotate_payload(delta_payload, "delta", 0.0, delta_entries)
+            save_scan_cache(reader.drive, refreshed_journal, delta_payload)
+            emit_watch_payload(reader.drive, delta_payload, event_type="update", delta_entries=delta_entries)
+            journal_state = refreshed_journal
+            journal_state["next_usn"] = max(journal_state["next_usn"], next_usn)
+    finally:
+        reader.close()
+
+
 def _fmt(n):
     for u, t in (("TB",1024**4),("GB",1024**3),("MB",1024**2),("KB",1024)):
         if n >= t: return f"{n/t:.2f} {u}"
@@ -1070,8 +1194,14 @@ def main_electron():
                    help="Limite records lus (tests)")
     p.add_argument("--files",       type=int,  default=None,
                    help="Retourne les fichiers du dossier ref donne")
+    p.add_argument("--watch",       action="store_true",
+                   help="Surveille le journal USN et emet les mises a jour en continu")
     a = p.parse_args()
     set_stdout_json_mode(a.stdout_json)
+
+    if a.watch:
+        watch_drive_updates(a.drive, max_depth=a.depth)
+        return
 
     r = MFTReader(a.drive)
     try:
@@ -1080,63 +1210,32 @@ def main_electron():
         current_journal = query_usn_journal(r.handle) if a.files is None and a.max_records is None else None
 
         if a.files is None and a.max_records is None:
-            cached_payload = load_scan_cache(r.drive, current_journal)
-            if cached_payload is not None:
-                elapsed = (datetime.now() - start).total_seconds()
-                cached_payload = annotate_payload(cached_payload, "cache", elapsed)
-                print(f"[OK] Cache USN utilise pour {r.drive}: ({len(cached_payload.get('summary', []))} dossiers racine)")
-                if a.output:
-                    emit_payload(cached_payload, a.output)
-                elif a.stdout_json:
-                    emit_payload(cached_payload)
-                elif a.json:
-                    out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                       "mft_output.json")
-                    with open(out, "w", encoding="utf-8") as f:
-                        json.dump(cached_payload.get("summary", []), f, ensure_ascii=False, indent=2, default=str)
-                    print(f"[S] Exporte -> {out} ({len(cached_payload.get('summary', []))} dossiers racine)")
-                else:
-                    elapsed = (datetime.now() - start).total_seconds()
-                    summary = cached_payload.get("summary", [])
-                    print(f"\n[t]  Charge depuis cache en {elapsed:.2f}s\n")
-                    print(f"{'Dossier':<40} {'Taille':>12}")
-                    print("-" * 54)
-                    for f in summary[:20]:
-                        print(f"{f['name']:<40} {f['size_display']:>12}")
-                return
+            payload, current_journal = resolve_scan_payload(r, max_depth=a.depth)
+            if payload.get("scan_info", {}).get("source") == "cache":
+                print(f"[OK] Cache USN utilise pour {r.drive}: ({len(payload.get('summary', []))} dossiers racine)")
+            elif payload.get("scan_info", {}).get("source") == "delta":
+                print(f"[OK] Delta USN applique pour {r.drive}: {payload.get('scan_info', {}).get('delta_entries', 0)} entree(s)")
+            else:
+                print(f"[OK] Scan complet effectue pour {r.drive}: ({len(payload.get('summary', []))} dossiers racine)")
 
-            cached_package = load_scan_cache_package(r.drive)
-            if current_journal is not None and cached_package is not None:
-                delta_payload, delta_entries = apply_usn_delta(
-                    r.handle,
-                    r.drive,
-                    cached_package,
-                    current_journal,
-                    max_depth=a.depth,
-                )
-                if delta_payload is not None:
-                    elapsed = (datetime.now() - start).total_seconds()
-                    delta_payload = annotate_payload(delta_payload, "delta", elapsed, delta_entries)
-                    save_scan_cache(r.drive, current_journal, delta_payload)
-                    print(f"[OK] Delta USN applique pour {r.drive}: {delta_entries} entree(s)")
-                    if a.output:
-                        emit_payload(delta_payload, a.output)
-                    elif a.stdout_json:
-                        emit_payload(delta_payload)
-                    elif a.json:
-                        out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                           "mft_output.json")
-                        with open(out, "w", encoding="utf-8") as f:
-                            json.dump(delta_payload.get("summary", []), f, ensure_ascii=False, indent=2, default=str)
-                        print(f"[S] Exporte -> {out} ({len(delta_payload.get('summary', []))} dossiers racine)")
-                    else:
-                        summary = delta_payload.get("summary", [])
-                        print(f"\n[t]  Delta applique en {elapsed:.2f}s\n")
-                        print(f"{'Dossier':<40} {'Taille':>12}")
-                        print("-" * 54)
-                        for f in summary[:20]:
-                            print(f"{f['name']:<40} {f['size_display']:>12}")
-                    return
+            if a.output:
+                emit_payload(payload, a.output)
+            elif a.stdout_json:
+                emit_payload(payload)
+            elif a.json:
+                out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mft_output.json")
+                with open(out, "w", encoding="utf-8") as f:
+                    json.dump(payload.get("summary", []), f, ensure_ascii=False, indent=2, default=str)
+                print(f"[S] Exporte -> {out} ({len(payload.get('summary', []))} dossiers racine)")
+            else:
+                elapsed = (datetime.now() - start).total_seconds()
+                summary = payload.get("summary", [])
+                print(f"\n[t]  Termine en {elapsed:.2f}s\n")
+                print(f"{'Dossier':<40} {'Taille':>12}")
+                print("-" * 54)
+                for f in summary[:20]:
+                    print(f"{f['name']:<40} {f['size_display']:>12}")
+            return
 
         r.read_all_records(max_records=a.max_records)
 

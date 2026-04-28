@@ -33,19 +33,27 @@ function getAvailableDrives() {
   }
   return drives;
 }
-const mftCache = {
-  drive: null,
-  records: {},
-  // ref -> { name, is_dir, ext, size_bytes, size_display, parent }
-  tree: {}
-  // parent_ref -> [child_refs]
-};
+const mftCacheByDrive = /* @__PURE__ */ new Map();
+const activeScans = /* @__PURE__ */ new Map();
+const watcherProcesses = /* @__PURE__ */ new Map();
+let isAppShuttingDown = false;
+const STARTUP_SCAN_DEPTH = 1;
+const WATCHER_RESTART_MS = 5e3;
 const PYTHON_PROGRESS_PREFIX = "__SCAN_PROGRESS__";
 function emitScanProgress(target, payload) {
   target?.send("mft:scan-progress", {
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     ...payload
   });
+}
+function emitCacheUpdated(payload) {
+  const windows = BrowserWindow.getAllWindows();
+  for (const win of windows) {
+    win.webContents.send("mft:cache-updated", {
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      ...payload
+    });
+  }
 }
 function inferStage(message) {
   const text = String(message || "").toLowerCase();
@@ -76,9 +84,17 @@ function attachLineBuffer(stream, onLine) {
   });
 }
 function buildCache(payload, drive) {
-  mftCache.drive = drive;
-  mftCache.records = payload?.cache?.records ?? {};
-  mftCache.tree = payload?.cache?.tree ?? {};
+  mftCacheByDrive.set(drive, {
+    drive,
+    records: payload?.cache?.records ?? {},
+    tree: payload?.cache?.tree ?? {},
+    summary: payload?.summary ?? [],
+    scanInfo: payload?.scan_info ?? null,
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  });
+}
+function getCachedDriveState(drive) {
+  return mftCacheByDrive.get(drive) ?? null;
 }
 function parseJsonFromStdout(stdout) {
   const lines = stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -250,31 +266,148 @@ async function runPythonJsonWithFallback(args, options = {}) {
     return runPythonJsonElevated(args, options);
   }
 }
-ipcMain.handle("mft:scan", async (event, { drive = "C", depth = null } = {}) => {
+async function executeDriveScan(drive, options = {}) {
+  const { depth = STARTUP_SCAN_DEPTH, progressTargets = [], emitLifecycle = true, notifyCacheUpdate = true } = options;
   const scriptPath = getScriptPath();
+  const args = [scriptPath, drive];
+  if (depth !== null) args.push("--depth", String(depth));
+  const emitToTargets = (payload2) => {
+    for (const target of progressTargets) emitScanProgress(target, payload2);
+  };
+  if (emitLifecycle && progressTargets.size > 0) {
+    emitToTargets({
+      type: "status",
+      stage: "start",
+      message: `Initialisation du scan ${drive}:`
+    });
+  }
+  const payload = await runPythonJsonWithFallback(args, {
+    onProgress: (progress) => emitToTargets(progress)
+  });
+  buildCache(payload, drive);
+  if (emitLifecycle && progressTargets.size > 0) {
+    emitToTargets({
+      type: "success",
+      stage: "done",
+      message: "Analyse terminee.",
+      scanInfo: payload.scan_info ?? null
+    });
+  }
+  if (notifyCacheUpdate) {
+    emitCacheUpdated({
+      drive,
+      summary: payload.summary ?? [],
+      scanInfo: payload.scan_info ?? null
+    });
+  }
+  return payload;
+}
+async function ensureDriveScanned(drive, options = {}) {
   const normalizedDrive = normalizeDriveLetter(drive);
   const availableDrives = getAvailableDrives();
   if (!availableDrives.includes(normalizedDrive)) {
     throw new Error(`Le lecteur ${normalizedDrive}: est introuvable ou non monte.`);
   }
-  const args = [scriptPath, normalizedDrive];
-  if (depth !== null) args.push("--depth", String(depth));
-  emitScanProgress(event.sender, {
-    type: "status",
-    stage: "start",
-    message: `Initialisation du scan ${normalizedDrive}:`
+  const progressTarget = options.progressTarget ?? null;
+  const existing = activeScans.get(normalizedDrive);
+  if (existing) {
+    if (progressTarget) existing.progressTargets.add(progressTarget);
+    return existing.promise;
+  }
+  const progressTargets = new Set(progressTarget ? [progressTarget] : []);
+  const scanPromise = executeDriveScan(normalizedDrive, {
+    ...options,
+    progressTargets
+  }).finally(() => {
+    activeScans.delete(normalizedDrive);
   });
+  activeScans.set(normalizedDrive, { promise: scanPromise, progressTargets });
+  return scanPromise;
+}
+async function warmupAllDrives() {
+  const drives = getAvailableDrives();
+  for (const drive of drives) {
+    try {
+      await ensureDriveScanned(drive, {
+        depth: STARTUP_SCAN_DEPTH,
+        emitLifecycle: false,
+        notifyCacheUpdate: true
+      });
+    } catch (error) {
+      console.warn(`[warmup] ${drive}: ${error.message}`);
+    }
+  }
+}
+function startDriveWatcher(drive) {
+  const normalizedDrive = normalizeDriveLetter(drive);
+  if (watcherProcesses.has(normalizedDrive)) return;
+  const watcherArgs = [getScriptPath(), normalizedDrive, "--watch", "--depth", String(STARTUP_SCAN_DEPTH), "--stdout-json"];
+  const child = spawn(getPythonPath(), watcherArgs, { windowsHide: true });
+  const state = { child, stderr: "" };
+  watcherProcesses.set(normalizedDrive, state);
+  attachLineBuffer(child.stdout, (line) => {
+    try {
+      const event = JSON.parse(line);
+      if (!event?.payload) return;
+      buildCache(event.payload, normalizedDrive);
+      emitCacheUpdated({
+        drive: normalizedDrive,
+        summary: event.payload.summary ?? [],
+        scanInfo: event.payload.scan_info ?? null,
+        watchEventType: event.type ?? "update",
+        deltaEntries: event.deltaEntries ?? 0
+      });
+    } catch (error) {
+      console.warn(`[watcher:${normalizedDrive}] JSON invalide: ${error.message}`);
+    }
+  });
+  attachLineBuffer(child.stderr, (line) => {
+    state.stderr += `${line}
+`;
+    console.log(`[watcher:${normalizedDrive}] ${line}`);
+  });
+  child.on("close", (code) => {
+    watcherProcesses.delete(normalizedDrive);
+    if (isAppShuttingDown) return;
+    const stderr = state.stderr.toLowerCase();
+    const blocked = stderr.includes("admin requis") || stderr.includes("err=5") || stderr.includes("access denied");
+    if (blocked) {
+      console.warn(`[watcher:${normalizedDrive}] arret sans redemarrage: privileges insuffisants`);
+      return;
+    }
+    console.warn(`[watcher:${normalizedDrive}] termine (code ${code}), redemarrage programme`);
+    setTimeout(() => {
+      if (!isAppShuttingDown && getAvailableDrives().includes(normalizedDrive)) {
+        startDriveWatcher(normalizedDrive);
+      }
+    }, WATCHER_RESTART_MS);
+  });
+  child.on("error", (error) => {
+    watcherProcesses.delete(normalizedDrive);
+    if (!isAppShuttingDown) {
+      console.warn(`[watcher:${normalizedDrive}] erreur: ${error.message}`);
+    }
+  });
+}
+function startAllDriveWatchers() {
+  for (const drive of getAvailableDrives()) {
+    startDriveWatcher(drive);
+  }
+}
+function stopAllDriveWatchers() {
+  isAppShuttingDown = true;
+  for (const { child } of watcherProcesses.values()) {
+    child.kill();
+  }
+  watcherProcesses.clear();
+}
+ipcMain.handle("mft:scan", async (event, { drive = "C", depth = null } = {}) => {
   try {
-    const payload = await runPythonJsonWithFallback(args, {
-      onProgress: (progress) => emitScanProgress(event.sender, progress)
-    });
-    buildCache(payload, normalizedDrive);
-    console.log(`[*] Cache: ${Object.keys(mftCache.records).length} records`);
-    emitScanProgress(event.sender, {
-      type: "success",
-      stage: "done",
-      message: "Analyse terminee.",
-      scanInfo: payload.scan_info ?? null
+    const payload = await ensureDriveScanned(drive, {
+      depth,
+      progressTarget: event.sender,
+      emitLifecycle: true,
+      notifyCacheUpdate: true
     });
     return {
       summary: payload.summary ?? [],
@@ -291,14 +424,15 @@ ipcMain.handle("mft:scan", async (event, { drive = "C", depth = null } = {}) => 
 });
 ipcMain.handle("mft:files", async (event, { drive = "C", folderRef } = {}) => {
   const normalizedDrive = normalizeDriveLetter(drive);
-  if (!mftCache.drive || mftCache.drive !== normalizedDrive) {
+  const driveCache = getCachedDriveState(normalizedDrive);
+  if (!driveCache) {
     console.warn("[!] Cache vide ou drive different");
     return [];
   }
-  const childRefs = mftCache.tree[folderRef] ?? [];
+  const childRefs = driveCache.tree[folderRef] ?? [];
   const files = [];
   for (const ref of childRefs) {
-    const rec = mftCache.records[ref];
+    const rec = driveCache.records[ref];
     if (!rec || rec.is_dir) continue;
     files.push({
       record_number: ref,
@@ -316,14 +450,15 @@ ipcMain.handle("mft:files", async (event, { drive = "C", folderRef } = {}) => {
 });
 ipcMain.handle("mft:children", async (event, { drive = "C", folderRef } = {}) => {
   const normalizedDrive = normalizeDriveLetter(drive);
-  if (!mftCache.drive || mftCache.drive !== normalizedDrive) {
+  const driveCache = getCachedDriveState(normalizedDrive);
+  if (!driveCache) {
     console.warn("[!] Cache vide ou drive different");
     return [];
   }
-  const childRefs = mftCache.tree[String(folderRef)] ?? mftCache.tree[folderRef] ?? [];
+  const childRefs = driveCache.tree[String(folderRef)] ?? driveCache.tree[folderRef] ?? [];
   const folders = [];
   for (const ref of childRefs) {
-    const rec = mftCache.records[String(ref)] ?? mftCache.records[ref];
+    const rec = driveCache.records[String(ref)] ?? driveCache.records[ref];
     if (!rec || rec.is_dir === false) continue;
     folders.push({
       record_number: rec.record_number ?? ref,
@@ -341,6 +476,16 @@ ipcMain.handle("mft:children", async (event, { drive = "C", folderRef } = {}) =>
 });
 ipcMain.handle("mft:drives", async () => {
   return getAvailableDrives();
+});
+ipcMain.handle("mft:summary", async (event, { drive = "C" } = {}) => {
+  const normalizedDrive = normalizeDriveLetter(drive);
+  const driveCache = getCachedDriveState(normalizedDrive);
+  return {
+    summary: driveCache?.summary ?? [],
+    scanInfo: driveCache?.scanInfo ?? null,
+    cached: Boolean(driveCache),
+    updatedAt: driveCache?.updatedAt ?? null
+  };
 });
 function createWindow(devServerUrl = null) {
   const preloadPath = join(__dirname$1, "..", "preload", "index.js");
@@ -369,8 +514,14 @@ function getDevServerUrl() {
 }
 app.whenReady().then(() => {
   createWindow(getDevServerUrl());
+  warmupAllDrives().catch((error) => {
+    console.warn(`[warmup] ${error.message}`);
+  }).finally(() => {
+    startAllDriveWatchers();
+  });
 });
 app.on("window-all-closed", () => {
+  stopAllDriveWatchers();
   if (process.platform !== "darwin") app.quit();
 });
 app.on("activate", () => {
