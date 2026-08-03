@@ -10,6 +10,7 @@
     "preview": "electron-vite preview",
     "lint": "eslint . --fix",
     "electron:build": "electron-vite build && electron-builder",
+    "rebuild:native": "electron-rebuild -f -w folder-icon",
     "py": "cd back_end && uvicorn app:app --host 0.0.0.0 --port 8080 --reload",
     "py_prod": "cd back_end && python main_https.py"
   },
@@ -20,7 +21,11 @@
       "output": "dist"
     },
     "files": [
-      "out/**/*"
+      "out/**/*",
+      "node_modules/folder-icon/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/folder-icon/build/Release/*.node"
     ],
     "extraResources": [
       {
@@ -51,6 +56,7 @@
   "dependencies": {
     "@fontsource/roboto": "5.2.7",
     "@mdi/font": "7.4.47",
+    "folder-icon": "file:native/folder-icon",
     "pinia": "^3.0.3",
     "vue": "^3.5.21",
     "vue-router": "^4.5.1",
@@ -58,6 +64,7 @@
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.28.5",
+    "@electron/rebuild": "^3.7.1",
     "@vitejs/plugin-vue": "^6.0.1",
     "autoprefixer": "^10.4.23",
     "electron": "^40.0.0",

@@ -33,6 +33,19 @@ FILE_ATTRIBUTE_DIRECTORY   = 0x10
 FILE_BEGIN                 = 0
 READ_BUFFER_SIZE           = 65536
 
+# Erreurs Win32 pouvant survenir sur un journal USN invalide/tronque entre
+# la lecture de son etat (FSCTL_QUERY_USN_JOURNAL) et la lecture des
+# entrees (FSCTL_READ_USN_JOURNAL) : le delta cache doit alors etre
+# abandonne au profit d'un rescan complet plutot que de faire planter le scan.
+ERROR_JOURNAL_DELETE_IN_PROGRESS = 1179
+ERROR_JOURNAL_NOT_ACTIVE         = 1180
+ERROR_JOURNAL_ENTRY_DELETED      = 1181
+USN_JOURNAL_INVALID_ERRORS = (
+    ERROR_JOURNAL_DELETE_IN_PROGRESS,
+    ERROR_JOURNAL_NOT_ACTIVE,
+    ERROR_JOURNAL_ENTRY_DELETED,
+)
+
 USN_OFF_RECORD_LEN   = 0
 USN_OFF_FILE_REF     = 8
 USN_OFF_PARENT_REF   = 16
@@ -48,6 +61,7 @@ ATTR_END           = 0xFFFFFFFF
 NTFS_OUTPUT_HEADER = 12
 CACHE_VERSION      = 1
 USN_REASON_ANY     = 0xFFFFFFFF
+ERROR_JOURNAL_ENTRY_DELETED = 1181
 
 _STDOUT_JSON_MODE = False
 _PROGRESS_PREFIX = "__SCAN_PROGRESS__"
@@ -57,6 +71,10 @@ def print(*args, **kwargs):
     if _STDOUT_JSON_MODE and "file" not in kwargs:
         kwargs["file"] = sys.stderr
     return builtins.print(*args, **kwargs)
+
+
+class UsnJournalUnavailableError(OSError):
+    pass
 
 
 def set_stdout_json_mode(enabled: bool):
@@ -326,7 +344,12 @@ def read_usn_delta(handle, start_usn: int, journal_state: dict, limit_usn: int |
             ctypes.byref(bytes_ret), None,
         )
         if not ok:
-            raise OSError(f"READ_USN_JOURNAL a echoue (err={ctypes.get_last_error()})")
+            error_code = ctypes.get_last_error()
+            if error_code == ERROR_JOURNAL_ENTRY_DELETED:
+                raise UsnJournalUnavailableError(
+                    f"READ_USN_JOURNAL a echoue (err={error_code})"
+                )
+            raise OSError(f"READ_USN_JOURNAL a echoue (err={error_code})")
 
         nb = bytes_ret.value
         if nb < 8:
@@ -1038,17 +1061,20 @@ def apply_usn_delta(handle, drive: str, cached_package: dict, current_journal: d
     records, tree = inflate_cache_state(payload)
     delta_by_ref = {}
     delta_entries = 0
-    for entry in read_usn_delta(handle, cached_next_usn, current_journal, current_journal["next_usn"]):
-        delta_entries += 1
-        ref = entry["ref"]
-        prev = delta_by_ref.get(ref)
-        if prev is None:
-            delta_by_ref[ref] = entry
-        else:
-            prev["reason"] |= entry["reason"]
-            prev["parent"] = entry["parent"]
-            prev["name"] = entry["name"] or prev["name"]
-            prev["is_dir"] = entry["is_dir"]
+    try:
+        for entry in read_usn_delta(handle, cached_next_usn, current_journal, current_journal["next_usn"]):
+            delta_entries += 1
+            ref = entry["ref"]
+            prev = delta_by_ref.get(ref)
+            if prev is None:
+                delta_by_ref[ref] = entry
+            else:
+                prev["reason"] |= entry["reason"]
+                prev["parent"] = entry["parent"]
+                prev["name"] = entry["name"] or prev["name"]
+                prev["is_dir"] = entry["is_dir"]
+    except UsnJournalUnavailableError:
+        return None, 0
 
     if not delta_by_ref:
         return None, 0

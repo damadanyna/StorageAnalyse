@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./signin-BtUQPOyN.js","./signin-Dpq9KUaf.css"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./signin-BxZOMjuK.js","./signin-Dpq9KUaf.css"])))=>i.map(i=>d[i]);
 /**
 * @vue/shared v3.5.27
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
@@ -7445,6 +7445,31 @@ function hasCSSTransform(el, root, moveClass) {
   container.removeChild(clone);
   return hasTransform;
 }
+const systemModifiers = ["ctrl", "shift", "alt", "meta"];
+const modifierGuards = {
+  stop: (e) => e.stopPropagation(),
+  prevent: (e) => e.preventDefault(),
+  self: (e) => e.target !== e.currentTarget,
+  ctrl: (e) => !e.ctrlKey,
+  shift: (e) => !e.shiftKey,
+  alt: (e) => !e.altKey,
+  meta: (e) => !e.metaKey,
+  left: (e) => "button" in e && e.button !== 0,
+  middle: (e) => "button" in e && e.button !== 1,
+  right: (e) => "button" in e && e.button !== 2,
+  exact: (e, modifiers) => systemModifiers.some((m) => e[`${m}Key`] && !modifiers.includes(m))
+};
+const withModifiers = (fn, modifiers) => {
+  const cache = fn._withMods || (fn._withMods = {});
+  const cacheKey = modifiers.join(".");
+  return cache[cacheKey] || (cache[cacheKey] = (event, ...args) => {
+    for (let i = 0; i < modifiers.length; i++) {
+      const guard = modifierGuards[modifiers[i]];
+      if (guard && guard(event, modifiers)) return;
+    }
+    return fn(event, ...args);
+  });
+};
 const rendererOptions = /* @__PURE__ */ extend({ patchProp }, nodeOps);
 let renderer;
 function ensureRenderer() {
@@ -13134,7 +13159,7 @@ const routes = [
   {
     path: "/",
     name: "/",
-    component: () => __vitePreload(() => import("./index-Ch0IRXcY.js"), true ? [] : void 0, import.meta.url)
+    component: () => __vitePreload(() => import("./index-Cj-SvQfM.js"), true ? [] : void 0, import.meta.url)
     /* no children */
   },
   {
@@ -13145,13 +13170,13 @@ const routes = [
       {
         path: "signin",
         name: "/auth/signin",
-        component: () => __vitePreload(() => import("./signin-BtUQPOyN.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./signin-BxZOMjuK.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url)
         /* no children */
       },
       {
         path: "signup",
         name: "/auth/signup",
-        component: () => __vitePreload(() => import("./signup-BJaTR3Po.js"), true ? [] : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./signup-Cug9L7Hp.js"), true ? [] : void 0, import.meta.url)
         /* no children */
       }
     ]
@@ -13164,7 +13189,7 @@ const routes = [
       {
         path: "homePage",
         name: "/diskAnalize/homePage",
-        component: () => __vitePreload(() => import("./homePage-D4pxV4wY.js"), true ? [] : void 0, import.meta.url)
+        component: () => __vitePreload(() => import("./homePage-DfIV-mag.js"), true ? [] : void 0, import.meta.url)
         /* no children */
       }
     ]
@@ -13206,7 +13231,3067 @@ const _export_sfc = (sfc, props) => {
   }
   return target;
 };
+function useColor(colors) {
+  return destructComputed(() => {
+    const {
+      class: colorClasses,
+      style: colorStyles
+    } = computeColor(colors);
+    return {
+      colorClasses,
+      colorStyles
+    };
+  });
+}
+function useTextColor(color) {
+  const {
+    colorClasses: textColorClasses,
+    colorStyles: textColorStyles
+  } = useColor(() => ({
+    text: toValue(color)
+  }));
+  return {
+    textColorClasses,
+    textColorStyles
+  };
+}
+function useBackgroundColor(color) {
+  const {
+    colorClasses: backgroundColorClasses,
+    colorStyles: backgroundColorStyles
+  } = useColor(() => ({
+    background: toValue(color)
+  }));
+  return {
+    backgroundColorClasses,
+    backgroundColorStyles
+  };
+}
+function computeColor(colors) {
+  const _colors = toValue(colors);
+  const classes = [];
+  const styles = {};
+  if (_colors.background) {
+    if (isCssColor(_colors.background)) {
+      styles.backgroundColor = _colors.background;
+      if (!_colors.text && isParsableColor(_colors.background)) {
+        const backgroundColor = parseColor(_colors.background);
+        if (backgroundColor.a == null || backgroundColor.a === 1) {
+          const textColor = getForeground(backgroundColor);
+          styles.color = textColor;
+          styles.caretColor = textColor;
+        }
+      }
+    } else {
+      classes.push(`bg-${_colors.background}`);
+    }
+  }
+  if (_colors.text) {
+    if (isCssColor(_colors.text)) {
+      styles.color = _colors.text;
+      styles.caretColor = _colors.text;
+    } else {
+      classes.push(`text-${_colors.text}`);
+    }
+  }
+  return {
+    class: classes,
+    style: styles
+  };
+}
+const predefinedSizes = ["x-small", "small", "default", "large", "x-large"];
+const makeSizeProps = propsFactory({
+  size: {
+    type: [String, Number],
+    default: "default"
+  }
+}, "size");
+function useSize(props) {
+  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
+  return destructComputed(() => {
+    const size = props.size;
+    let sizeClasses;
+    let sizeStyles;
+    if (includes(predefinedSizes, size)) {
+      sizeClasses = `${name}--size-${size}`;
+    } else if (size) {
+      sizeStyles = {
+        width: convertToUnit(size),
+        height: convertToUnit(size)
+      };
+    }
+    return {
+      sizeClasses,
+      sizeStyles
+    };
+  });
+}
+const makeTagProps = propsFactory({
+  tag: {
+    type: [String, Object, Function],
+    default: "div"
+  }
+}, "tag");
+const makeVIconProps = propsFactory({
+  color: String,
+  disabled: Boolean,
+  start: Boolean,
+  end: Boolean,
+  icon: IconValue,
+  opacity: [String, Number],
+  ...makeComponentProps(),
+  ...makeSizeProps(),
+  ...makeTagProps({
+    tag: "i"
+  }),
+  ...makeThemeProps()
+}, "VIcon");
+const VIcon = genericComponent()({
+  name: "VIcon",
+  props: makeVIconProps(),
+  setup(props, _ref) {
+    let {
+      attrs,
+      slots
+    } = _ref;
+    const slotIcon = /* @__PURE__ */ shallowRef();
+    const {
+      themeClasses
+    } = useTheme();
+    const {
+      iconData
+    } = useIcon(() => slotIcon.value || props.icon);
+    const {
+      sizeClasses
+    } = useSize(props);
+    const {
+      textColorClasses,
+      textColorStyles
+    } = useTextColor(() => props.color);
+    useRender(() => {
+      const slotValue = slots.default?.();
+      if (slotValue) {
+        slotIcon.value = flattenFragments(slotValue).filter((node) => node.type === Text && node.children && typeof node.children === "string")[0]?.children;
+      }
+      const hasClick = !!(attrs.onClick || attrs.onClickOnce);
+      return createVNode(iconData.value.component, {
+        "tag": props.tag,
+        "icon": iconData.value.icon,
+        "class": normalizeClass(["v-icon", "notranslate", themeClasses.value, sizeClasses.value, textColorClasses.value, {
+          "v-icon--clickable": hasClick,
+          "v-icon--disabled": props.disabled,
+          "v-icon--start": props.start,
+          "v-icon--end": props.end
+        }, props.class]),
+        "style": normalizeStyle([{
+          "--v-icon-opacity": props.opacity
+        }, !sizeClasses.value ? {
+          fontSize: convertToUnit(props.size),
+          height: convertToUnit(props.size),
+          width: convertToUnit(props.size)
+        } : void 0, textColorStyles.value, props.style]),
+        "role": hasClick ? "button" : void 0,
+        "aria-hidden": !hasClick,
+        "tabindex": hasClick ? props.disabled ? -1 : 0 : void 0
+      }, {
+        default: () => [slotValue]
+      });
+    });
+    return {};
+  }
+});
+const _hoisted_1$2 = { class: "explorer-row__name" };
+const _hoisted_2$2 = { class: "explorer-row__icon" };
+const _hoisted_3$2 = ["src"];
+const _hoisted_4$2 = ["title"];
+const _hoisted_5$2 = { class: "explorer-row__type" };
+const _hoisted_6$2 = { class: "explorer-row__size" };
+const _hoisted_7$2 = { class: "explorer-grid-item__icon" };
+const _hoisted_8$2 = ["src"];
+const _hoisted_9$2 = ["title"];
+const _hoisted_10$1 = { class: "explorer-grid-item__meta" };
+const _sfc_main$2 = {
+  __name: "ExplorerRow",
+  props: {
+    item: { type: Object, required: true },
+    selected: { type: Boolean, default: false },
+    variant: { type: String, default: "list" }
+  },
+  emits: ["select", "open", "contextmenu"],
+  setup(__props) {
+    const props = __props;
+    const iconUrl = /* @__PURE__ */ ref("");
+    const isDir = computed(() => props.item.is_dir !== false);
+    const ext = computed(() => String(props.item.ext || "").trim().toLowerCase());
+    const FILE_ICONS = {
+      mp4: "mdi-file-video",
+      mkv: "mdi-file-video",
+      avi: "mdi-file-video",
+      mov: "mdi-file-video",
+      wmv: "mdi-file-video",
+      webm: "mdi-file-video",
+      mp3: "mdi-file-music",
+      wav: "mdi-file-music",
+      flac: "mdi-file-music",
+      aac: "mdi-file-music",
+      ogg: "mdi-file-music",
+      m4a: "mdi-file-music",
+      jpg: "mdi-file-image",
+      jpeg: "mdi-file-image",
+      png: "mdi-file-image",
+      gif: "mdi-file-image",
+      bmp: "mdi-file-image",
+      svg: "mdi-file-image",
+      webp: "mdi-file-image",
+      ico: "mdi-file-image",
+      tiff: "mdi-file-image",
+      pdf: "mdi-file-pdf-box",
+      doc: "mdi-file-word",
+      docx: "mdi-file-word",
+      xls: "mdi-file-excel",
+      xlsx: "mdi-file-excel",
+      ppt: "mdi-file-powerpoint",
+      pptx: "mdi-file-powerpoint",
+      txt: "mdi-file-document-outline",
+      md: "mdi-language-markdown",
+      csv: "mdi-file-delimited",
+      zip: "mdi-zip-box",
+      rar: "mdi-zip-box",
+      "7z": "mdi-zip-box",
+      tar: "mdi-zip-box",
+      gz: "mdi-zip-box",
+      js: "mdi-language-javascript",
+      ts: "mdi-language-typescript",
+      py: "mdi-language-python",
+      html: "mdi-language-html5",
+      css: "mdi-language-css3",
+      json: "mdi-code-json",
+      sql: "mdi-database",
+      sh: "mdi-console",
+      exe: "mdi-application",
+      iso: "mdi-disc",
+      dll: "mdi-puzzle",
+      msi: "mdi-package-variant"
+    };
+    const FILE_COLORS = {
+      mp4: "blue",
+      mkv: "blue",
+      avi: "blue",
+      mov: "blue",
+      webm: "blue",
+      mp3: "purple",
+      wav: "purple",
+      flac: "purple",
+      aac: "purple",
+      m4a: "purple",
+      jpg: "teal",
+      jpeg: "teal",
+      png: "teal",
+      gif: "teal",
+      svg: "teal",
+      webp: "teal",
+      pdf: "red",
+      doc: "blue-darken-2",
+      docx: "blue-darken-2",
+      xls: "green-darken-2",
+      xlsx: "green-darken-2",
+      ppt: "orange-darken-2",
+      pptx: "orange-darken-2",
+      txt: "grey",
+      md: "grey-darken-1",
+      csv: "green",
+      zip: "amber-darken-2",
+      rar: "amber-darken-2",
+      "7z": "amber-darken-2",
+      gz: "amber-darken-2",
+      tar: "amber-darken-2",
+      js: "yellow-darken-3",
+      ts: "blue",
+      py: "blue-darken-1",
+      html: "orange-darken-2",
+      css: "blue",
+      json: "grey",
+      sql: "cyan-darken-2",
+      exe: "red-darken-2",
+      iso: "indigo",
+      dll: "grey-darken-2"
+    };
+    const TYPE_LABELS = {
+      pdf: "Document PDF",
+      doc: "Document Word",
+      docx: "Document Word",
+      xls: "Classeur Excel",
+      xlsx: "Classeur Excel",
+      ppt: "Presentation PowerPoint",
+      pptx: "Presentation PowerPoint",
+      txt: "Document texte",
+      md: "Document Markdown",
+      csv: "Valeurs separees par des virgules",
+      jpg: "Image JPEG",
+      jpeg: "Image JPEG",
+      png: "Image PNG",
+      gif: "Image GIF",
+      bmp: "Image bitmap",
+      svg: "Image vectorielle",
+      webp: "Image WEBP",
+      ico: "Icone",
+      mp3: "Fichier audio MP3",
+      wav: "Fichier audio WAV",
+      flac: "Fichier audio FLAC",
+      mp4: "Fichier video MP4",
+      mkv: "Fichier video MKV",
+      avi: "Fichier video AVI",
+      zip: "Dossier compresse ZIP",
+      rar: "Archive RAR",
+      "7z": "Archive 7-Zip",
+      exe: "Application",
+      msi: "Package d installation Windows",
+      iso: "Image disque",
+      json: "Fichier JSON",
+      js: "Fichier JavaScript",
+      ts: "Fichier TypeScript",
+      py: "Script Python",
+      html: "Document HTML",
+      css: "Feuille de style CSS",
+      dll: "Extension d application",
+      sql: "Fichier SQL"
+    };
+    const iconName = computed(() => isDir.value ? "mdi-folder" : FILE_ICONS[ext.value] ?? "mdi-file-outline");
+    const iconColor = computed(() => isDir.value ? "amber" : FILE_COLORS[ext.value] ?? "grey-lighten-1");
+    function truncateName(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      const words = text.split(/\s+/).filter(Boolean);
+      if (words.length > 5) {
+        return `${words.slice(0, 5).join(" ")}...`;
+      }
+      if (text.length > 26) {
+        return `${text.slice(0, 23)}...`;
+      }
+      return text;
+    }
+    const displayName = computed(() => truncateName(props.item?.name));
+    const typeLabel = computed(() => {
+      if (isDir.value) return "Dossier de fichiers";
+      if (!ext.value) return "Fichier";
+      return TYPE_LABELS[ext.value] ?? `Fichier ${ext.value.toUpperCase()}`;
+    });
+    async function loadIcon() {
+      if (!props.item?.path) {
+        iconUrl.value = "";
+        return;
+      }
+      if (props.variant === "grid" && isDir.value) {
+        try {
+          const jumbo = await window.mftAPI.getJumboIcon(props.item.path, 256);
+          if (jumbo?.dataUrl) {
+            iconUrl.value = jumbo.dataUrl;
+            return;
+          }
+        } catch {
+        }
+      }
+      if (isDir.value) {
+        iconUrl.value = "";
+        return;
+      }
+      const size = props.variant === "grid" ? "normal" : "small";
+      try {
+        const result = await window.mftAPI.getFileIcon(props.item.path, size);
+        if (result?.dataUrl) {
+          iconUrl.value = result.dataUrl;
+          return;
+        }
+      } catch {
+      }
+      iconUrl.value = "";
+    }
+    watch(() => [props.item?.path, props.variant], loadIcon, { immediate: true });
+    return (_ctx, _cache) => {
+      return __props.variant !== "grid" ? (openBlock(), createElementBlock("tr", {
+        key: 0,
+        class: normalizeClass(["explorer-row", { "explorer-row--selected": __props.selected }]),
+        onClick: _cache[0] || (_cache[0] = ($event) => _ctx.$emit("select")),
+        onDblclick: _cache[1] || (_cache[1] = ($event) => _ctx.$emit("open")),
+        onContextmenu: _cache[2] || (_cache[2] = withModifiers(($event) => _ctx.$emit("contextmenu", $event), ["prevent"]))
+      }, [
+        createBaseVNode("td", _hoisted_1$2, [
+          createBaseVNode("span", _hoisted_2$2, [
+            iconUrl.value ? (openBlock(), createElementBlock("img", {
+              key: 0,
+              src: iconUrl.value,
+              alt: ""
+            }, null, 8, _hoisted_3$2)) : (openBlock(), createBlock(VIcon, {
+              key: 1,
+              color: iconColor.value,
+              size: "20"
+            }, {
+              default: withCtx(() => [
+                createTextVNode(toDisplayString(iconName.value), 1)
+              ]),
+              _: 1
+            }, 8, ["color"]))
+          ]),
+          createBaseVNode("span", {
+            class: "explorer-row__name-text",
+            title: __props.item.name
+          }, toDisplayString(displayName.value), 9, _hoisted_4$2)
+        ]),
+        createBaseVNode("td", _hoisted_5$2, toDisplayString(typeLabel.value), 1),
+        createBaseVNode("td", _hoisted_6$2, toDisplayString(__props.item.size_display || ""), 1)
+      ], 34)) : (openBlock(), createElementBlock("div", {
+        key: 1,
+        class: normalizeClass(["explorer-grid-item", { "explorer-grid-item--selected": __props.selected }]),
+        onClick: _cache[3] || (_cache[3] = ($event) => _ctx.$emit("select")),
+        onDblclick: _cache[4] || (_cache[4] = ($event) => _ctx.$emit("open")),
+        onContextmenu: _cache[5] || (_cache[5] = withModifiers(($event) => _ctx.$emit("contextmenu", $event), ["prevent"]))
+      }, [
+        createBaseVNode("span", _hoisted_7$2, [
+          iconUrl.value ? (openBlock(), createElementBlock("img", {
+            key: 0,
+            src: iconUrl.value,
+            alt: ""
+          }, null, 8, _hoisted_8$2)) : (openBlock(), createBlock(VIcon, {
+            key: 1,
+            color: iconColor.value,
+            size: "46"
+          }, {
+            default: withCtx(() => [
+              createTextVNode(toDisplayString(iconName.value), 1)
+            ]),
+            _: 1
+          }, 8, ["color"]))
+        ]),
+        createBaseVNode("span", {
+          class: "explorer-grid-item__name",
+          title: __props.item.name
+        }, toDisplayString(displayName.value), 9, _hoisted_9$2),
+        createBaseVNode("span", _hoisted_10$1, toDisplayString(__props.item.size_display || ""), 1)
+      ], 34));
+    };
+  }
+};
+const ExplorerRow = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-fbd220e5"]]);
+const VAlertTitle = createSimpleFunctional("v-alert-title");
+const makeBorderProps = propsFactory({
+  border: [Boolean, Number, String]
+}, "border");
+function useBorder(props) {
+  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
+  const borderClasses = computed(() => {
+    const border = props.border;
+    if (border === true || border === "") {
+      return `${name}--border`;
+    } else if (typeof border === "string" || border === 0) {
+      return String(border).split(" ").map((v) => `border-${v}`);
+    }
+    return [];
+  });
+  return {
+    borderClasses
+  };
+}
+const allowedDensities = [null, "default", "comfortable", "compact"];
+const makeDensityProps = propsFactory({
+  density: {
+    type: String,
+    default: "default",
+    validator: (v) => allowedDensities.includes(v)
+  }
+}, "density");
+function useDensity(props) {
+  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
+  const densityClasses = /* @__PURE__ */ toRef(() => {
+    return `${name}--density-${props.density}`;
+  });
+  return {
+    densityClasses
+  };
+}
+const makeElevationProps = propsFactory({
+  elevation: {
+    type: [Number, String],
+    validator(v) {
+      const value = parseInt(v);
+      return !isNaN(value) && value >= 0 && // Material Design has a maximum elevation of 24
+      // https://material.io/design/environment/elevation.html#default-elevations
+      value <= 24;
+    }
+  }
+}, "elevation");
+function useElevation(props) {
+  const elevationClasses = /* @__PURE__ */ toRef(() => {
+    const elevation = /* @__PURE__ */ isRef(props) ? props.value : props.elevation;
+    if (elevation == null) return [];
+    return [`elevation-${elevation}`];
+  });
+  return {
+    elevationClasses
+  };
+}
+const makeRoundedProps = propsFactory({
+  rounded: {
+    type: [Boolean, Number, String],
+    default: void 0
+  },
+  tile: Boolean
+}, "rounded");
+function useRounded(props) {
+  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
+  const roundedClasses = computed(() => {
+    const rounded = /* @__PURE__ */ isRef(props) ? props.value : props.rounded;
+    const tile = /* @__PURE__ */ isRef(props) ? false : props.tile;
+    const classes = [];
+    if (tile || rounded === false) {
+      classes.push("rounded-0");
+    } else if (rounded === true || rounded === "") {
+      classes.push(`${name}--rounded`);
+    } else if (typeof rounded === "string" || rounded === 0) {
+      for (const value of String(rounded).split(" ")) {
+        classes.push(`rounded-${value}`);
+      }
+    }
+    return classes;
+  });
+  return {
+    roundedClasses
+  };
+}
+const allowedVariants$2 = ["elevated", "flat", "tonal", "outlined", "text", "plain"];
+function genOverlays(isClickable, name) {
+  return createBaseVNode(Fragment, null, [isClickable && createBaseVNode("span", {
+    "key": "overlay",
+    "class": normalizeClass(`${name}__overlay`)
+  }, null), createBaseVNode("span", {
+    "key": "underlay",
+    "class": normalizeClass(`${name}__underlay`)
+  }, null)]);
+}
+const makeVariantProps = propsFactory({
+  color: String,
+  variant: {
+    type: String,
+    default: "elevated",
+    validator: (v) => allowedVariants$2.includes(v)
+  }
+}, "variant");
+function useVariant(props) {
+  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
+  const variantClasses = /* @__PURE__ */ toRef(() => {
+    const {
+      variant
+    } = toValue(props);
+    return `${name}--variant-${variant}`;
+  });
+  const {
+    colorClasses,
+    colorStyles
+  } = useColor(() => {
+    const {
+      variant,
+      color
+    } = toValue(props);
+    return {
+      [["elevated", "flat"].includes(variant) ? "background" : "text"]: color
+    };
+  });
+  return {
+    colorClasses,
+    colorStyles,
+    variantClasses
+  };
+}
+const makeVBtnGroupProps = propsFactory({
+  baseColor: String,
+  divided: Boolean,
+  direction: {
+    type: String,
+    default: "horizontal"
+  },
+  ...makeBorderProps(),
+  ...makeComponentProps(),
+  ...makeDensityProps(),
+  ...makeElevationProps(),
+  ...makeRoundedProps(),
+  ...makeTagProps(),
+  ...makeThemeProps(),
+  ...makeVariantProps()
+}, "VBtnGroup");
+const VBtnGroup = genericComponent()({
+  name: "VBtnGroup",
+  props: makeVBtnGroupProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      densityClasses
+    } = useDensity(props);
+    const {
+      borderClasses
+    } = useBorder(props);
+    const {
+      elevationClasses
+    } = useElevation(props);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    provideDefaults({
+      VBtn: {
+        height: /* @__PURE__ */ toRef(() => props.direction === "horizontal" ? "auto" : null),
+        baseColor: /* @__PURE__ */ toRef(() => props.baseColor),
+        color: /* @__PURE__ */ toRef(() => props.color),
+        density: /* @__PURE__ */ toRef(() => props.density),
+        flat: true,
+        variant: /* @__PURE__ */ toRef(() => props.variant)
+      }
+    });
+    useRender(() => {
+      return createVNode(props.tag, {
+        "class": normalizeClass(["v-btn-group", `v-btn-group--${props.direction}`, {
+          "v-btn-group--divided": props.divided
+        }, themeClasses.value, borderClasses.value, densityClasses.value, elevationClasses.value, roundedClasses.value, props.class]),
+        "style": normalizeStyle(props.style)
+      }, slots);
+    });
+  }
+});
+const makeGroupProps = propsFactory({
+  modelValue: {
+    type: null,
+    default: void 0
+  },
+  multiple: Boolean,
+  mandatory: [Boolean, String],
+  max: Number,
+  selectedClass: String,
+  disabled: Boolean
+}, "group");
+const makeGroupItemProps = propsFactory({
+  value: null,
+  disabled: Boolean,
+  selectedClass: String
+}, "group-item");
+function useGroupItem(props, injectKey) {
+  let required = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : true;
+  const vm = getCurrentInstance("useGroupItem");
+  if (!vm) {
+    throw new Error("[Vuetify] useGroupItem composable must be used inside a component setup function");
+  }
+  const id = useId();
+  provide(Symbol.for(`${injectKey.description}:id`), id);
+  const group = inject$1(injectKey, null);
+  if (!group) {
+    if (!required) return group;
+    throw new Error(`[Vuetify] Could not find useGroup injection with symbol ${injectKey.description}`);
+  }
+  const value = /* @__PURE__ */ toRef(() => props.value);
+  const disabled = computed(() => !!(group.disabled.value || props.disabled));
+  function register() {
+    group?.register({
+      id,
+      value,
+      disabled
+    }, vm);
+  }
+  function unregister() {
+    group?.unregister(id);
+  }
+  register();
+  onBeforeUnmount(() => unregister());
+  const isSelected = computed(() => {
+    return group.isSelected(id);
+  });
+  const isFirst = computed(() => {
+    return group.items.value[0].id === id;
+  });
+  const isLast = computed(() => {
+    return group.items.value[group.items.value.length - 1].id === id;
+  });
+  const selectedClass = computed(() => isSelected.value && [group.selectedClass.value, props.selectedClass]);
+  watch(isSelected, (value2) => {
+    vm.emit("group:selected", {
+      value: value2
+    });
+  }, {
+    flush: "sync"
+  });
+  return {
+    id,
+    isSelected,
+    isFirst,
+    isLast,
+    toggle: () => group.select(id, !isSelected.value),
+    select: (value2) => group.select(id, value2),
+    selectedClass,
+    value,
+    disabled,
+    group,
+    register,
+    unregister
+  };
+}
+function useGroup(props, injectKey) {
+  let isUnmounted = false;
+  const items = /* @__PURE__ */ reactive([]);
+  const selected = useProxiedModel(props, "modelValue", [], (v) => {
+    if (v === void 0) return [];
+    return getIds(items, v === null ? [null] : wrapInArray(v));
+  }, (v) => {
+    const arr = getValues(items, v);
+    return props.multiple ? arr : arr[0];
+  });
+  const groupVm = getCurrentInstance("useGroup");
+  function register(item, vm) {
+    const unwrapped = item;
+    const key = Symbol.for(`${injectKey.description}:id`);
+    const children = findChildrenWithProvide(key, groupVm?.vnode);
+    const index = children.indexOf(vm);
+    if (unref(unwrapped.value) === void 0) {
+      unwrapped.value = index;
+      unwrapped.useIndexAsValue = true;
+    }
+    if (index > -1) {
+      items.splice(index, 0, unwrapped);
+    } else {
+      items.push(unwrapped);
+    }
+  }
+  function unregister(id) {
+    if (isUnmounted) return;
+    forceMandatoryValue();
+    const index = items.findIndex((item) => item.id === id);
+    items.splice(index, 1);
+  }
+  function forceMandatoryValue() {
+    const item = items.find((item2) => !item2.disabled);
+    if (item && props.mandatory === "force" && !selected.value.length) {
+      selected.value = [item.id];
+    }
+  }
+  onMounted(() => {
+    forceMandatoryValue();
+  });
+  onBeforeUnmount(() => {
+    isUnmounted = true;
+  });
+  onUpdated(() => {
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].useIndexAsValue) {
+        items[i].value = i;
+      }
+    }
+  });
+  function select(id, value) {
+    const item = items.find((item2) => item2.id === id);
+    if (value && item?.disabled) return;
+    if (props.multiple) {
+      const internalValue = selected.value.slice();
+      const index = internalValue.findIndex((v) => v === id);
+      const isSelected = ~index;
+      value = value ?? !isSelected;
+      if (isSelected && props.mandatory && internalValue.length <= 1) return;
+      if (!isSelected && props.max != null && internalValue.length + 1 > props.max) return;
+      if (index < 0 && value) internalValue.push(id);
+      else if (index >= 0 && !value) internalValue.splice(index, 1);
+      selected.value = internalValue;
+    } else {
+      const isSelected = selected.value.includes(id);
+      if (props.mandatory && isSelected) return;
+      if (!isSelected && !value) return;
+      selected.value = value ?? !isSelected ? [id] : [];
+    }
+  }
+  function step(offset) {
+    if (props.multiple) ;
+    if (!selected.value.length) {
+      const item = items.find((item2) => !item2.disabled);
+      item && (selected.value = [item.id]);
+    } else {
+      const currentId = selected.value[0];
+      const currentIndex = items.findIndex((i) => i.id === currentId);
+      let newIndex = (currentIndex + offset) % items.length;
+      let newItem = items[newIndex];
+      while (newItem.disabled && newIndex !== currentIndex) {
+        newIndex = (newIndex + offset) % items.length;
+        newItem = items[newIndex];
+      }
+      if (newItem.disabled) return;
+      selected.value = [items[newIndex].id];
+    }
+  }
+  const state = {
+    register,
+    unregister,
+    selected,
+    select,
+    disabled: /* @__PURE__ */ toRef(() => props.disabled),
+    prev: () => step(items.length - 1),
+    next: () => step(1),
+    isSelected: (id) => selected.value.includes(id),
+    selectedClass: /* @__PURE__ */ toRef(() => props.selectedClass),
+    items: /* @__PURE__ */ toRef(() => items),
+    getItemIndex: (value) => getItemIndex(items, value)
+  };
+  provide(injectKey, state);
+  return state;
+}
+function getItemIndex(items, value) {
+  const ids = getIds(items, [value]);
+  if (!ids.length) return -1;
+  return items.findIndex((item) => item.id === ids[0]);
+}
+function getIds(items, modelValue) {
+  const ids = [];
+  modelValue.forEach((value) => {
+    const item = items.find((item2) => deepEqual(value, item2.value));
+    const itemByIndex = items[value];
+    if (item?.value !== void 0) {
+      ids.push(item.id);
+    } else if (itemByIndex?.useIndexAsValue) {
+      ids.push(itemByIndex.id);
+    }
+  });
+  return ids;
+}
+function getValues(items, ids) {
+  const values = [];
+  ids.forEach((id) => {
+    const itemIndex = items.findIndex((item) => item.id === id);
+    if (~itemIndex) {
+      const item = items[itemIndex];
+      values.push(item.value !== void 0 ? item.value : itemIndex);
+    }
+  });
+  return values;
+}
+const VBtnToggleSymbol = Symbol.for("vuetify:v-btn-toggle");
+const makeVBtnToggleProps = propsFactory({
+  ...makeVBtnGroupProps(),
+  ...makeGroupProps()
+}, "VBtnToggle");
+const VBtnToggle = genericComponent()({
+  name: "VBtnToggle",
+  props: makeVBtnToggleProps(),
+  emits: {
+    "update:modelValue": (value) => true
+  },
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      isSelected,
+      next,
+      prev,
+      select,
+      selected
+    } = useGroup(props, VBtnToggleSymbol);
+    useRender(() => {
+      const btnGroupProps = VBtnGroup.filterProps(props);
+      return createVNode(VBtnGroup, mergeProps({
+        "class": ["v-btn-toggle", props.class]
+      }, btnGroupProps, {
+        "style": props.style
+      }), {
+        default: () => [slots.default?.({
+          isSelected,
+          next,
+          prev,
+          select,
+          selected
+        })]
+      });
+    });
+    return {
+      next,
+      prev,
+      select
+    };
+  }
+});
+const makeVDefaultsProviderProps = propsFactory({
+  defaults: Object,
+  disabled: Boolean,
+  reset: [Number, String],
+  root: [Boolean, String],
+  scoped: Boolean
+}, "VDefaultsProvider");
+const VDefaultsProvider = genericComponent(false)({
+  name: "VDefaultsProvider",
+  props: makeVDefaultsProviderProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      defaults,
+      disabled,
+      reset,
+      root,
+      scoped
+    } = /* @__PURE__ */ toRefs(props);
+    provideDefaults(defaults, {
+      reset,
+      root,
+      scoped,
+      disabled
+    });
+    return () => slots.default?.();
+  }
+});
+function useIntersectionObserver(callback, options) {
+  const intersectionRef = /* @__PURE__ */ ref();
+  const isIntersecting = /* @__PURE__ */ shallowRef(false);
+  if (SUPPORTS_INTERSECTION) {
+    const observer = new IntersectionObserver((entries) => {
+      isIntersecting.value = !!entries.find((entry) => entry.isIntersecting);
+    }, options);
+    onScopeDispose(() => {
+      observer.disconnect();
+    });
+    watch(intersectionRef, (newValue, oldValue) => {
+      if (oldValue) {
+        observer.unobserve(oldValue);
+        isIntersecting.value = false;
+      }
+      if (newValue) observer.observe(newValue);
+    }, {
+      flush: "post"
+    });
+  }
+  return {
+    intersectionRef,
+    isIntersecting
+  };
+}
+const makeVProgressCircularProps = propsFactory({
+  bgColor: String,
+  color: String,
+  indeterminate: [Boolean, String],
+  rounded: Boolean,
+  modelValue: {
+    type: [Number, String],
+    default: 0
+  },
+  rotate: {
+    type: [Number, String],
+    default: 0
+  },
+  width: {
+    type: [Number, String],
+    default: 4
+  },
+  ...makeComponentProps(),
+  ...makeSizeProps(),
+  ...makeTagProps({
+    tag: "div"
+  }),
+  ...makeThemeProps()
+}, "VProgressCircular");
+const VProgressCircular = genericComponent()({
+  name: "VProgressCircular",
+  props: makeVProgressCircularProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const MAGIC_RADIUS_CONSTANT = 20;
+    const CIRCUMFERENCE = 2 * Math.PI * MAGIC_RADIUS_CONSTANT;
+    const root = /* @__PURE__ */ ref();
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      sizeClasses,
+      sizeStyles
+    } = useSize(props);
+    const {
+      textColorClasses,
+      textColorStyles
+    } = useTextColor(() => props.color);
+    const {
+      textColorClasses: underlayColorClasses,
+      textColorStyles: underlayColorStyles
+    } = useTextColor(() => props.bgColor);
+    const {
+      intersectionRef,
+      isIntersecting
+    } = useIntersectionObserver();
+    const {
+      resizeRef,
+      contentRect
+    } = useResizeObserver();
+    const normalizedValue = /* @__PURE__ */ toRef(() => clamp(parseFloat(props.modelValue), 0, 100));
+    const width = /* @__PURE__ */ toRef(() => Number(props.width));
+    const size = /* @__PURE__ */ toRef(() => {
+      return sizeStyles.value ? Number(props.size) : contentRect.value ? contentRect.value.width : Math.max(width.value, 32);
+    });
+    const diameter = /* @__PURE__ */ toRef(() => MAGIC_RADIUS_CONSTANT / (1 - width.value / size.value) * 2);
+    const strokeWidth = /* @__PURE__ */ toRef(() => width.value / size.value * diameter.value);
+    const strokeDashOffset = /* @__PURE__ */ toRef(() => {
+      const baseLength = (100 - normalizedValue.value) / 100 * CIRCUMFERENCE;
+      return props.rounded && normalizedValue.value > 0 && normalizedValue.value < 100 ? convertToUnit(Math.min(CIRCUMFERENCE - 0.01, baseLength + strokeWidth.value)) : convertToUnit(baseLength);
+    });
+    const startAngle = computed(() => {
+      const baseAngle = Number(props.rotate);
+      return props.rounded ? baseAngle + strokeWidth.value / 2 / CIRCUMFERENCE * 360 : baseAngle;
+    });
+    watchEffect(() => {
+      intersectionRef.value = root.value;
+      resizeRef.value = root.value;
+    });
+    useRender(() => createVNode(props.tag, {
+      "ref": root,
+      "class": normalizeClass(["v-progress-circular", {
+        "v-progress-circular--indeterminate": !!props.indeterminate,
+        "v-progress-circular--visible": isIntersecting.value,
+        "v-progress-circular--disable-shrink": props.indeterminate && (props.indeterminate === "disable-shrink" || PREFERS_REDUCED_MOTION())
+      }, themeClasses.value, sizeClasses.value, textColorClasses.value, props.class]),
+      "style": normalizeStyle([sizeStyles.value, textColorStyles.value, props.style]),
+      "role": "progressbar",
+      "aria-valuemin": "0",
+      "aria-valuemax": "100",
+      "aria-valuenow": props.indeterminate ? void 0 : normalizedValue.value
+    }, {
+      default: () => [createBaseVNode("svg", {
+        "style": {
+          transform: `rotate(calc(-90deg + ${startAngle.value}deg))`
+        },
+        "xmlns": "http://www.w3.org/2000/svg",
+        "viewBox": `0 0 ${diameter.value} ${diameter.value}`
+      }, [createBaseVNode("circle", {
+        "class": normalizeClass(["v-progress-circular__underlay", underlayColorClasses.value]),
+        "style": normalizeStyle(underlayColorStyles.value),
+        "fill": "transparent",
+        "cx": "50%",
+        "cy": "50%",
+        "r": MAGIC_RADIUS_CONSTANT,
+        "stroke-width": strokeWidth.value,
+        "stroke-dasharray": CIRCUMFERENCE,
+        "stroke-dashoffset": 0
+      }, null), createBaseVNode("circle", {
+        "class": "v-progress-circular__overlay",
+        "fill": "transparent",
+        "cx": "50%",
+        "cy": "50%",
+        "r": MAGIC_RADIUS_CONSTANT,
+        "stroke-width": strokeWidth.value,
+        "stroke-dasharray": CIRCUMFERENCE,
+        "stroke-dashoffset": strokeDashOffset.value,
+        "stroke-linecap": props.rounded ? "round" : void 0
+      }, null)]), slots.default && createBaseVNode("div", {
+        "class": "v-progress-circular__content"
+      }, [slots.default({
+        value: normalizedValue.value
+      })])]
+    }));
+    return {};
+  }
+});
+const makeDimensionProps = propsFactory({
+  height: [Number, String],
+  maxHeight: [Number, String],
+  maxWidth: [Number, String],
+  minHeight: [Number, String],
+  minWidth: [Number, String],
+  width: [Number, String]
+}, "dimension");
+function useDimension(props) {
+  const dimensionStyles = computed(() => {
+    const styles = {};
+    const height = convertToUnit(props.height);
+    const maxHeight = convertToUnit(props.maxHeight);
+    const maxWidth = convertToUnit(props.maxWidth);
+    const minHeight = convertToUnit(props.minHeight);
+    const minWidth = convertToUnit(props.minWidth);
+    const width = convertToUnit(props.width);
+    if (height != null) styles.height = height;
+    if (maxHeight != null) styles.maxHeight = maxHeight;
+    if (maxWidth != null) styles.maxWidth = maxWidth;
+    if (minHeight != null) styles.minHeight = minHeight;
+    if (minWidth != null) styles.minWidth = minWidth;
+    if (width != null) styles.width = width;
+    return styles;
+  });
+  return {
+    dimensionStyles
+  };
+}
+const oppositeMap = {
+  center: "center",
+  top: "bottom",
+  bottom: "top",
+  left: "right",
+  right: "left"
+};
+const makeLocationProps = propsFactory({
+  location: String
+}, "location");
+function useLocation(props) {
+  let opposite = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
+  let offset = arguments.length > 2 ? arguments[2] : void 0;
+  const {
+    isRtl
+  } = useRtl();
+  const locationStyles = computed(() => {
+    if (!props.location) return {};
+    const {
+      side,
+      align
+    } = parseAnchor(props.location.split(" ").length > 1 ? props.location : `${props.location} center`, isRtl.value);
+    function getOffset2(side2) {
+      return offset ? offset(side2) : 0;
+    }
+    const styles = {};
+    if (side !== "center") {
+      if (opposite) styles[oppositeMap[side]] = `calc(100% - ${getOffset2(side)}px)`;
+      else styles[side] = 0;
+    }
+    if (align !== "center") {
+      if (opposite) styles[oppositeMap[align]] = `calc(100% - ${getOffset2(align)}px)`;
+      else styles[align] = 0;
+    } else {
+      if (side === "center") styles.top = styles.left = "50%";
+      else {
+        styles[{
+          top: "left",
+          bottom: "left",
+          left: "top",
+          right: "top"
+        }[side]] = "50%";
+      }
+      styles.transform = {
+        top: "translateX(-50%)",
+        bottom: "translateX(-50%)",
+        left: "translateY(-50%)",
+        right: "translateY(-50%)",
+        center: "translate(-50%, -50%)"
+      }[side];
+    }
+    return styles;
+  });
+  return {
+    locationStyles
+  };
+}
+const makeChunksProps = propsFactory({
+  chunkCount: {
+    type: [Number, String],
+    default: null
+  },
+  chunkWidth: {
+    type: [Number, String],
+    default: null
+  },
+  chunkGap: {
+    type: [Number, String],
+    default: 4
+  }
+}, "chunks");
+function useChunks(props, containerWidth) {
+  const hasChunks = /* @__PURE__ */ toRef(() => !!props.chunkCount || !!props.chunkWidth);
+  const chunkWidth = computed(() => {
+    const containerSize = toValue(containerWidth);
+    if (!containerSize) {
+      return 0;
+    }
+    if (!props.chunkCount) {
+      return Number(props.chunkWidth);
+    }
+    const count = Number(props.chunkCount);
+    const availableWidth = containerSize - Number(props.chunkGap) * (count - 1);
+    return availableWidth / count;
+  });
+  const chunkGap = /* @__PURE__ */ toRef(() => Number(props.chunkGap));
+  const chunksMaskStyles = computed(() => {
+    if (!hasChunks.value) {
+      return {};
+    }
+    const chunkGapPx = convertToUnit(chunkGap.value);
+    const chunkWidthPx = convertToUnit(chunkWidth.value);
+    return {
+      maskRepeat: "repeat-x",
+      maskImage: `linear-gradient(90deg, #000, #000 ${chunkWidthPx}, transparent ${chunkWidthPx}, transparent)`,
+      maskSize: `calc(${chunkWidthPx} + ${chunkGapPx}) 100%`
+    };
+  });
+  function snapValueToChunk(val) {
+    const containerSize = toValue(containerWidth);
+    if (!containerSize) {
+      return val;
+    }
+    const gapRelativeSize = 100 * chunkGap.value / containerSize;
+    const chunkRelativeSize = 100 * (chunkWidth.value + chunkGap.value) / containerSize;
+    const filledChunks = Math.floor((val + gapRelativeSize) / chunkRelativeSize);
+    return clamp(0, filledChunks * chunkRelativeSize - gapRelativeSize / 2, 100);
+  }
+  return {
+    hasChunks,
+    chunksMaskStyles,
+    snapValueToChunk
+  };
+}
+const makeVProgressLinearProps = propsFactory({
+  absolute: Boolean,
+  active: {
+    type: Boolean,
+    default: true
+  },
+  bgColor: String,
+  bgOpacity: [Number, String],
+  bufferValue: {
+    type: [Number, String],
+    default: 0
+  },
+  bufferColor: String,
+  bufferOpacity: [Number, String],
+  clickable: Boolean,
+  color: String,
+  height: {
+    type: [Number, String],
+    default: 4
+  },
+  indeterminate: Boolean,
+  max: {
+    type: [Number, String],
+    default: 100
+  },
+  modelValue: {
+    type: [Number, String],
+    default: 0
+  },
+  opacity: [Number, String],
+  reverse: Boolean,
+  stream: Boolean,
+  striped: Boolean,
+  roundedBar: Boolean,
+  ...makeChunksProps(),
+  ...makeComponentProps(),
+  ...makeLocationProps({
+    location: "top"
+  }),
+  ...makeRoundedProps(),
+  ...makeTagProps(),
+  ...makeThemeProps()
+}, "VProgressLinear");
+const VProgressLinear = genericComponent()({
+  name: "VProgressLinear",
+  props: makeVProgressLinearProps(),
+  emits: {
+    "update:modelValue": (value) => true
+  },
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const root = /* @__PURE__ */ ref();
+    const progress = useProxiedModel(props, "modelValue");
+    const {
+      isRtl,
+      rtlClasses
+    } = useRtl();
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      locationStyles
+    } = useLocation(props);
+    const {
+      textColorClasses,
+      textColorStyles
+    } = useTextColor(() => props.color);
+    const {
+      backgroundColorClasses,
+      backgroundColorStyles
+    } = useBackgroundColor(() => props.bgColor || props.color);
+    const {
+      backgroundColorClasses: bufferColorClasses,
+      backgroundColorStyles: bufferColorStyles
+    } = useBackgroundColor(() => props.bufferColor || props.bgColor || props.color);
+    const {
+      backgroundColorClasses: barColorClasses,
+      backgroundColorStyles: barColorStyles
+    } = useBackgroundColor(() => props.color);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    const {
+      intersectionRef,
+      isIntersecting
+    } = useIntersectionObserver();
+    const max = computed(() => parseFloat(props.max));
+    const height = computed(() => parseFloat(props.height));
+    const normalizedBuffer = computed(() => clamp(parseFloat(props.bufferValue) / max.value * 100, 0, 100));
+    const normalizedValue = computed(() => clamp(parseFloat(progress.value) / max.value * 100, 0, 100));
+    const isReversed = computed(() => isRtl.value !== props.reverse);
+    const transition = computed(() => props.indeterminate ? "fade-transition" : "slide-x-transition");
+    const containerWidth = /* @__PURE__ */ shallowRef(0);
+    const {
+      hasChunks,
+      chunksMaskStyles,
+      snapValueToChunk
+    } = useChunks(props, containerWidth);
+    useToggleScope(hasChunks, () => {
+      const {
+        resizeRef
+      } = useResizeObserver((entries) => containerWidth.value = entries[0].contentRect.width);
+      watchEffect(() => resizeRef.value = root.value);
+    });
+    const bufferWidth = computed(() => {
+      return hasChunks.value ? snapValueToChunk(normalizedBuffer.value) : normalizedBuffer.value;
+    });
+    const barWidth = computed(() => {
+      return hasChunks.value ? snapValueToChunk(normalizedValue.value) : normalizedValue.value;
+    });
+    function handleClick(e) {
+      if (!intersectionRef.value) return;
+      const {
+        left,
+        right,
+        width
+      } = intersectionRef.value.getBoundingClientRect();
+      const value = isReversed.value ? width - e.clientX + (right - width) : e.clientX - left;
+      progress.value = Math.round(value / width * max.value);
+    }
+    watchEffect(() => {
+      intersectionRef.value = root.value;
+    });
+    useRender(() => createVNode(props.tag, {
+      "ref": root,
+      "class": normalizeClass(["v-progress-linear", {
+        "v-progress-linear--absolute": props.absolute,
+        "v-progress-linear--active": props.active && isIntersecting.value,
+        "v-progress-linear--reverse": isReversed.value,
+        "v-progress-linear--rounded": props.rounded,
+        "v-progress-linear--rounded-bar": props.roundedBar,
+        "v-progress-linear--striped": props.striped,
+        "v-progress-linear--clickable": props.clickable
+      }, roundedClasses.value, themeClasses.value, rtlClasses.value, props.class]),
+      "style": normalizeStyle([{
+        bottom: props.location === "bottom" ? 0 : void 0,
+        top: props.location === "top" ? 0 : void 0,
+        height: props.active ? convertToUnit(height.value) : 0,
+        "--v-progress-linear-height": convertToUnit(height.value),
+        ...props.absolute ? locationStyles.value : {}
+      }, chunksMaskStyles.value, props.style]),
+      "role": "progressbar",
+      "aria-hidden": props.active ? "false" : "true",
+      "aria-valuemin": "0",
+      "aria-valuemax": props.max,
+      "aria-valuenow": props.indeterminate ? void 0 : Math.min(parseFloat(progress.value), max.value),
+      "onClick": props.clickable && handleClick
+    }, {
+      default: () => [props.stream && createBaseVNode("div", {
+        "key": "stream",
+        "class": normalizeClass(["v-progress-linear__stream", textColorClasses.value]),
+        "style": {
+          ...textColorStyles.value,
+          [isReversed.value ? "left" : "right"]: convertToUnit(-height.value),
+          borderTop: `${convertToUnit(height.value / 2)} dotted`,
+          opacity: parseFloat(props.bufferOpacity),
+          top: `calc(50% - ${convertToUnit(height.value / 4)})`,
+          width: convertToUnit(100 - normalizedBuffer.value, "%"),
+          "--v-progress-linear-stream-to": convertToUnit(height.value * (isReversed.value ? 1 : -1))
+        }
+      }, null), createBaseVNode("div", {
+        "class": normalizeClass(["v-progress-linear__background", backgroundColorClasses.value]),
+        "style": normalizeStyle([backgroundColorStyles.value, {
+          opacity: parseFloat(props.bgOpacity),
+          width: props.stream ? 0 : void 0
+        }])
+      }, null), createBaseVNode("div", {
+        "class": normalizeClass(["v-progress-linear__buffer", bufferColorClasses.value]),
+        "style": normalizeStyle([bufferColorStyles.value, {
+          opacity: parseFloat(props.bufferOpacity),
+          width: convertToUnit(bufferWidth.value, "%")
+        }])
+      }, null), createVNode(Transition, {
+        "name": transition.value
+      }, {
+        default: () => [!props.indeterminate ? createBaseVNode("div", {
+          "class": normalizeClass(["v-progress-linear__determinate", barColorClasses.value]),
+          "style": normalizeStyle([barColorStyles.value, {
+            width: convertToUnit(barWidth.value, "%")
+          }])
+        }, null) : createBaseVNode("div", {
+          "class": "v-progress-linear__indeterminate"
+        }, [["long", "short"].map((bar) => createBaseVNode("div", {
+          "key": bar,
+          "class": normalizeClass(["v-progress-linear__indeterminate", bar, barColorClasses.value]),
+          "style": normalizeStyle(barColorStyles.value)
+        }, null))])]
+      }), slots.default && createBaseVNode("div", {
+        "class": "v-progress-linear__content"
+      }, [slots.default({
+        value: normalizedValue.value,
+        buffer: normalizedBuffer.value
+      })])]
+    }));
+    return {};
+  }
+});
+const makeLoaderProps = propsFactory({
+  loading: [Boolean, String]
+}, "loader");
+function useLoader(props) {
+  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
+  const loaderClasses = /* @__PURE__ */ toRef(() => ({
+    [`${name}--loading`]: props.loading
+  }));
+  return {
+    loaderClasses
+  };
+}
+function LoaderSlot(props, _ref) {
+  let {
+    slots
+  } = _ref;
+  return createBaseVNode("div", {
+    "class": normalizeClass(`${props.name}__loader`)
+  }, [slots.default?.({
+    color: props.color,
+    isActive: props.active
+  }) || createVNode(VProgressLinear, {
+    "absolute": props.absolute,
+    "active": props.active,
+    "color": props.color,
+    "height": "2",
+    "indeterminate": true
+  }, null)]);
+}
+const positionValues = ["static", "relative", "fixed", "absolute", "sticky"];
+const makePositionProps = propsFactory({
+  position: {
+    type: String,
+    validator: (
+      /* istanbul ignore next */
+      (v) => positionValues.includes(v)
+    )
+  }
+}, "position");
+function usePosition(props) {
+  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
+  const positionClasses = /* @__PURE__ */ toRef(() => {
+    return props.position ? `${name}--${props.position}` : void 0;
+  });
+  return {
+    positionClasses
+  };
+}
+function useRoute() {
+  const vm = getCurrentInstance("useRoute");
+  return computed(() => vm?.proxy?.$route);
+}
+function useRouter() {
+  return getCurrentInstance("useRouter")?.proxy?.$router;
+}
+function useLink(props, attrs) {
+  const RouterLink2 = resolveDynamicComponent("RouterLink");
+  const isLink = /* @__PURE__ */ toRef(() => !!(props.href || props.to));
+  const isClickable = computed(() => {
+    return isLink?.value || hasEvent(attrs, "click") || hasEvent(props, "click");
+  });
+  if (typeof RouterLink2 === "string" || !("useLink" in RouterLink2)) {
+    const href2 = /* @__PURE__ */ toRef(() => props.href);
+    return {
+      isLink,
+      isRouterLink: /* @__PURE__ */ toRef(() => false),
+      isClickable,
+      href: href2,
+      linkProps: /* @__PURE__ */ reactive({
+        href: href2
+      })
+    };
+  }
+  const routerLink = RouterLink2.useLink({
+    to: /* @__PURE__ */ toRef(() => props.to || ""),
+    replace: /* @__PURE__ */ toRef(() => props.replace)
+  });
+  const link = computed(() => props.to ? routerLink : void 0);
+  const route = useRoute();
+  const isActive = computed(() => {
+    if (!link.value) return false;
+    if (!props.exact) return link.value.isActive?.value ?? false;
+    if (!route.value) return link.value.isExactActive?.value ?? false;
+    return link.value.isExactActive?.value && deepEqual(link.value.route.value.query, route.value.query);
+  });
+  const href = computed(() => props.to ? link.value?.route.value.href : props.href);
+  const isRouterLink = /* @__PURE__ */ toRef(() => !!props.to);
+  return {
+    isLink,
+    isRouterLink,
+    isClickable,
+    isActive,
+    route: link.value?.route,
+    navigate: link.value?.navigate,
+    href,
+    linkProps: /* @__PURE__ */ reactive({
+      href,
+      "aria-current": /* @__PURE__ */ toRef(() => isActive.value ? "page" : void 0),
+      "aria-disabled": /* @__PURE__ */ toRef(() => props.disabled && isLink.value ? "true" : void 0),
+      tabindex: /* @__PURE__ */ toRef(() => props.disabled && isLink.value ? "-1" : void 0)
+    })
+  };
+}
+const makeRouterProps = propsFactory({
+  href: String,
+  replace: Boolean,
+  to: [String, Object],
+  exact: Boolean
+}, "router");
+let inTransition = false;
+function useBackButton(router2, cb) {
+  let popped = false;
+  let removeBefore;
+  let removeAfter;
+  if (IN_BROWSER && router2?.beforeEach) {
+    nextTick(() => {
+      window.addEventListener("popstate", onPopstate);
+      removeBefore = router2.beforeEach((to, from, next) => {
+        if (!inTransition) {
+          setTimeout(() => popped ? cb(next) : next());
+        } else {
+          popped ? cb(next) : next();
+        }
+        inTransition = true;
+      });
+      removeAfter = router2?.afterEach(() => {
+        inTransition = false;
+      });
+    });
+    onScopeDispose(() => {
+      window.removeEventListener("popstate", onPopstate);
+      removeBefore?.();
+      removeAfter?.();
+    });
+  }
+  function onPopstate(e) {
+    if (e.state?.replaced) return;
+    popped = true;
+    setTimeout(() => popped = false);
+  }
+}
+function useSelectLink(link, select) {
+  watch(() => link.isActive?.value, (isActive) => {
+    if (link.isLink.value && isActive != null && select) {
+      nextTick(() => {
+        select(isActive);
+      });
+    }
+  }, {
+    immediate: true
+  });
+}
+const stopSymbol = Symbol("rippleStop");
+const DELAY_RIPPLE = 80;
+function transform(el, value) {
+  el.style.transform = value;
+  el.style.webkitTransform = value;
+}
+function isTouchEvent(e) {
+  return e.constructor.name === "TouchEvent";
+}
+function isKeyboardEvent(e) {
+  return e.constructor.name === "KeyboardEvent";
+}
+const calculate = function(e, el) {
+  let value = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
+  let localX = 0;
+  let localY = 0;
+  if (!isKeyboardEvent(e)) {
+    const offset = el.getBoundingClientRect();
+    const target = isTouchEvent(e) ? e.touches[e.touches.length - 1] : e;
+    localX = target.clientX - offset.left;
+    localY = target.clientY - offset.top;
+  }
+  let radius = 0;
+  let scale = 0.3;
+  if (el._ripple?.circle) {
+    scale = 0.15;
+    radius = el.clientWidth / 2;
+    radius = value.center ? radius : radius + Math.sqrt((localX - radius) ** 2 + (localY - radius) ** 2) / 4;
+  } else {
+    radius = Math.sqrt(el.clientWidth ** 2 + el.clientHeight ** 2) / 2;
+  }
+  const centerX = `${(el.clientWidth - radius * 2) / 2}px`;
+  const centerY = `${(el.clientHeight - radius * 2) / 2}px`;
+  const x = value.center ? centerX : `${localX - radius}px`;
+  const y = value.center ? centerY : `${localY - radius}px`;
+  return {
+    radius,
+    scale,
+    x,
+    y,
+    centerX,
+    centerY
+  };
+};
+const ripples = {
+  /* eslint-disable max-statements */
+  show(e, el) {
+    let value = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
+    if (!el?._ripple?.enabled) {
+      return;
+    }
+    const container = document.createElement("span");
+    const animation = document.createElement("span");
+    container.appendChild(animation);
+    container.className = "v-ripple__container";
+    if (value.class) {
+      container.className += ` ${value.class}`;
+    }
+    const {
+      radius,
+      scale,
+      x,
+      y,
+      centerX,
+      centerY
+    } = calculate(e, el, value);
+    const size = `${radius * 2}px`;
+    animation.className = "v-ripple__animation";
+    animation.style.width = size;
+    animation.style.height = size;
+    el.appendChild(container);
+    const computed2 = window.getComputedStyle(el);
+    if (computed2 && computed2.position === "static") {
+      el.style.position = "relative";
+      el.dataset.previousPosition = "static";
+    }
+    animation.classList.add("v-ripple__animation--enter");
+    animation.classList.add("v-ripple__animation--visible");
+    transform(animation, `translate(${x}, ${y}) scale3d(${scale},${scale},${scale})`);
+    animation.dataset.activated = String(performance.now());
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        animation.classList.remove("v-ripple__animation--enter");
+        animation.classList.add("v-ripple__animation--in");
+        transform(animation, `translate(${centerX}, ${centerY}) scale3d(1,1,1)`);
+      });
+    });
+  },
+  hide(el) {
+    if (!el?._ripple?.enabled) return;
+    const ripples2 = el.getElementsByClassName("v-ripple__animation");
+    if (ripples2.length === 0) return;
+    const animation = Array.from(ripples2).findLast((ripple) => !ripple.dataset.isHiding);
+    if (!animation) return;
+    else animation.dataset.isHiding = "true";
+    const diff = performance.now() - Number(animation.dataset.activated);
+    const delay = Math.max(250 - diff, 0);
+    setTimeout(() => {
+      animation.classList.remove("v-ripple__animation--in");
+      animation.classList.add("v-ripple__animation--out");
+      setTimeout(() => {
+        const ripples3 = el.getElementsByClassName("v-ripple__animation");
+        if (ripples3.length === 1 && el.dataset.previousPosition) {
+          el.style.position = el.dataset.previousPosition;
+          delete el.dataset.previousPosition;
+        }
+        if (animation.parentNode?.parentNode === el) el.removeChild(animation.parentNode);
+      }, 300);
+    }, delay);
+  }
+};
+function isRippleEnabled(value) {
+  return typeof value === "undefined" || !!value;
+}
+function rippleShow(e) {
+  const value = {};
+  const element = e.currentTarget;
+  if (!element?._ripple || element._ripple.touched || e[stopSymbol]) return;
+  e[stopSymbol] = true;
+  if (isTouchEvent(e)) {
+    element._ripple.touched = true;
+    element._ripple.isTouch = true;
+  } else {
+    if (element._ripple.isTouch) return;
+  }
+  value.center = element._ripple.centered || isKeyboardEvent(e);
+  if (element._ripple.class) {
+    value.class = element._ripple.class;
+  }
+  if (isTouchEvent(e)) {
+    if (element._ripple.showTimerCommit) return;
+    element._ripple.showTimerCommit = () => {
+      ripples.show(e, element, value);
+    };
+    element._ripple.showTimer = window.setTimeout(() => {
+      if (element?._ripple?.showTimerCommit) {
+        element._ripple.showTimerCommit();
+        element._ripple.showTimerCommit = null;
+      }
+    }, DELAY_RIPPLE);
+  } else {
+    ripples.show(e, element, value);
+  }
+}
+function rippleStop(e) {
+  e[stopSymbol] = true;
+}
+function rippleHide(e) {
+  const element = e.currentTarget;
+  if (!element?._ripple) return;
+  window.clearTimeout(element._ripple.showTimer);
+  if (e.type === "touchend" && element._ripple.showTimerCommit) {
+    element._ripple.showTimerCommit();
+    element._ripple.showTimerCommit = null;
+    element._ripple.showTimer = window.setTimeout(() => {
+      rippleHide(e);
+    });
+    return;
+  }
+  window.setTimeout(() => {
+    if (element._ripple) {
+      element._ripple.touched = false;
+    }
+  });
+  ripples.hide(element);
+}
+function rippleCancelShow(e) {
+  const element = e.currentTarget;
+  if (!element?._ripple) return;
+  if (element._ripple.showTimerCommit) {
+    element._ripple.showTimerCommit = null;
+  }
+  window.clearTimeout(element._ripple.showTimer);
+}
+let keyboardRipple = false;
+function keyboardRippleShow(e, keys) {
+  if (!keyboardRipple && keys.includes(e.key)) {
+    keyboardRipple = true;
+    rippleShow(e);
+  }
+}
+function keyboardRippleHide(e) {
+  keyboardRipple = false;
+  rippleHide(e);
+}
+function focusRippleHide(e) {
+  if (keyboardRipple) {
+    keyboardRipple = false;
+    rippleHide(e);
+  }
+}
+function updateRipple(el, binding, wasEnabled) {
+  const {
+    value,
+    modifiers
+  } = binding;
+  const enabled = isRippleEnabled(value);
+  if (!enabled) {
+    ripples.hide(el);
+  }
+  el._ripple = el._ripple ?? {};
+  el._ripple.enabled = enabled;
+  el._ripple.centered = modifiers.center;
+  el._ripple.circle = modifiers.circle;
+  const bindingValue = isObject(value) ? value : {};
+  if (bindingValue.class) {
+    el._ripple.class = bindingValue.class;
+  }
+  const allowedKeys = bindingValue.keys ?? ["Enter", "Space"];
+  el._ripple.keyDownHandler = (e) => keyboardRippleShow(e, allowedKeys);
+  if (enabled && !wasEnabled) {
+    if (modifiers.stop) {
+      el.addEventListener("touchstart", rippleStop, {
+        passive: true
+      });
+      el.addEventListener("mousedown", rippleStop);
+      return;
+    }
+    el.addEventListener("touchstart", rippleShow, {
+      passive: true
+    });
+    el.addEventListener("touchend", rippleHide, {
+      passive: true
+    });
+    el.addEventListener("touchmove", rippleCancelShow, {
+      passive: true
+    });
+    el.addEventListener("touchcancel", rippleHide);
+    el.addEventListener("mousedown", rippleShow);
+    el.addEventListener("mouseup", rippleHide);
+    el.addEventListener("mouseleave", rippleHide);
+    el.addEventListener("keydown", el._ripple.keyDownHandler);
+    el.addEventListener("keyup", keyboardRippleHide);
+    el.addEventListener("blur", focusRippleHide);
+    el.addEventListener("dragstart", rippleHide, {
+      passive: true
+    });
+  } else if (!enabled && wasEnabled) {
+    removeListeners(el);
+  }
+}
+function removeListeners(el) {
+  el.removeEventListener("touchstart", rippleStop);
+  el.removeEventListener("mousedown", rippleStop);
+  el.removeEventListener("touchstart", rippleShow);
+  el.removeEventListener("touchend", rippleHide);
+  el.removeEventListener("touchmove", rippleCancelShow);
+  el.removeEventListener("touchcancel", rippleHide);
+  el.removeEventListener("mousedown", rippleShow);
+  el.removeEventListener("mouseup", rippleHide);
+  el.removeEventListener("mouseleave", rippleHide);
+  if (el._ripple?.keyDownHandler) {
+    el.removeEventListener("keydown", el._ripple.keyDownHandler);
+  }
+  el.removeEventListener("keyup", keyboardRippleHide);
+  el.removeEventListener("blur", focusRippleHide);
+  el.removeEventListener("dragstart", rippleHide);
+}
+function mounted$1(el, binding) {
+  updateRipple(el, binding, false);
+}
+function unmounted$1(el) {
+  removeListeners(el);
+  delete el._ripple;
+}
+function updated(el, binding) {
+  if (binding.value === binding.oldValue) {
+    return;
+  }
+  const wasEnabled = isRippleEnabled(binding.oldValue);
+  updateRipple(el, binding, wasEnabled);
+}
+const Ripple = {
+  mounted: mounted$1,
+  unmounted: unmounted$1,
+  updated
+};
+const makeVBtnProps = propsFactory({
+  active: {
+    type: Boolean,
+    default: void 0
+  },
+  activeColor: String,
+  baseColor: String,
+  symbol: {
+    type: null,
+    default: VBtnToggleSymbol
+  },
+  flat: Boolean,
+  icon: [Boolean, String, Function, Object],
+  prependIcon: IconValue,
+  appendIcon: IconValue,
+  block: Boolean,
+  readonly: Boolean,
+  slim: Boolean,
+  stacked: Boolean,
+  spaced: String,
+  ripple: {
+    type: [Boolean, Object],
+    default: true
+  },
+  text: {
+    type: [String, Number, Boolean],
+    default: void 0
+  },
+  ...makeBorderProps(),
+  ...makeComponentProps(),
+  ...makeDensityProps(),
+  ...makeDimensionProps(),
+  ...makeElevationProps(),
+  ...makeGroupItemProps(),
+  ...makeLoaderProps(),
+  ...makeLocationProps(),
+  ...makePositionProps(),
+  ...makeRoundedProps(),
+  ...makeRouterProps(),
+  ...makeSizeProps(),
+  ...makeTagProps({
+    tag: "button"
+  }),
+  ...makeThemeProps(),
+  ...makeVariantProps({
+    variant: "elevated"
+  })
+}, "VBtn");
+const VBtn = genericComponent()({
+  name: "VBtn",
+  props: makeVBtnProps(),
+  emits: {
+    "group:selected": (val) => true
+  },
+  setup(props, _ref) {
+    let {
+      attrs,
+      slots
+    } = _ref;
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      borderClasses
+    } = useBorder(props);
+    const {
+      densityClasses
+    } = useDensity(props);
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    const {
+      elevationClasses
+    } = useElevation(props);
+    const {
+      loaderClasses
+    } = useLoader(props);
+    const {
+      locationStyles
+    } = useLocation(props);
+    const {
+      positionClasses
+    } = usePosition(props);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    const {
+      sizeClasses,
+      sizeStyles
+    } = useSize(props);
+    const group = useGroupItem(props, props.symbol, false);
+    const link = useLink(props, attrs);
+    const isActive = computed(() => {
+      if (props.active !== void 0) {
+        return props.active;
+      }
+      if (link.isRouterLink.value) {
+        return link.isActive?.value;
+      }
+      return group?.isSelected.value;
+    });
+    const color = /* @__PURE__ */ toRef(() => isActive.value ? props.activeColor ?? props.color : props.color);
+    const variantProps = computed(() => {
+      const showColor = group?.isSelected.value && (!link.isLink.value || link.isActive?.value) || !group || link.isActive?.value;
+      return {
+        color: showColor ? color.value ?? props.baseColor : props.baseColor,
+        variant: props.variant
+      };
+    });
+    const {
+      colorClasses,
+      colorStyles,
+      variantClasses
+    } = useVariant(variantProps);
+    const isDisabled = computed(() => group?.disabled.value || props.disabled);
+    const isElevated = /* @__PURE__ */ toRef(() => {
+      return props.variant === "elevated" && !(props.disabled || props.flat || props.border);
+    });
+    const valueAttr = computed(() => {
+      if (props.value === void 0 || typeof props.value === "symbol") return void 0;
+      return Object(props.value) === props.value ? JSON.stringify(props.value, null, 0) : props.value;
+    });
+    function onClick(e) {
+      if (isDisabled.value || link.isLink.value && (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0 || attrs.target === "_blank")) return;
+      if (link.isRouterLink.value) {
+        link.navigate?.(e);
+      } else {
+        group?.toggle();
+      }
+    }
+    useSelectLink(link, group?.select);
+    useRender(() => {
+      const Tag = link.isLink.value ? "a" : props.tag;
+      const hasPrepend = !!(props.prependIcon || slots.prepend);
+      const hasAppend = !!(props.appendIcon || slots.append);
+      const hasIcon = !!(props.icon && props.icon !== true);
+      return withDirectives(createVNode(Tag, mergeProps(link.linkProps, {
+        "type": Tag === "a" ? void 0 : "button",
+        "class": ["v-btn", group?.selectedClass.value, {
+          "v-btn--active": isActive.value,
+          "v-btn--block": props.block,
+          "v-btn--disabled": isDisabled.value,
+          "v-btn--elevated": isElevated.value,
+          "v-btn--flat": props.flat,
+          "v-btn--icon": !!props.icon,
+          "v-btn--loading": props.loading,
+          "v-btn--readonly": props.readonly,
+          "v-btn--slim": props.slim,
+          "v-btn--stacked": props.stacked
+        }, props.spaced ? ["v-btn--spaced", `v-btn--spaced-${props.spaced}`] : [], themeClasses.value, borderClasses.value, colorClasses.value, densityClasses.value, elevationClasses.value, loaderClasses.value, positionClasses.value, roundedClasses.value, sizeClasses.value, variantClasses.value, props.class],
+        "style": [colorStyles.value, dimensionStyles.value, locationStyles.value, sizeStyles.value, props.style],
+        "aria-busy": props.loading ? true : void 0,
+        "disabled": isDisabled.value && Tag !== "a" || void 0,
+        "tabindex": props.loading || props.readonly ? -1 : void 0,
+        "onClick": onClick,
+        "value": valueAttr.value
+      }), {
+        default: () => [genOverlays(true, "v-btn"), !props.icon && hasPrepend && createBaseVNode("span", {
+          "key": "prepend",
+          "class": "v-btn__prepend"
+        }, [!slots.prepend ? createVNode(VIcon, {
+          "key": "prepend-icon",
+          "icon": props.prependIcon
+        }, null) : createVNode(VDefaultsProvider, {
+          "key": "prepend-defaults",
+          "disabled": !props.prependIcon,
+          "defaults": {
+            VIcon: {
+              icon: props.prependIcon
+            }
+          }
+        }, slots.prepend)]), createBaseVNode("span", {
+          "class": "v-btn__content",
+          "data-no-activator": ""
+        }, [!slots.default && hasIcon ? createVNode(VIcon, {
+          "key": "content-icon",
+          "icon": props.icon
+        }, null) : createVNode(VDefaultsProvider, {
+          "key": "content-defaults",
+          "disabled": !hasIcon,
+          "defaults": {
+            VIcon: {
+              icon: props.icon
+            }
+          }
+        }, {
+          default: () => [slots.default?.() ?? toDisplayString(props.text)]
+        })]), !props.icon && hasAppend && createBaseVNode("span", {
+          "key": "append",
+          "class": "v-btn__append"
+        }, [!slots.append ? createVNode(VIcon, {
+          "key": "append-icon",
+          "icon": props.appendIcon
+        }, null) : createVNode(VDefaultsProvider, {
+          "key": "append-defaults",
+          "disabled": !props.appendIcon,
+          "defaults": {
+            VIcon: {
+              icon: props.appendIcon
+            }
+          }
+        }, slots.append)]), !!props.loading && createBaseVNode("span", {
+          "key": "loader",
+          "class": "v-btn__loader"
+        }, [slots.loader?.() ?? createVNode(VProgressCircular, {
+          "color": typeof props.loading === "boolean" ? void 0 : props.loading,
+          "indeterminate": true,
+          "width": "2"
+        }, null)])]
+      }), [[Ripple, !isDisabled.value && props.ripple, "", {
+        center: !!props.icon
+      }]]);
+    });
+    return {
+      group
+    };
+  }
+});
+const makeIconSizeProps = propsFactory({
+  iconSize: [Number, String],
+  iconSizes: {
+    type: Array,
+    default: () => [["x-small", 10], ["small", 16], ["default", 24], ["large", 28], ["x-large", 32]]
+  }
+}, "iconSize");
+function useIconSizes(props, fallback) {
+  const iconSize = computed(() => {
+    const iconSizeMap = new Map(props.iconSizes);
+    const _iconSize = props.iconSize ?? fallback() ?? "default";
+    return iconSizeMap.has(_iconSize) ? iconSizeMap.get(_iconSize) : _iconSize;
+  });
+  return {
+    iconSize
+  };
+}
+const allowedTypes = ["success", "info", "warning", "error"];
+const makeVAlertProps = propsFactory({
+  border: {
+    type: [Boolean, String],
+    validator: (val) => {
+      return typeof val === "boolean" || ["top", "end", "bottom", "start"].includes(val);
+    }
+  },
+  borderColor: String,
+  closable: Boolean,
+  closeIcon: {
+    type: IconValue,
+    default: "$close"
+  },
+  closeLabel: {
+    type: String,
+    default: "$vuetify.close"
+  },
+  icon: {
+    type: [Boolean, String, Function, Object],
+    default: null
+  },
+  modelValue: {
+    type: Boolean,
+    default: true
+  },
+  prominent: Boolean,
+  title: String,
+  text: String,
+  type: {
+    type: String,
+    validator: (val) => allowedTypes.includes(val)
+  },
+  ...makeComponentProps(),
+  ...makeDensityProps(),
+  ...makeDimensionProps(),
+  ...makeElevationProps(),
+  ...makeIconSizeProps(),
+  ...makeLocationProps(),
+  ...makePositionProps(),
+  ...makeRoundedProps(),
+  ...makeTagProps(),
+  ...makeThemeProps(),
+  ...makeVariantProps({
+    variant: "flat"
+  })
+}, "VAlert");
+const VAlert = genericComponent()({
+  name: "VAlert",
+  props: makeVAlertProps(),
+  emits: {
+    "click:close": (e) => true,
+    "update:modelValue": (value) => true
+  },
+  setup(props, _ref) {
+    let {
+      emit: emit2,
+      slots
+    } = _ref;
+    const isActive = useProxiedModel(props, "modelValue");
+    const icon = /* @__PURE__ */ toRef(() => {
+      if (props.icon === false) return void 0;
+      if (!props.type) return props.icon;
+      return props.icon ?? `$${props.type}`;
+    });
+    const {
+      iconSize
+    } = useIconSizes(props, () => props.prominent ? 44 : void 0);
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      colorClasses,
+      colorStyles,
+      variantClasses
+    } = useVariant(() => ({
+      color: props.color ?? props.type,
+      variant: props.variant
+    }));
+    const {
+      densityClasses
+    } = useDensity(props);
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    const {
+      elevationClasses
+    } = useElevation(props);
+    const {
+      locationStyles
+    } = useLocation(props);
+    const {
+      positionClasses
+    } = usePosition(props);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    const {
+      textColorClasses,
+      textColorStyles
+    } = useTextColor(() => props.borderColor);
+    const {
+      t
+    } = useLocale();
+    const closeProps = /* @__PURE__ */ toRef(() => ({
+      "aria-label": t(props.closeLabel),
+      onClick(e) {
+        isActive.value = false;
+        emit2("click:close", e);
+      }
+    }));
+    return () => {
+      const hasPrepend = !!(slots.prepend || icon.value);
+      const hasTitle = !!(slots.title || props.title);
+      const hasClose = !!(slots.close || props.closable);
+      const iconProps = {
+        density: props.density,
+        icon: icon.value,
+        size: props.iconSize || props.prominent ? iconSize.value : void 0
+      };
+      return isActive.value && createVNode(props.tag, {
+        "class": normalizeClass(["v-alert", props.border && {
+          "v-alert--border": !!props.border,
+          [`v-alert--border-${props.border === true ? "start" : props.border}`]: true
+        }, {
+          "v-alert--prominent": props.prominent
+        }, themeClasses.value, colorClasses.value, densityClasses.value, elevationClasses.value, positionClasses.value, roundedClasses.value, variantClasses.value, props.class]),
+        "style": normalizeStyle([colorStyles.value, dimensionStyles.value, locationStyles.value, props.style]),
+        "role": "alert"
+      }, {
+        default: () => [genOverlays(false, "v-alert"), props.border && createBaseVNode("div", {
+          "key": "border",
+          "class": normalizeClass(["v-alert__border", textColorClasses.value]),
+          "style": normalizeStyle(textColorStyles.value)
+        }, null), hasPrepend && createBaseVNode("div", {
+          "key": "prepend",
+          "class": "v-alert__prepend"
+        }, [!slots.prepend ? createVNode(VIcon, mergeProps({
+          "key": "prepend-icon"
+        }, iconProps), null) : createVNode(VDefaultsProvider, {
+          "key": "prepend-defaults",
+          "disabled": !icon.value,
+          "defaults": {
+            VIcon: {
+              ...iconProps
+            }
+          }
+        }, slots.prepend)]), createBaseVNode("div", {
+          "class": "v-alert__content"
+        }, [hasTitle && createVNode(VAlertTitle, {
+          "key": "title"
+        }, {
+          default: () => [slots.title?.() ?? props.title]
+        }), slots.text?.() ?? props.text, slots.default?.()]), slots.append && createBaseVNode("div", {
+          "key": "append",
+          "class": "v-alert__append"
+        }, [slots.append()]), hasClose && createBaseVNode("div", {
+          "key": "close",
+          "class": "v-alert__close"
+        }, [!slots.close ? createVNode(VBtn, mergeProps({
+          "key": "close-btn",
+          "icon": props.closeIcon,
+          "size": "x-small",
+          "variant": "text"
+        }, closeProps.value), null) : createVNode(VDefaultsProvider, {
+          "key": "close-defaults",
+          "defaults": {
+            VBtn: {
+              icon: props.closeIcon,
+              size: "x-small",
+              variant: "text"
+            }
+          }
+        }, {
+          default: () => [slots.close?.({
+            props: closeProps.value
+          })]
+        })])]
+      });
+    };
+  }
+});
+const makeVCardActionsProps = propsFactory({
+  ...makeComponentProps(),
+  ...makeTagProps()
+}, "VCardActions");
+const VCardActions = genericComponent()({
+  name: "VCardActions",
+  props: makeVCardActionsProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    provideDefaults({
+      VBtn: {
+        slim: true,
+        variant: "text"
+      }
+    });
+    useRender(() => createVNode(props.tag, {
+      "class": normalizeClass(["v-card-actions", props.class]),
+      "style": normalizeStyle(props.style)
+    }, slots));
+    return {};
+  }
+});
+const makeVCardSubtitleProps = propsFactory({
+  opacity: [Number, String],
+  ...makeComponentProps(),
+  ...makeTagProps()
+}, "VCardSubtitle");
+const VCardSubtitle = genericComponent()({
+  name: "VCardSubtitle",
+  props: makeVCardSubtitleProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    useRender(() => createVNode(props.tag, {
+      "class": normalizeClass(["v-card-subtitle", props.class]),
+      "style": normalizeStyle([{
+        "--v-card-subtitle-opacity": props.opacity
+      }, props.style])
+    }, slots));
+    return {};
+  }
+});
+const VCardTitle = createSimpleFunctional("v-card-title");
+function useAspectStyles(props) {
+  return {
+    aspectStyles: computed(() => {
+      const ratio = Number(props.aspectRatio);
+      return ratio ? {
+        paddingBottom: String(1 / ratio * 100) + "%"
+      } : void 0;
+    })
+  };
+}
+const makeVResponsiveProps = propsFactory({
+  aspectRatio: [String, Number],
+  contentClass: null,
+  inline: Boolean,
+  ...makeComponentProps(),
+  ...makeDimensionProps()
+}, "VResponsive");
+const VResponsive = genericComponent()({
+  name: "VResponsive",
+  props: makeVResponsiveProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      aspectStyles
+    } = useAspectStyles(props);
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    useRender(() => createBaseVNode("div", {
+      "class": normalizeClass(["v-responsive", {
+        "v-responsive--inline": props.inline
+      }, props.class]),
+      "style": normalizeStyle([dimensionStyles.value, props.style])
+    }, [createBaseVNode("div", {
+      "class": "v-responsive__sizer",
+      "style": normalizeStyle(aspectStyles.value)
+    }, null), slots.additional?.(), slots.default && createBaseVNode("div", {
+      "class": normalizeClass(["v-responsive__content", props.contentClass])
+    }, [slots.default()])]));
+    return {};
+  }
+});
 const makeTransitionProps$1 = propsFactory({
+  transition: {
+    type: null,
+    default: "fade-transition",
+    validator: (val) => val !== true
+  }
+}, "transition");
+const MaybeTransition = (props, _ref) => {
+  let {
+    slots
+  } = _ref;
+  const {
+    transition,
+    disabled,
+    group,
+    ...rest
+  } = props;
+  const {
+    component = group ? TransitionGroup : Transition,
+    ...customProps
+  } = isObject(transition) ? transition : {};
+  let transitionProps;
+  if (isObject(transition)) {
+    transitionProps = mergeProps(customProps, onlyDefinedProps({
+      disabled,
+      group
+    }), rest);
+  } else {
+    transitionProps = mergeProps({
+      name: disabled || !transition ? "" : transition
+    }, rest);
+  }
+  return h(component, transitionProps, slots);
+};
+function mounted(el, binding) {
+  if (!SUPPORTS_INTERSECTION) return;
+  const modifiers = binding.modifiers || {};
+  const value = binding.value;
+  const {
+    handler,
+    options
+  } = typeof value === "object" ? value : {
+    handler: value,
+    options: {}
+  };
+  const observer = new IntersectionObserver(function() {
+    let entries = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : [];
+    let observer2 = arguments.length > 1 ? arguments[1] : void 0;
+    const _observe = el._observe?.[binding.instance.$.uid];
+    if (!_observe) return;
+    const isIntersecting = entries.some((entry) => entry.isIntersecting);
+    if (handler && (!modifiers.quiet || _observe.init) && (!modifiers.once || isIntersecting || _observe.init)) {
+      handler(isIntersecting, entries, observer2);
+    }
+    if (isIntersecting && modifiers.once) unmounted(el, binding);
+    else _observe.init = true;
+  }, options);
+  el._observe = Object(el._observe);
+  el._observe[binding.instance.$.uid] = {
+    init: false,
+    observer
+  };
+  observer.observe(el);
+}
+function unmounted(el, binding) {
+  const observe = el._observe?.[binding.instance.$.uid];
+  if (!observe) return;
+  observe.observer.unobserve(el);
+  delete el._observe[binding.instance.$.uid];
+}
+const Intersect = {
+  mounted,
+  unmounted
+};
+const makeVImgProps = propsFactory({
+  absolute: Boolean,
+  alt: String,
+  cover: Boolean,
+  color: String,
+  draggable: {
+    type: [Boolean, String],
+    default: void 0
+  },
+  eager: Boolean,
+  gradient: String,
+  lazySrc: String,
+  options: {
+    type: Object,
+    // For more information on types, navigate to:
+    // https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API
+    default: () => ({
+      root: void 0,
+      rootMargin: void 0,
+      threshold: void 0
+    })
+  },
+  sizes: String,
+  src: {
+    type: [String, Object],
+    default: ""
+  },
+  crossorigin: String,
+  referrerpolicy: String,
+  srcset: String,
+  position: String,
+  ...makeVResponsiveProps(),
+  ...makeComponentProps(),
+  ...makeRoundedProps(),
+  ...makeTransitionProps$1()
+}, "VImg");
+const VImg = genericComponent()({
+  name: "VImg",
+  directives: {
+    vIntersect: Intersect
+  },
+  props: makeVImgProps(),
+  emits: {
+    loadstart: (value) => true,
+    load: (value) => true,
+    error: (value) => true
+  },
+  setup(props, _ref) {
+    let {
+      emit: emit2,
+      slots
+    } = _ref;
+    const {
+      backgroundColorClasses,
+      backgroundColorStyles
+    } = useBackgroundColor(() => props.color);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    const vm = getCurrentInstance("VImg");
+    const currentSrc = /* @__PURE__ */ shallowRef("");
+    const image = /* @__PURE__ */ ref();
+    const state = /* @__PURE__ */ shallowRef(props.eager ? "loading" : "idle");
+    const naturalWidth = /* @__PURE__ */ shallowRef();
+    const naturalHeight = /* @__PURE__ */ shallowRef();
+    const normalisedSrc = computed(() => {
+      return props.src && typeof props.src === "object" ? {
+        src: props.src.src,
+        srcset: props.srcset || props.src.srcset,
+        lazySrc: props.lazySrc || props.src.lazySrc,
+        aspect: Number(props.aspectRatio || props.src.aspect || 0)
+      } : {
+        src: props.src,
+        srcset: props.srcset,
+        lazySrc: props.lazySrc,
+        aspect: Number(props.aspectRatio || 0)
+      };
+    });
+    const aspectRatio = computed(() => {
+      return normalisedSrc.value.aspect || naturalWidth.value / naturalHeight.value || 0;
+    });
+    watch(() => props.src, () => {
+      init(state.value !== "idle");
+    });
+    watch(aspectRatio, (val, oldVal) => {
+      if (!val && oldVal && image.value) {
+        pollForSize(image.value);
+      }
+    });
+    onBeforeMount(() => init());
+    function init(isIntersecting) {
+      if (props.eager && isIntersecting) return;
+      if (SUPPORTS_INTERSECTION && !isIntersecting && !props.eager) return;
+      state.value = "loading";
+      if (normalisedSrc.value.lazySrc) {
+        const lazyImg = new Image();
+        lazyImg.src = normalisedSrc.value.lazySrc;
+        pollForSize(lazyImg, null);
+      }
+      if (!normalisedSrc.value.src) return;
+      nextTick(() => {
+        emit2("loadstart", image.value?.currentSrc || normalisedSrc.value.src);
+        setTimeout(() => {
+          if (vm.isUnmounted) return;
+          if (image.value?.complete) {
+            if (!image.value.naturalWidth) {
+              onError();
+            }
+            if (state.value === "error") return;
+            if (!aspectRatio.value) pollForSize(image.value, null);
+            if (state.value === "loading") onLoad();
+          } else {
+            if (!aspectRatio.value) pollForSize(image.value);
+            getSrc();
+          }
+        });
+      });
+    }
+    function onLoad() {
+      if (vm.isUnmounted) return;
+      getSrc();
+      pollForSize(image.value);
+      state.value = "loaded";
+      emit2("load", image.value?.currentSrc || normalisedSrc.value.src);
+    }
+    function onError() {
+      if (vm.isUnmounted) return;
+      state.value = "error";
+      emit2("error", image.value?.currentSrc || normalisedSrc.value.src);
+    }
+    function getSrc() {
+      const img = image.value;
+      if (img) currentSrc.value = img.currentSrc || img.src;
+    }
+    let timer = -1;
+    onBeforeUnmount(() => {
+      clearTimeout(timer);
+    });
+    function pollForSize(img) {
+      let timeout = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : 100;
+      const poll = () => {
+        clearTimeout(timer);
+        if (vm.isUnmounted) return;
+        const {
+          naturalHeight: imgHeight,
+          naturalWidth: imgWidth
+        } = img;
+        if (imgHeight || imgWidth) {
+          naturalWidth.value = imgWidth;
+          naturalHeight.value = imgHeight;
+        } else if (!img.complete && state.value === "loading" && timeout != null) {
+          timer = window.setTimeout(poll, timeout);
+        } else if (img.currentSrc.endsWith(".svg") || img.currentSrc.startsWith("data:image/svg+xml")) {
+          naturalWidth.value = 1;
+          naturalHeight.value = 1;
+        }
+      };
+      poll();
+    }
+    const containClasses = /* @__PURE__ */ toRef(() => ({
+      "v-img__img--cover": props.cover,
+      "v-img__img--contain": !props.cover
+    }));
+    const __image = () => {
+      if (!normalisedSrc.value.src || state.value === "idle") return null;
+      const img = createBaseVNode("img", {
+        "class": normalizeClass(["v-img__img", containClasses.value]),
+        "style": {
+          objectPosition: props.position
+        },
+        "crossorigin": props.crossorigin,
+        "src": normalisedSrc.value.src,
+        "srcset": normalisedSrc.value.srcset,
+        "alt": props.alt,
+        "referrerpolicy": props.referrerpolicy,
+        "draggable": props.draggable,
+        "sizes": props.sizes,
+        "ref": image,
+        "onLoad": onLoad,
+        "onError": onError
+      }, null);
+      const sources = slots.sources?.();
+      return createVNode(MaybeTransition, {
+        "transition": props.transition,
+        "appear": true
+      }, {
+        default: () => [withDirectives(sources ? createBaseVNode("picture", {
+          "class": "v-img__picture"
+        }, [sources, img]) : img, [[vShow, state.value === "loaded"]])]
+      });
+    };
+    const __preloadImage = () => createVNode(MaybeTransition, {
+      "transition": props.transition
+    }, {
+      default: () => [normalisedSrc.value.lazySrc && state.value !== "loaded" && createBaseVNode("img", {
+        "class": normalizeClass(["v-img__img", "v-img__img--preload", containClasses.value]),
+        "style": {
+          objectPosition: props.position
+        },
+        "crossorigin": props.crossorigin,
+        "src": normalisedSrc.value.lazySrc,
+        "alt": props.alt,
+        "referrerpolicy": props.referrerpolicy,
+        "draggable": props.draggable
+      }, null)]
+    });
+    const __placeholder = () => {
+      if (!slots.placeholder) return null;
+      return createVNode(MaybeTransition, {
+        "transition": props.transition,
+        "appear": true
+      }, {
+        default: () => [(state.value === "loading" || state.value === "error" && !slots.error) && createBaseVNode("div", {
+          "class": "v-img__placeholder"
+        }, [slots.placeholder()])]
+      });
+    };
+    const __error = () => {
+      if (!slots.error) return null;
+      return createVNode(MaybeTransition, {
+        "transition": props.transition,
+        "appear": true
+      }, {
+        default: () => [state.value === "error" && createBaseVNode("div", {
+          "class": "v-img__error"
+        }, [slots.error()])]
+      });
+    };
+    const __gradient = () => {
+      if (!props.gradient) return null;
+      return createBaseVNode("div", {
+        "class": "v-img__gradient",
+        "style": {
+          backgroundImage: `linear-gradient(${props.gradient})`
+        }
+      }, null);
+    };
+    const isBooted = /* @__PURE__ */ shallowRef(false);
+    {
+      const stop = watch(aspectRatio, (val) => {
+        if (val) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              isBooted.value = true;
+            });
+          });
+          stop();
+        }
+      });
+    }
+    useRender(() => {
+      const responsiveProps = VResponsive.filterProps(props);
+      return withDirectives(createVNode(VResponsive, mergeProps({
+        "class": ["v-img", {
+          "v-img--absolute": props.absolute,
+          "v-img--booting": !isBooted.value
+        }, backgroundColorClasses.value, roundedClasses.value, props.class],
+        "style": [{
+          width: convertToUnit(props.width === "auto" ? naturalWidth.value : props.width)
+        }, backgroundColorStyles.value, props.style]
+      }, responsiveProps, {
+        "aspectRatio": aspectRatio.value,
+        "aria-label": props.alt,
+        "role": props.alt ? "img" : void 0
+      }), {
+        additional: () => createBaseVNode(Fragment, null, [createVNode(__image, null, null), createVNode(__preloadImage, null, null), createVNode(__gradient, null, null), createVNode(__placeholder, null, null), createVNode(__error, null, null)]),
+        default: slots.default
+      }), [[Intersect, {
+        handler: init,
+        options: props.options
+      }, null, {
+        once: true
+      }]]);
+    });
+    return {
+      currentSrc,
+      image,
+      state,
+      naturalWidth,
+      naturalHeight
+    };
+  }
+});
+const makeVAvatarProps = propsFactory({
+  start: Boolean,
+  end: Boolean,
+  icon: IconValue,
+  image: String,
+  text: String,
+  ...makeBorderProps(),
+  ...makeComponentProps(),
+  ...makeDensityProps(),
+  ...makeRoundedProps(),
+  ...makeSizeProps(),
+  ...makeTagProps(),
+  ...makeThemeProps(),
+  ...makeVariantProps({
+    variant: "flat"
+  })
+}, "VAvatar");
+const VAvatar = genericComponent()({
+  name: "VAvatar",
+  props: makeVAvatarProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      borderClasses
+    } = useBorder(props);
+    const {
+      colorClasses,
+      colorStyles,
+      variantClasses
+    } = useVariant(props);
+    const {
+      densityClasses
+    } = useDensity(props);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    const {
+      sizeClasses,
+      sizeStyles
+    } = useSize(props);
+    useRender(() => createVNode(props.tag, {
+      "class": normalizeClass(["v-avatar", {
+        "v-avatar--start": props.start,
+        "v-avatar--end": props.end
+      }, themeClasses.value, borderClasses.value, colorClasses.value, densityClasses.value, roundedClasses.value, sizeClasses.value, variantClasses.value, props.class]),
+      "style": normalizeStyle([colorStyles.value, sizeStyles.value, props.style])
+    }, {
+      default: () => [!slots.default ? props.image ? createVNode(VImg, {
+        "key": "image",
+        "src": props.image,
+        "alt": "",
+        "cover": true
+      }, null) : props.icon ? createVNode(VIcon, {
+        "key": "icon",
+        "icon": props.icon
+      }, null) : props.text : createVNode(VDefaultsProvider, {
+        "key": "content-defaults",
+        "defaults": {
+          VImg: {
+            cover: true,
+            src: props.image
+          },
+          VIcon: {
+            icon: props.icon
+          }
+        }
+      }, {
+        default: () => [slots.default()]
+      }), genOverlays(false, "v-avatar")]
+    }));
+    return {};
+  }
+});
+const makeCardItemProps = propsFactory({
+  appendAvatar: String,
+  appendIcon: IconValue,
+  prependAvatar: String,
+  prependIcon: IconValue,
+  subtitle: {
+    type: [String, Number, Boolean],
+    default: void 0
+  },
+  title: {
+    type: [String, Number, Boolean],
+    default: void 0
+  },
+  ...makeComponentProps(),
+  ...makeDensityProps(),
+  ...makeTagProps()
+}, "VCardItem");
+const VCardItem = genericComponent()({
+  name: "VCardItem",
+  props: makeCardItemProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    useRender(() => {
+      const hasPrependMedia = !!(props.prependAvatar || props.prependIcon);
+      const hasPrepend = !!(hasPrependMedia || slots.prepend);
+      const hasAppendMedia = !!(props.appendAvatar || props.appendIcon);
+      const hasAppend = !!(hasAppendMedia || slots.append);
+      const hasTitle = !!(props.title != null || slots.title);
+      const hasSubtitle = !!(props.subtitle != null || slots.subtitle);
+      return createVNode(props.tag, {
+        "class": normalizeClass(["v-card-item", props.class]),
+        "style": normalizeStyle(props.style)
+      }, {
+        default: () => [hasPrepend && createBaseVNode("div", {
+          "key": "prepend",
+          "class": "v-card-item__prepend"
+        }, [!slots.prepend ? createBaseVNode(Fragment, null, [props.prependAvatar && createVNode(VAvatar, {
+          "key": "prepend-avatar",
+          "density": props.density,
+          "image": props.prependAvatar
+        }, null), props.prependIcon && createVNode(VIcon, {
+          "key": "prepend-icon",
+          "density": props.density,
+          "icon": props.prependIcon
+        }, null)]) : createVNode(VDefaultsProvider, {
+          "key": "prepend-defaults",
+          "disabled": !hasPrependMedia,
+          "defaults": {
+            VAvatar: {
+              density: props.density,
+              image: props.prependAvatar
+            },
+            VIcon: {
+              density: props.density,
+              icon: props.prependIcon
+            }
+          }
+        }, slots.prepend)]), createBaseVNode("div", {
+          "class": "v-card-item__content"
+        }, [hasTitle && createVNode(VCardTitle, {
+          "key": "title"
+        }, {
+          default: () => [slots.title?.() ?? toDisplayString(props.title)]
+        }), hasSubtitle && createVNode(VCardSubtitle, {
+          "key": "subtitle"
+        }, {
+          default: () => [slots.subtitle?.() ?? toDisplayString(props.subtitle)]
+        }), slots.default?.()]), hasAppend && createBaseVNode("div", {
+          "key": "append",
+          "class": "v-card-item__append"
+        }, [!slots.append ? createBaseVNode(Fragment, null, [props.appendIcon && createVNode(VIcon, {
+          "key": "append-icon",
+          "density": props.density,
+          "icon": props.appendIcon
+        }, null), props.appendAvatar && createVNode(VAvatar, {
+          "key": "append-avatar",
+          "density": props.density,
+          "image": props.appendAvatar
+        }, null)]) : createVNode(VDefaultsProvider, {
+          "key": "append-defaults",
+          "disabled": !hasAppendMedia,
+          "defaults": {
+            VAvatar: {
+              density: props.density,
+              image: props.appendAvatar
+            },
+            VIcon: {
+              density: props.density,
+              icon: props.appendIcon
+            }
+          }
+        }, slots.append)])]
+      });
+    });
+    return {};
+  }
+});
+const makeVCardTextProps = propsFactory({
+  opacity: [Number, String],
+  ...makeComponentProps(),
+  ...makeTagProps()
+}, "VCardText");
+const VCardText = genericComponent()({
+  name: "VCardText",
+  props: makeVCardTextProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    useRender(() => createVNode(props.tag, {
+      "class": normalizeClass(["v-card-text", props.class]),
+      "style": normalizeStyle([{
+        "--v-card-text-opacity": props.opacity
+      }, props.style])
+    }, slots));
+    return {};
+  }
+});
+const makeVCardProps = propsFactory({
+  appendAvatar: String,
+  appendIcon: IconValue,
+  disabled: Boolean,
+  flat: Boolean,
+  hover: Boolean,
+  image: String,
+  link: {
+    type: Boolean,
+    default: void 0
+  },
+  prependAvatar: String,
+  prependIcon: IconValue,
+  ripple: {
+    type: [Boolean, Object],
+    default: true
+  },
+  subtitle: {
+    type: [String, Number, Boolean],
+    default: void 0
+  },
+  text: {
+    type: [String, Number, Boolean],
+    default: void 0
+  },
+  title: {
+    type: [String, Number, Boolean],
+    default: void 0
+  },
+  ...makeBorderProps(),
+  ...makeComponentProps(),
+  ...makeDensityProps(),
+  ...makeDimensionProps(),
+  ...makeElevationProps(),
+  ...makeLoaderProps(),
+  ...makeLocationProps(),
+  ...makePositionProps(),
+  ...makeRoundedProps(),
+  ...makeRouterProps(),
+  ...makeTagProps(),
+  ...makeThemeProps(),
+  ...makeVariantProps({
+    variant: "elevated"
+  })
+}, "VCard");
+const VCard = genericComponent()({
+  name: "VCard",
+  directives: {
+    vRipple: Ripple
+  },
+  props: makeVCardProps(),
+  setup(props, _ref) {
+    let {
+      attrs,
+      slots
+    } = _ref;
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      borderClasses
+    } = useBorder(props);
+    const {
+      colorClasses,
+      colorStyles,
+      variantClasses
+    } = useVariant(props);
+    const {
+      densityClasses
+    } = useDensity(props);
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    const {
+      elevationClasses
+    } = useElevation(props);
+    const {
+      loaderClasses
+    } = useLoader(props);
+    const {
+      locationStyles
+    } = useLocation(props);
+    const {
+      positionClasses
+    } = usePosition(props);
+    const {
+      roundedClasses
+    } = useRounded(props);
+    const link = useLink(props, attrs);
+    const loadingColor = /* @__PURE__ */ shallowRef(void 0);
+    watch(() => props.loading, (val, old) => {
+      loadingColor.value = !val && typeof old === "string" ? old : typeof val === "boolean" ? void 0 : val;
+    }, {
+      immediate: true
+    });
+    useRender(() => {
+      const isLink = props.link !== false && link.isLink.value;
+      const isClickable = !props.disabled && props.link !== false && (props.link || link.isClickable.value);
+      const Tag = isLink ? "a" : props.tag;
+      const hasTitle = !!(slots.title || props.title != null);
+      const hasSubtitle = !!(slots.subtitle || props.subtitle != null);
+      const hasHeader = hasTitle || hasSubtitle;
+      const hasAppend = !!(slots.append || props.appendAvatar || props.appendIcon);
+      const hasPrepend = !!(slots.prepend || props.prependAvatar || props.prependIcon);
+      const hasImage = !!(slots.image || props.image);
+      const hasCardItem = hasHeader || hasPrepend || hasAppend;
+      const hasText = !!(slots.text || props.text != null);
+      return withDirectives(createVNode(Tag, mergeProps(link.linkProps, {
+        "class": ["v-card", {
+          "v-card--disabled": props.disabled,
+          "v-card--flat": props.flat,
+          "v-card--hover": props.hover && !(props.disabled || props.flat),
+          "v-card--link": isClickable
+        }, themeClasses.value, borderClasses.value, colorClasses.value, densityClasses.value, elevationClasses.value, loaderClasses.value, positionClasses.value, roundedClasses.value, variantClasses.value, props.class],
+        "style": [colorStyles.value, dimensionStyles.value, locationStyles.value, props.style],
+        "onClick": isClickable && link.navigate,
+        "tabindex": props.disabled ? -1 : void 0
+      }), {
+        default: () => [hasImage && createBaseVNode("div", {
+          "key": "image",
+          "class": "v-card__image"
+        }, [!slots.image ? createVNode(VImg, {
+          "key": "image-img",
+          "cover": true,
+          "src": props.image
+        }, null) : createVNode(VDefaultsProvider, {
+          "key": "image-defaults",
+          "disabled": !props.image,
+          "defaults": {
+            VImg: {
+              cover: true,
+              src: props.image
+            }
+          }
+        }, slots.image)]), createVNode(LoaderSlot, {
+          "name": "v-card",
+          "active": !!props.loading,
+          "color": loadingColor.value
+        }, {
+          default: slots.loader
+        }), hasCardItem && createVNode(VCardItem, {
+          "key": "item",
+          "prependAvatar": props.prependAvatar,
+          "prependIcon": props.prependIcon,
+          "title": props.title,
+          "subtitle": props.subtitle,
+          "appendAvatar": props.appendAvatar,
+          "appendIcon": props.appendIcon
+        }, {
+          default: slots.item,
+          prepend: slots.prepend,
+          title: slots.title,
+          subtitle: slots.subtitle,
+          append: slots.append
+        }), hasText && createVNode(VCardText, {
+          "key": "text"
+        }, {
+          default: () => [slots.text?.() ?? props.text]
+        }), slots.default?.(), slots.actions && createVNode(VCardActions, null, {
+          default: slots.actions
+        }), genOverlays(isClickable, "v-card")]
+      }), [[Ripple, isClickable && props.ripple]]);
+    });
+    return {};
+  }
+});
+const makeTransitionProps = propsFactory({
   disabled: Boolean,
   group: Boolean,
   hideOnLeave: Boolean,
@@ -13217,7 +16302,7 @@ const makeTransitionProps$1 = propsFactory({
 function createCssTransition(name, origin, mode) {
   return genericComponent()({
     name,
-    props: makeTransitionProps$1({
+    props: makeTransitionProps({
       mode,
       origin
     }),
@@ -13553,1029 +16638,6 @@ const VSlideYTransition = createCssTransition("slide-y-transition");
 createCssTransition("slide-y-reverse-transition");
 const VExpandTransition = createJavascriptTransition("expand-transition", ExpandTransitionGenerator());
 const VExpandXTransition = createJavascriptTransition("expand-x-transition", ExpandTransitionGenerator("", true));
-const makeVDefaultsProviderProps = propsFactory({
-  defaults: Object,
-  disabled: Boolean,
-  reset: [Number, String],
-  root: [Boolean, String],
-  scoped: Boolean
-}, "VDefaultsProvider");
-const VDefaultsProvider = genericComponent(false)({
-  name: "VDefaultsProvider",
-  props: makeVDefaultsProviderProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const {
-      defaults,
-      disabled,
-      reset,
-      root,
-      scoped
-    } = /* @__PURE__ */ toRefs(props);
-    provideDefaults(defaults, {
-      reset,
-      root,
-      scoped,
-      disabled
-    });
-    return () => slots.default?.();
-  }
-});
-function useColor(colors) {
-  return destructComputed(() => {
-    const {
-      class: colorClasses,
-      style: colorStyles
-    } = computeColor(colors);
-    return {
-      colorClasses,
-      colorStyles
-    };
-  });
-}
-function useTextColor(color) {
-  const {
-    colorClasses: textColorClasses,
-    colorStyles: textColorStyles
-  } = useColor(() => ({
-    text: toValue(color)
-  }));
-  return {
-    textColorClasses,
-    textColorStyles
-  };
-}
-function useBackgroundColor(color) {
-  const {
-    colorClasses: backgroundColorClasses,
-    colorStyles: backgroundColorStyles
-  } = useColor(() => ({
-    background: toValue(color)
-  }));
-  return {
-    backgroundColorClasses,
-    backgroundColorStyles
-  };
-}
-function computeColor(colors) {
-  const _colors = toValue(colors);
-  const classes = [];
-  const styles = {};
-  if (_colors.background) {
-    if (isCssColor(_colors.background)) {
-      styles.backgroundColor = _colors.background;
-      if (!_colors.text && isParsableColor(_colors.background)) {
-        const backgroundColor = parseColor(_colors.background);
-        if (backgroundColor.a == null || backgroundColor.a === 1) {
-          const textColor = getForeground(backgroundColor);
-          styles.color = textColor;
-          styles.caretColor = textColor;
-        }
-      }
-    } else {
-      classes.push(`bg-${_colors.background}`);
-    }
-  }
-  if (_colors.text) {
-    if (isCssColor(_colors.text)) {
-      styles.color = _colors.text;
-      styles.caretColor = _colors.text;
-    } else {
-      classes.push(`text-${_colors.text}`);
-    }
-  }
-  return {
-    class: classes,
-    style: styles
-  };
-}
-const predefinedSizes = ["x-small", "small", "default", "large", "x-large"];
-const makeSizeProps = propsFactory({
-  size: {
-    type: [String, Number],
-    default: "default"
-  }
-}, "size");
-function useSize(props) {
-  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
-  return destructComputed(() => {
-    const size = props.size;
-    let sizeClasses;
-    let sizeStyles;
-    if (includes(predefinedSizes, size)) {
-      sizeClasses = `${name}--size-${size}`;
-    } else if (size) {
-      sizeStyles = {
-        width: convertToUnit(size),
-        height: convertToUnit(size)
-      };
-    }
-    return {
-      sizeClasses,
-      sizeStyles
-    };
-  });
-}
-const makeTagProps = propsFactory({
-  tag: {
-    type: [String, Object, Function],
-    default: "div"
-  }
-}, "tag");
-const makeVIconProps = propsFactory({
-  color: String,
-  disabled: Boolean,
-  start: Boolean,
-  end: Boolean,
-  icon: IconValue,
-  opacity: [String, Number],
-  ...makeComponentProps(),
-  ...makeSizeProps(),
-  ...makeTagProps({
-    tag: "i"
-  }),
-  ...makeThemeProps()
-}, "VIcon");
-const VIcon = genericComponent()({
-  name: "VIcon",
-  props: makeVIconProps(),
-  setup(props, _ref) {
-    let {
-      attrs,
-      slots
-    } = _ref;
-    const slotIcon = /* @__PURE__ */ shallowRef();
-    const {
-      themeClasses
-    } = useTheme();
-    const {
-      iconData
-    } = useIcon(() => slotIcon.value || props.icon);
-    const {
-      sizeClasses
-    } = useSize(props);
-    const {
-      textColorClasses,
-      textColorStyles
-    } = useTextColor(() => props.color);
-    useRender(() => {
-      const slotValue = slots.default?.();
-      if (slotValue) {
-        slotIcon.value = flattenFragments(slotValue).filter((node) => node.type === Text && node.children && typeof node.children === "string")[0]?.children;
-      }
-      const hasClick = !!(attrs.onClick || attrs.onClickOnce);
-      return createVNode(iconData.value.component, {
-        "tag": props.tag,
-        "icon": iconData.value.icon,
-        "class": normalizeClass(["v-icon", "notranslate", themeClasses.value, sizeClasses.value, textColorClasses.value, {
-          "v-icon--clickable": hasClick,
-          "v-icon--disabled": props.disabled,
-          "v-icon--start": props.start,
-          "v-icon--end": props.end
-        }, props.class]),
-        "style": normalizeStyle([{
-          "--v-icon-opacity": props.opacity
-        }, !sizeClasses.value ? {
-          fontSize: convertToUnit(props.size),
-          height: convertToUnit(props.size),
-          width: convertToUnit(props.size)
-        } : void 0, textColorStyles.value, props.style]),
-        "role": hasClick ? "button" : void 0,
-        "aria-hidden": !hasClick,
-        "tabindex": hasClick ? props.disabled ? -1 : 0 : void 0
-      }, {
-        default: () => [slotValue]
-      });
-    });
-    return {};
-  }
-});
-const makeDimensionProps = propsFactory({
-  height: [Number, String],
-  maxHeight: [Number, String],
-  maxWidth: [Number, String],
-  minHeight: [Number, String],
-  minWidth: [Number, String],
-  width: [Number, String]
-}, "dimension");
-function useDimension(props) {
-  const dimensionStyles = computed(() => {
-    const styles = {};
-    const height = convertToUnit(props.height);
-    const maxHeight = convertToUnit(props.maxHeight);
-    const maxWidth = convertToUnit(props.maxWidth);
-    const minHeight = convertToUnit(props.minHeight);
-    const minWidth = convertToUnit(props.minWidth);
-    const width = convertToUnit(props.width);
-    if (height != null) styles.height = height;
-    if (maxHeight != null) styles.maxHeight = maxHeight;
-    if (maxWidth != null) styles.maxWidth = maxWidth;
-    if (minHeight != null) styles.minHeight = minHeight;
-    if (minWidth != null) styles.minWidth = minWidth;
-    if (width != null) styles.width = width;
-    return styles;
-  });
-  return {
-    dimensionStyles
-  };
-}
-function useAspectStyles(props) {
-  return {
-    aspectStyles: computed(() => {
-      const ratio = Number(props.aspectRatio);
-      return ratio ? {
-        paddingBottom: String(1 / ratio * 100) + "%"
-      } : void 0;
-    })
-  };
-}
-const makeVResponsiveProps = propsFactory({
-  aspectRatio: [String, Number],
-  contentClass: null,
-  inline: Boolean,
-  ...makeComponentProps(),
-  ...makeDimensionProps()
-}, "VResponsive");
-const VResponsive = genericComponent()({
-  name: "VResponsive",
-  props: makeVResponsiveProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const {
-      aspectStyles
-    } = useAspectStyles(props);
-    const {
-      dimensionStyles
-    } = useDimension(props);
-    useRender(() => createBaseVNode("div", {
-      "class": normalizeClass(["v-responsive", {
-        "v-responsive--inline": props.inline
-      }, props.class]),
-      "style": normalizeStyle([dimensionStyles.value, props.style])
-    }, [createBaseVNode("div", {
-      "class": "v-responsive__sizer",
-      "style": normalizeStyle(aspectStyles.value)
-    }, null), slots.additional?.(), slots.default && createBaseVNode("div", {
-      "class": normalizeClass(["v-responsive__content", props.contentClass])
-    }, [slots.default()])]));
-    return {};
-  }
-});
-const makeRoundedProps = propsFactory({
-  rounded: {
-    type: [Boolean, Number, String],
-    default: void 0
-  },
-  tile: Boolean
-}, "rounded");
-function useRounded(props) {
-  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
-  const roundedClasses = computed(() => {
-    const rounded = /* @__PURE__ */ isRef(props) ? props.value : props.rounded;
-    const tile = /* @__PURE__ */ isRef(props) ? false : props.tile;
-    const classes = [];
-    if (tile || rounded === false) {
-      classes.push("rounded-0");
-    } else if (rounded === true || rounded === "") {
-      classes.push(`${name}--rounded`);
-    } else if (typeof rounded === "string" || rounded === 0) {
-      for (const value of String(rounded).split(" ")) {
-        classes.push(`rounded-${value}`);
-      }
-    }
-    return classes;
-  });
-  return {
-    roundedClasses
-  };
-}
-const makeTransitionProps = propsFactory({
-  transition: {
-    type: null,
-    default: "fade-transition",
-    validator: (val) => val !== true
-  }
-}, "transition");
-const MaybeTransition = (props, _ref) => {
-  let {
-    slots
-  } = _ref;
-  const {
-    transition,
-    disabled,
-    group,
-    ...rest
-  } = props;
-  const {
-    component = group ? TransitionGroup : Transition,
-    ...customProps
-  } = isObject(transition) ? transition : {};
-  let transitionProps;
-  if (isObject(transition)) {
-    transitionProps = mergeProps(customProps, onlyDefinedProps({
-      disabled,
-      group
-    }), rest);
-  } else {
-    transitionProps = mergeProps({
-      name: disabled || !transition ? "" : transition
-    }, rest);
-  }
-  return h(component, transitionProps, slots);
-};
-function mounted$1(el, binding) {
-  if (!SUPPORTS_INTERSECTION) return;
-  const modifiers = binding.modifiers || {};
-  const value = binding.value;
-  const {
-    handler,
-    options
-  } = typeof value === "object" ? value : {
-    handler: value,
-    options: {}
-  };
-  const observer = new IntersectionObserver(function() {
-    let entries = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : [];
-    let observer2 = arguments.length > 1 ? arguments[1] : void 0;
-    const _observe = el._observe?.[binding.instance.$.uid];
-    if (!_observe) return;
-    const isIntersecting = entries.some((entry) => entry.isIntersecting);
-    if (handler && (!modifiers.quiet || _observe.init) && (!modifiers.once || isIntersecting || _observe.init)) {
-      handler(isIntersecting, entries, observer2);
-    }
-    if (isIntersecting && modifiers.once) unmounted$1(el, binding);
-    else _observe.init = true;
-  }, options);
-  el._observe = Object(el._observe);
-  el._observe[binding.instance.$.uid] = {
-    init: false,
-    observer
-  };
-  observer.observe(el);
-}
-function unmounted$1(el, binding) {
-  const observe = el._observe?.[binding.instance.$.uid];
-  if (!observe) return;
-  observe.observer.unobserve(el);
-  delete el._observe[binding.instance.$.uid];
-}
-const Intersect = {
-  mounted: mounted$1,
-  unmounted: unmounted$1
-};
-const makeVImgProps = propsFactory({
-  absolute: Boolean,
-  alt: String,
-  cover: Boolean,
-  color: String,
-  draggable: {
-    type: [Boolean, String],
-    default: void 0
-  },
-  eager: Boolean,
-  gradient: String,
-  lazySrc: String,
-  options: {
-    type: Object,
-    // For more information on types, navigate to:
-    // https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API
-    default: () => ({
-      root: void 0,
-      rootMargin: void 0,
-      threshold: void 0
-    })
-  },
-  sizes: String,
-  src: {
-    type: [String, Object],
-    default: ""
-  },
-  crossorigin: String,
-  referrerpolicy: String,
-  srcset: String,
-  position: String,
-  ...makeVResponsiveProps(),
-  ...makeComponentProps(),
-  ...makeRoundedProps(),
-  ...makeTransitionProps()
-}, "VImg");
-const VImg = genericComponent()({
-  name: "VImg",
-  directives: {
-    vIntersect: Intersect
-  },
-  props: makeVImgProps(),
-  emits: {
-    loadstart: (value) => true,
-    load: (value) => true,
-    error: (value) => true
-  },
-  setup(props, _ref) {
-    let {
-      emit: emit2,
-      slots
-    } = _ref;
-    const {
-      backgroundColorClasses,
-      backgroundColorStyles
-    } = useBackgroundColor(() => props.color);
-    const {
-      roundedClasses
-    } = useRounded(props);
-    const vm = getCurrentInstance("VImg");
-    const currentSrc = /* @__PURE__ */ shallowRef("");
-    const image = /* @__PURE__ */ ref();
-    const state = /* @__PURE__ */ shallowRef(props.eager ? "loading" : "idle");
-    const naturalWidth = /* @__PURE__ */ shallowRef();
-    const naturalHeight = /* @__PURE__ */ shallowRef();
-    const normalisedSrc = computed(() => {
-      return props.src && typeof props.src === "object" ? {
-        src: props.src.src,
-        srcset: props.srcset || props.src.srcset,
-        lazySrc: props.lazySrc || props.src.lazySrc,
-        aspect: Number(props.aspectRatio || props.src.aspect || 0)
-      } : {
-        src: props.src,
-        srcset: props.srcset,
-        lazySrc: props.lazySrc,
-        aspect: Number(props.aspectRatio || 0)
-      };
-    });
-    const aspectRatio = computed(() => {
-      return normalisedSrc.value.aspect || naturalWidth.value / naturalHeight.value || 0;
-    });
-    watch(() => props.src, () => {
-      init(state.value !== "idle");
-    });
-    watch(aspectRatio, (val, oldVal) => {
-      if (!val && oldVal && image.value) {
-        pollForSize(image.value);
-      }
-    });
-    onBeforeMount(() => init());
-    function init(isIntersecting) {
-      if (props.eager && isIntersecting) return;
-      if (SUPPORTS_INTERSECTION && !isIntersecting && !props.eager) return;
-      state.value = "loading";
-      if (normalisedSrc.value.lazySrc) {
-        const lazyImg = new Image();
-        lazyImg.src = normalisedSrc.value.lazySrc;
-        pollForSize(lazyImg, null);
-      }
-      if (!normalisedSrc.value.src) return;
-      nextTick(() => {
-        emit2("loadstart", image.value?.currentSrc || normalisedSrc.value.src);
-        setTimeout(() => {
-          if (vm.isUnmounted) return;
-          if (image.value?.complete) {
-            if (!image.value.naturalWidth) {
-              onError();
-            }
-            if (state.value === "error") return;
-            if (!aspectRatio.value) pollForSize(image.value, null);
-            if (state.value === "loading") onLoad();
-          } else {
-            if (!aspectRatio.value) pollForSize(image.value);
-            getSrc();
-          }
-        });
-      });
-    }
-    function onLoad() {
-      if (vm.isUnmounted) return;
-      getSrc();
-      pollForSize(image.value);
-      state.value = "loaded";
-      emit2("load", image.value?.currentSrc || normalisedSrc.value.src);
-    }
-    function onError() {
-      if (vm.isUnmounted) return;
-      state.value = "error";
-      emit2("error", image.value?.currentSrc || normalisedSrc.value.src);
-    }
-    function getSrc() {
-      const img = image.value;
-      if (img) currentSrc.value = img.currentSrc || img.src;
-    }
-    let timer = -1;
-    onBeforeUnmount(() => {
-      clearTimeout(timer);
-    });
-    function pollForSize(img) {
-      let timeout = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : 100;
-      const poll = () => {
-        clearTimeout(timer);
-        if (vm.isUnmounted) return;
-        const {
-          naturalHeight: imgHeight,
-          naturalWidth: imgWidth
-        } = img;
-        if (imgHeight || imgWidth) {
-          naturalWidth.value = imgWidth;
-          naturalHeight.value = imgHeight;
-        } else if (!img.complete && state.value === "loading" && timeout != null) {
-          timer = window.setTimeout(poll, timeout);
-        } else if (img.currentSrc.endsWith(".svg") || img.currentSrc.startsWith("data:image/svg+xml")) {
-          naturalWidth.value = 1;
-          naturalHeight.value = 1;
-        }
-      };
-      poll();
-    }
-    const containClasses = /* @__PURE__ */ toRef(() => ({
-      "v-img__img--cover": props.cover,
-      "v-img__img--contain": !props.cover
-    }));
-    const __image = () => {
-      if (!normalisedSrc.value.src || state.value === "idle") return null;
-      const img = createBaseVNode("img", {
-        "class": normalizeClass(["v-img__img", containClasses.value]),
-        "style": {
-          objectPosition: props.position
-        },
-        "crossorigin": props.crossorigin,
-        "src": normalisedSrc.value.src,
-        "srcset": normalisedSrc.value.srcset,
-        "alt": props.alt,
-        "referrerpolicy": props.referrerpolicy,
-        "draggable": props.draggable,
-        "sizes": props.sizes,
-        "ref": image,
-        "onLoad": onLoad,
-        "onError": onError
-      }, null);
-      const sources = slots.sources?.();
-      return createVNode(MaybeTransition, {
-        "transition": props.transition,
-        "appear": true
-      }, {
-        default: () => [withDirectives(sources ? createBaseVNode("picture", {
-          "class": "v-img__picture"
-        }, [sources, img]) : img, [[vShow, state.value === "loaded"]])]
-      });
-    };
-    const __preloadImage = () => createVNode(MaybeTransition, {
-      "transition": props.transition
-    }, {
-      default: () => [normalisedSrc.value.lazySrc && state.value !== "loaded" && createBaseVNode("img", {
-        "class": normalizeClass(["v-img__img", "v-img__img--preload", containClasses.value]),
-        "style": {
-          objectPosition: props.position
-        },
-        "crossorigin": props.crossorigin,
-        "src": normalisedSrc.value.lazySrc,
-        "alt": props.alt,
-        "referrerpolicy": props.referrerpolicy,
-        "draggable": props.draggable
-      }, null)]
-    });
-    const __placeholder = () => {
-      if (!slots.placeholder) return null;
-      return createVNode(MaybeTransition, {
-        "transition": props.transition,
-        "appear": true
-      }, {
-        default: () => [(state.value === "loading" || state.value === "error" && !slots.error) && createBaseVNode("div", {
-          "class": "v-img__placeholder"
-        }, [slots.placeholder()])]
-      });
-    };
-    const __error = () => {
-      if (!slots.error) return null;
-      return createVNode(MaybeTransition, {
-        "transition": props.transition,
-        "appear": true
-      }, {
-        default: () => [state.value === "error" && createBaseVNode("div", {
-          "class": "v-img__error"
-        }, [slots.error()])]
-      });
-    };
-    const __gradient = () => {
-      if (!props.gradient) return null;
-      return createBaseVNode("div", {
-        "class": "v-img__gradient",
-        "style": {
-          backgroundImage: `linear-gradient(${props.gradient})`
-        }
-      }, null);
-    };
-    const isBooted = /* @__PURE__ */ shallowRef(false);
-    {
-      const stop = watch(aspectRatio, (val) => {
-        if (val) {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              isBooted.value = true;
-            });
-          });
-          stop();
-        }
-      });
-    }
-    useRender(() => {
-      const responsiveProps = VResponsive.filterProps(props);
-      return withDirectives(createVNode(VResponsive, mergeProps({
-        "class": ["v-img", {
-          "v-img--absolute": props.absolute,
-          "v-img--booting": !isBooted.value
-        }, backgroundColorClasses.value, roundedClasses.value, props.class],
-        "style": [{
-          width: convertToUnit(props.width === "auto" ? naturalWidth.value : props.width)
-        }, backgroundColorStyles.value, props.style]
-      }, responsiveProps, {
-        "aspectRatio": aspectRatio.value,
-        "aria-label": props.alt,
-        "role": props.alt ? "img" : void 0
-      }), {
-        additional: () => createBaseVNode(Fragment, null, [createVNode(__image, null, null), createVNode(__preloadImage, null, null), createVNode(__gradient, null, null), createVNode(__placeholder, null, null), createVNode(__error, null, null)]),
-        default: slots.default
-      }), [[Intersect, {
-        handler: init,
-        options: props.options
-      }, null, {
-        once: true
-      }]]);
-    });
-    return {
-      currentSrc,
-      image,
-      state,
-      naturalWidth,
-      naturalHeight
-    };
-  }
-});
-const makeBorderProps = propsFactory({
-  border: [Boolean, Number, String]
-}, "border");
-function useBorder(props) {
-  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
-  const borderClasses = computed(() => {
-    const border = props.border;
-    if (border === true || border === "") {
-      return `${name}--border`;
-    } else if (typeof border === "string" || border === 0) {
-      return String(border).split(" ").map((v) => `border-${v}`);
-    }
-    return [];
-  });
-  return {
-    borderClasses
-  };
-}
-const allowedDensities = [null, "default", "comfortable", "compact"];
-const makeDensityProps = propsFactory({
-  density: {
-    type: String,
-    default: "default",
-    validator: (v) => allowedDensities.includes(v)
-  }
-}, "density");
-function useDensity(props) {
-  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
-  const densityClasses = /* @__PURE__ */ toRef(() => {
-    return `${name}--density-${props.density}`;
-  });
-  return {
-    densityClasses
-  };
-}
-const allowedVariants$2 = ["elevated", "flat", "tonal", "outlined", "text", "plain"];
-function genOverlays(isClickable, name) {
-  return createBaseVNode(Fragment, null, [isClickable && createBaseVNode("span", {
-    "key": "overlay",
-    "class": normalizeClass(`${name}__overlay`)
-  }, null), createBaseVNode("span", {
-    "key": "underlay",
-    "class": normalizeClass(`${name}__underlay`)
-  }, null)]);
-}
-const makeVariantProps = propsFactory({
-  color: String,
-  variant: {
-    type: String,
-    default: "elevated",
-    validator: (v) => allowedVariants$2.includes(v)
-  }
-}, "variant");
-function useVariant(props) {
-  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
-  const variantClasses = /* @__PURE__ */ toRef(() => {
-    const {
-      variant
-    } = toValue(props);
-    return `${name}--variant-${variant}`;
-  });
-  const {
-    colorClasses,
-    colorStyles
-  } = useColor(() => {
-    const {
-      variant,
-      color
-    } = toValue(props);
-    return {
-      [["elevated", "flat"].includes(variant) ? "background" : "text"]: color
-    };
-  });
-  return {
-    colorClasses,
-    colorStyles,
-    variantClasses
-  };
-}
-const makeVAvatarProps = propsFactory({
-  start: Boolean,
-  end: Boolean,
-  icon: IconValue,
-  image: String,
-  text: String,
-  ...makeBorderProps(),
-  ...makeComponentProps(),
-  ...makeDensityProps(),
-  ...makeRoundedProps(),
-  ...makeSizeProps(),
-  ...makeTagProps(),
-  ...makeThemeProps(),
-  ...makeVariantProps({
-    variant: "flat"
-  })
-}, "VAvatar");
-const VAvatar = genericComponent()({
-  name: "VAvatar",
-  props: makeVAvatarProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const {
-      themeClasses
-    } = provideTheme(props);
-    const {
-      borderClasses
-    } = useBorder(props);
-    const {
-      colorClasses,
-      colorStyles,
-      variantClasses
-    } = useVariant(props);
-    const {
-      densityClasses
-    } = useDensity(props);
-    const {
-      roundedClasses
-    } = useRounded(props);
-    const {
-      sizeClasses,
-      sizeStyles
-    } = useSize(props);
-    useRender(() => createVNode(props.tag, {
-      "class": normalizeClass(["v-avatar", {
-        "v-avatar--start": props.start,
-        "v-avatar--end": props.end
-      }, themeClasses.value, borderClasses.value, colorClasses.value, densityClasses.value, roundedClasses.value, sizeClasses.value, variantClasses.value, props.class]),
-      "style": normalizeStyle([colorStyles.value, sizeStyles.value, props.style])
-    }, {
-      default: () => [!slots.default ? props.image ? createVNode(VImg, {
-        "key": "image",
-        "src": props.image,
-        "alt": "",
-        "cover": true
-      }, null) : props.icon ? createVNode(VIcon, {
-        "key": "icon",
-        "icon": props.icon
-      }, null) : props.text : createVNode(VDefaultsProvider, {
-        "key": "content-defaults",
-        "defaults": {
-          VImg: {
-            cover: true,
-            src: props.image
-          },
-          VIcon: {
-            icon: props.icon
-          }
-        }
-      }, {
-        default: () => [slots.default()]
-      }), genOverlays(false, "v-avatar")]
-    }));
-    return {};
-  }
-});
-const makeGroupProps = propsFactory({
-  modelValue: {
-    type: null,
-    default: void 0
-  },
-  multiple: Boolean,
-  mandatory: [Boolean, String],
-  max: Number,
-  selectedClass: String,
-  disabled: Boolean
-}, "group");
-const makeGroupItemProps = propsFactory({
-  value: null,
-  disabled: Boolean,
-  selectedClass: String
-}, "group-item");
-function useGroupItem(props, injectKey) {
-  let required = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : true;
-  const vm = getCurrentInstance("useGroupItem");
-  if (!vm) {
-    throw new Error("[Vuetify] useGroupItem composable must be used inside a component setup function");
-  }
-  const id = useId();
-  provide(Symbol.for(`${injectKey.description}:id`), id);
-  const group = inject$1(injectKey, null);
-  if (!group) {
-    if (!required) return group;
-    throw new Error(`[Vuetify] Could not find useGroup injection with symbol ${injectKey.description}`);
-  }
-  const value = /* @__PURE__ */ toRef(() => props.value);
-  const disabled = computed(() => !!(group.disabled.value || props.disabled));
-  function register() {
-    group?.register({
-      id,
-      value,
-      disabled
-    }, vm);
-  }
-  function unregister() {
-    group?.unregister(id);
-  }
-  register();
-  onBeforeUnmount(() => unregister());
-  const isSelected = computed(() => {
-    return group.isSelected(id);
-  });
-  const isFirst = computed(() => {
-    return group.items.value[0].id === id;
-  });
-  const isLast = computed(() => {
-    return group.items.value[group.items.value.length - 1].id === id;
-  });
-  const selectedClass = computed(() => isSelected.value && [group.selectedClass.value, props.selectedClass]);
-  watch(isSelected, (value2) => {
-    vm.emit("group:selected", {
-      value: value2
-    });
-  }, {
-    flush: "sync"
-  });
-  return {
-    id,
-    isSelected,
-    isFirst,
-    isLast,
-    toggle: () => group.select(id, !isSelected.value),
-    select: (value2) => group.select(id, value2),
-    selectedClass,
-    value,
-    disabled,
-    group,
-    register,
-    unregister
-  };
-}
-function useGroup(props, injectKey) {
-  let isUnmounted = false;
-  const items = /* @__PURE__ */ reactive([]);
-  const selected = useProxiedModel(props, "modelValue", [], (v) => {
-    if (v === void 0) return [];
-    return getIds(items, v === null ? [null] : wrapInArray(v));
-  }, (v) => {
-    const arr = getValues(items, v);
-    return props.multiple ? arr : arr[0];
-  });
-  const groupVm = getCurrentInstance("useGroup");
-  function register(item, vm) {
-    const unwrapped = item;
-    const key = Symbol.for(`${injectKey.description}:id`);
-    const children = findChildrenWithProvide(key, groupVm?.vnode);
-    const index = children.indexOf(vm);
-    if (unref(unwrapped.value) === void 0) {
-      unwrapped.value = index;
-      unwrapped.useIndexAsValue = true;
-    }
-    if (index > -1) {
-      items.splice(index, 0, unwrapped);
-    } else {
-      items.push(unwrapped);
-    }
-  }
-  function unregister(id) {
-    if (isUnmounted) return;
-    forceMandatoryValue();
-    const index = items.findIndex((item) => item.id === id);
-    items.splice(index, 1);
-  }
-  function forceMandatoryValue() {
-    const item = items.find((item2) => !item2.disabled);
-    if (item && props.mandatory === "force" && !selected.value.length) {
-      selected.value = [item.id];
-    }
-  }
-  onMounted(() => {
-    forceMandatoryValue();
-  });
-  onBeforeUnmount(() => {
-    isUnmounted = true;
-  });
-  onUpdated(() => {
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].useIndexAsValue) {
-        items[i].value = i;
-      }
-    }
-  });
-  function select(id, value) {
-    const item = items.find((item2) => item2.id === id);
-    if (value && item?.disabled) return;
-    if (props.multiple) {
-      const internalValue = selected.value.slice();
-      const index = internalValue.findIndex((v) => v === id);
-      const isSelected = ~index;
-      value = value ?? !isSelected;
-      if (isSelected && props.mandatory && internalValue.length <= 1) return;
-      if (!isSelected && props.max != null && internalValue.length + 1 > props.max) return;
-      if (index < 0 && value) internalValue.push(id);
-      else if (index >= 0 && !value) internalValue.splice(index, 1);
-      selected.value = internalValue;
-    } else {
-      const isSelected = selected.value.includes(id);
-      if (props.mandatory && isSelected) return;
-      if (!isSelected && !value) return;
-      selected.value = value ?? !isSelected ? [id] : [];
-    }
-  }
-  function step(offset) {
-    if (props.multiple) ;
-    if (!selected.value.length) {
-      const item = items.find((item2) => !item2.disabled);
-      item && (selected.value = [item.id]);
-    } else {
-      const currentId = selected.value[0];
-      const currentIndex = items.findIndex((i) => i.id === currentId);
-      let newIndex = (currentIndex + offset) % items.length;
-      let newItem = items[newIndex];
-      while (newItem.disabled && newIndex !== currentIndex) {
-        newIndex = (newIndex + offset) % items.length;
-        newItem = items[newIndex];
-      }
-      if (newItem.disabled) return;
-      selected.value = [items[newIndex].id];
-    }
-  }
-  const state = {
-    register,
-    unregister,
-    selected,
-    select,
-    disabled: /* @__PURE__ */ toRef(() => props.disabled),
-    prev: () => step(items.length - 1),
-    next: () => step(1),
-    isSelected: (id) => selected.value.includes(id),
-    selectedClass: /* @__PURE__ */ toRef(() => props.selectedClass),
-    items: /* @__PURE__ */ toRef(() => items),
-    getItemIndex: (value) => getItemIndex(items, value)
-  };
-  provide(injectKey, state);
-  return state;
-}
-function getItemIndex(items, value) {
-  const ids = getIds(items, [value]);
-  if (!ids.length) return -1;
-  return items.findIndex((item) => item.id === ids[0]);
-}
-function getIds(items, modelValue) {
-  const ids = [];
-  modelValue.forEach((value) => {
-    const item = items.find((item2) => deepEqual(value, item2.value));
-    const itemByIndex = items[value];
-    if (item?.value !== void 0) {
-      ids.push(item.id);
-    } else if (itemByIndex?.useIndexAsValue) {
-      ids.push(itemByIndex.id);
-    }
-  });
-  return ids;
-}
-function getValues(items, ids) {
-  const values = [];
-  ids.forEach((id) => {
-    const itemIndex = items.findIndex((item) => item.id === id);
-    if (~itemIndex) {
-      const item = items[itemIndex];
-      values.push(item.value !== void 0 ? item.value : itemIndex);
-    }
-  });
-  return values;
-}
 function calculateUpdatedTarget(_ref) {
   let {
     selectedElement,
@@ -15037,397 +17099,6 @@ genericComponent()({
     return {};
   }
 });
-const makeElevationProps = propsFactory({
-  elevation: {
-    type: [Number, String],
-    validator(v) {
-      const value = parseInt(v);
-      return !isNaN(value) && value >= 0 && // Material Design has a maximum elevation of 24
-      // https://material.io/design/environment/elevation.html#default-elevations
-      value <= 24;
-    }
-  }
-}, "elevation");
-function useElevation(props) {
-  const elevationClasses = /* @__PURE__ */ toRef(() => {
-    const elevation = /* @__PURE__ */ isRef(props) ? props.value : props.elevation;
-    if (elevation == null) return [];
-    return [`elevation-${elevation}`];
-  });
-  return {
-    elevationClasses
-  };
-}
-function useRoute() {
-  const vm = getCurrentInstance("useRoute");
-  return computed(() => vm?.proxy?.$route);
-}
-function useRouter() {
-  return getCurrentInstance("useRouter")?.proxy?.$router;
-}
-function useLink(props, attrs) {
-  const RouterLink2 = resolveDynamicComponent("RouterLink");
-  const isLink = /* @__PURE__ */ toRef(() => !!(props.href || props.to));
-  const isClickable = computed(() => {
-    return isLink?.value || hasEvent(attrs, "click") || hasEvent(props, "click");
-  });
-  if (typeof RouterLink2 === "string" || !("useLink" in RouterLink2)) {
-    const href2 = /* @__PURE__ */ toRef(() => props.href);
-    return {
-      isLink,
-      isRouterLink: /* @__PURE__ */ toRef(() => false),
-      isClickable,
-      href: href2,
-      linkProps: /* @__PURE__ */ reactive({
-        href: href2
-      })
-    };
-  }
-  const routerLink = RouterLink2.useLink({
-    to: /* @__PURE__ */ toRef(() => props.to || ""),
-    replace: /* @__PURE__ */ toRef(() => props.replace)
-  });
-  const link = computed(() => props.to ? routerLink : void 0);
-  const route = useRoute();
-  const isActive = computed(() => {
-    if (!link.value) return false;
-    if (!props.exact) return link.value.isActive?.value ?? false;
-    if (!route.value) return link.value.isExactActive?.value ?? false;
-    return link.value.isExactActive?.value && deepEqual(link.value.route.value.query, route.value.query);
-  });
-  const href = computed(() => props.to ? link.value?.route.value.href : props.href);
-  const isRouterLink = /* @__PURE__ */ toRef(() => !!props.to);
-  return {
-    isLink,
-    isRouterLink,
-    isClickable,
-    isActive,
-    route: link.value?.route,
-    navigate: link.value?.navigate,
-    href,
-    linkProps: /* @__PURE__ */ reactive({
-      href,
-      "aria-current": /* @__PURE__ */ toRef(() => isActive.value ? "page" : void 0),
-      "aria-disabled": /* @__PURE__ */ toRef(() => props.disabled && isLink.value ? "true" : void 0),
-      tabindex: /* @__PURE__ */ toRef(() => props.disabled && isLink.value ? "-1" : void 0)
-    })
-  };
-}
-const makeRouterProps = propsFactory({
-  href: String,
-  replace: Boolean,
-  to: [String, Object],
-  exact: Boolean
-}, "router");
-let inTransition = false;
-function useBackButton(router2, cb) {
-  let popped = false;
-  let removeBefore;
-  let removeAfter;
-  if (IN_BROWSER && router2?.beforeEach) {
-    nextTick(() => {
-      window.addEventListener("popstate", onPopstate);
-      removeBefore = router2.beforeEach((to, from, next) => {
-        if (!inTransition) {
-          setTimeout(() => popped ? cb(next) : next());
-        } else {
-          popped ? cb(next) : next();
-        }
-        inTransition = true;
-      });
-      removeAfter = router2?.afterEach(() => {
-        inTransition = false;
-      });
-    });
-    onScopeDispose(() => {
-      window.removeEventListener("popstate", onPopstate);
-      removeBefore?.();
-      removeAfter?.();
-    });
-  }
-  function onPopstate(e) {
-    if (e.state?.replaced) return;
-    popped = true;
-    setTimeout(() => popped = false);
-  }
-}
-const stopSymbol = Symbol("rippleStop");
-const DELAY_RIPPLE = 80;
-function transform(el, value) {
-  el.style.transform = value;
-  el.style.webkitTransform = value;
-}
-function isTouchEvent(e) {
-  return e.constructor.name === "TouchEvent";
-}
-function isKeyboardEvent(e) {
-  return e.constructor.name === "KeyboardEvent";
-}
-const calculate = function(e, el) {
-  let value = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
-  let localX = 0;
-  let localY = 0;
-  if (!isKeyboardEvent(e)) {
-    const offset = el.getBoundingClientRect();
-    const target = isTouchEvent(e) ? e.touches[e.touches.length - 1] : e;
-    localX = target.clientX - offset.left;
-    localY = target.clientY - offset.top;
-  }
-  let radius = 0;
-  let scale = 0.3;
-  if (el._ripple?.circle) {
-    scale = 0.15;
-    radius = el.clientWidth / 2;
-    radius = value.center ? radius : radius + Math.sqrt((localX - radius) ** 2 + (localY - radius) ** 2) / 4;
-  } else {
-    radius = Math.sqrt(el.clientWidth ** 2 + el.clientHeight ** 2) / 2;
-  }
-  const centerX = `${(el.clientWidth - radius * 2) / 2}px`;
-  const centerY = `${(el.clientHeight - radius * 2) / 2}px`;
-  const x = value.center ? centerX : `${localX - radius}px`;
-  const y = value.center ? centerY : `${localY - radius}px`;
-  return {
-    radius,
-    scale,
-    x,
-    y,
-    centerX,
-    centerY
-  };
-};
-const ripples = {
-  /* eslint-disable max-statements */
-  show(e, el) {
-    let value = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
-    if (!el?._ripple?.enabled) {
-      return;
-    }
-    const container = document.createElement("span");
-    const animation = document.createElement("span");
-    container.appendChild(animation);
-    container.className = "v-ripple__container";
-    if (value.class) {
-      container.className += ` ${value.class}`;
-    }
-    const {
-      radius,
-      scale,
-      x,
-      y,
-      centerX,
-      centerY
-    } = calculate(e, el, value);
-    const size = `${radius * 2}px`;
-    animation.className = "v-ripple__animation";
-    animation.style.width = size;
-    animation.style.height = size;
-    el.appendChild(container);
-    const computed2 = window.getComputedStyle(el);
-    if (computed2 && computed2.position === "static") {
-      el.style.position = "relative";
-      el.dataset.previousPosition = "static";
-    }
-    animation.classList.add("v-ripple__animation--enter");
-    animation.classList.add("v-ripple__animation--visible");
-    transform(animation, `translate(${x}, ${y}) scale3d(${scale},${scale},${scale})`);
-    animation.dataset.activated = String(performance.now());
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        animation.classList.remove("v-ripple__animation--enter");
-        animation.classList.add("v-ripple__animation--in");
-        transform(animation, `translate(${centerX}, ${centerY}) scale3d(1,1,1)`);
-      });
-    });
-  },
-  hide(el) {
-    if (!el?._ripple?.enabled) return;
-    const ripples2 = el.getElementsByClassName("v-ripple__animation");
-    if (ripples2.length === 0) return;
-    const animation = Array.from(ripples2).findLast((ripple) => !ripple.dataset.isHiding);
-    if (!animation) return;
-    else animation.dataset.isHiding = "true";
-    const diff = performance.now() - Number(animation.dataset.activated);
-    const delay = Math.max(250 - diff, 0);
-    setTimeout(() => {
-      animation.classList.remove("v-ripple__animation--in");
-      animation.classList.add("v-ripple__animation--out");
-      setTimeout(() => {
-        const ripples3 = el.getElementsByClassName("v-ripple__animation");
-        if (ripples3.length === 1 && el.dataset.previousPosition) {
-          el.style.position = el.dataset.previousPosition;
-          delete el.dataset.previousPosition;
-        }
-        if (animation.parentNode?.parentNode === el) el.removeChild(animation.parentNode);
-      }, 300);
-    }, delay);
-  }
-};
-function isRippleEnabled(value) {
-  return typeof value === "undefined" || !!value;
-}
-function rippleShow(e) {
-  const value = {};
-  const element = e.currentTarget;
-  if (!element?._ripple || element._ripple.touched || e[stopSymbol]) return;
-  e[stopSymbol] = true;
-  if (isTouchEvent(e)) {
-    element._ripple.touched = true;
-    element._ripple.isTouch = true;
-  } else {
-    if (element._ripple.isTouch) return;
-  }
-  value.center = element._ripple.centered || isKeyboardEvent(e);
-  if (element._ripple.class) {
-    value.class = element._ripple.class;
-  }
-  if (isTouchEvent(e)) {
-    if (element._ripple.showTimerCommit) return;
-    element._ripple.showTimerCommit = () => {
-      ripples.show(e, element, value);
-    };
-    element._ripple.showTimer = window.setTimeout(() => {
-      if (element?._ripple?.showTimerCommit) {
-        element._ripple.showTimerCommit();
-        element._ripple.showTimerCommit = null;
-      }
-    }, DELAY_RIPPLE);
-  } else {
-    ripples.show(e, element, value);
-  }
-}
-function rippleStop(e) {
-  e[stopSymbol] = true;
-}
-function rippleHide(e) {
-  const element = e.currentTarget;
-  if (!element?._ripple) return;
-  window.clearTimeout(element._ripple.showTimer);
-  if (e.type === "touchend" && element._ripple.showTimerCommit) {
-    element._ripple.showTimerCommit();
-    element._ripple.showTimerCommit = null;
-    element._ripple.showTimer = window.setTimeout(() => {
-      rippleHide(e);
-    });
-    return;
-  }
-  window.setTimeout(() => {
-    if (element._ripple) {
-      element._ripple.touched = false;
-    }
-  });
-  ripples.hide(element);
-}
-function rippleCancelShow(e) {
-  const element = e.currentTarget;
-  if (!element?._ripple) return;
-  if (element._ripple.showTimerCommit) {
-    element._ripple.showTimerCommit = null;
-  }
-  window.clearTimeout(element._ripple.showTimer);
-}
-let keyboardRipple = false;
-function keyboardRippleShow(e, keys) {
-  if (!keyboardRipple && keys.includes(e.key)) {
-    keyboardRipple = true;
-    rippleShow(e);
-  }
-}
-function keyboardRippleHide(e) {
-  keyboardRipple = false;
-  rippleHide(e);
-}
-function focusRippleHide(e) {
-  if (keyboardRipple) {
-    keyboardRipple = false;
-    rippleHide(e);
-  }
-}
-function updateRipple(el, binding, wasEnabled) {
-  const {
-    value,
-    modifiers
-  } = binding;
-  const enabled = isRippleEnabled(value);
-  if (!enabled) {
-    ripples.hide(el);
-  }
-  el._ripple = el._ripple ?? {};
-  el._ripple.enabled = enabled;
-  el._ripple.centered = modifiers.center;
-  el._ripple.circle = modifiers.circle;
-  const bindingValue = isObject(value) ? value : {};
-  if (bindingValue.class) {
-    el._ripple.class = bindingValue.class;
-  }
-  const allowedKeys = bindingValue.keys ?? ["Enter", "Space"];
-  el._ripple.keyDownHandler = (e) => keyboardRippleShow(e, allowedKeys);
-  if (enabled && !wasEnabled) {
-    if (modifiers.stop) {
-      el.addEventListener("touchstart", rippleStop, {
-        passive: true
-      });
-      el.addEventListener("mousedown", rippleStop);
-      return;
-    }
-    el.addEventListener("touchstart", rippleShow, {
-      passive: true
-    });
-    el.addEventListener("touchend", rippleHide, {
-      passive: true
-    });
-    el.addEventListener("touchmove", rippleCancelShow, {
-      passive: true
-    });
-    el.addEventListener("touchcancel", rippleHide);
-    el.addEventListener("mousedown", rippleShow);
-    el.addEventListener("mouseup", rippleHide);
-    el.addEventListener("mouseleave", rippleHide);
-    el.addEventListener("keydown", el._ripple.keyDownHandler);
-    el.addEventListener("keyup", keyboardRippleHide);
-    el.addEventListener("blur", focusRippleHide);
-    el.addEventListener("dragstart", rippleHide, {
-      passive: true
-    });
-  } else if (!enabled && wasEnabled) {
-    removeListeners(el);
-  }
-}
-function removeListeners(el) {
-  el.removeEventListener("touchstart", rippleStop);
-  el.removeEventListener("mousedown", rippleStop);
-  el.removeEventListener("touchstart", rippleShow);
-  el.removeEventListener("touchend", rippleHide);
-  el.removeEventListener("touchmove", rippleCancelShow);
-  el.removeEventListener("touchcancel", rippleHide);
-  el.removeEventListener("mousedown", rippleShow);
-  el.removeEventListener("mouseup", rippleHide);
-  el.removeEventListener("mouseleave", rippleHide);
-  if (el._ripple?.keyDownHandler) {
-    el.removeEventListener("keydown", el._ripple.keyDownHandler);
-  }
-  el.removeEventListener("keyup", keyboardRippleHide);
-  el.removeEventListener("blur", focusRippleHide);
-  el.removeEventListener("dragstart", rippleHide);
-}
-function mounted(el, binding) {
-  updateRipple(el, binding, false);
-}
-function unmounted(el) {
-  removeListeners(el);
-  delete el._ripple;
-}
-function updated(el, binding) {
-  if (binding.value === binding.oldValue) {
-    return;
-  }
-  const wasEnabled = isRippleEnabled(binding.oldValue);
-  updateRipple(el, binding, wasEnabled);
-}
-const Ripple = {
-  mounted,
-  unmounted,
-  updated
-};
 const makeVChipProps = propsFactory({
   activeClass: String,
   appendAvatar: String,
@@ -15694,89 +17365,1897 @@ const VChip = genericComponent()({
     };
   }
 });
-const allowedVariants$1 = ["dotted", "dashed", "solid", "double"];
-const makeVDividerProps = propsFactory({
-  color: String,
-  contentOffset: [Number, String, Array],
-  gradient: Boolean,
-  inset: Boolean,
-  length: [Number, String],
-  opacity: [Number, String],
-  thickness: [Number, String],
-  vertical: Boolean,
-  variant: {
-    type: String,
-    default: "solid",
-    validator: (v) => allowedVariants$1.includes(v)
+function elementToViewport(point, offset) {
+  return {
+    x: point.x + offset.x,
+    y: point.y + offset.y
+  };
+}
+function getOffset(a, b) {
+  return {
+    x: a.x - b.x,
+    y: a.y - b.y
+  };
+}
+function anchorToPoint(anchor, box) {
+  if (anchor.side === "top" || anchor.side === "bottom") {
+    const {
+      side,
+      align
+    } = anchor;
+    const x = align === "left" ? 0 : align === "center" ? box.width / 2 : align === "right" ? box.width : align;
+    const y = side === "top" ? 0 : side === "bottom" ? box.height : side;
+    return elementToViewport({
+      x,
+      y
+    }, box);
+  } else if (anchor.side === "left" || anchor.side === "right") {
+    const {
+      side,
+      align
+    } = anchor;
+    const x = side === "left" ? 0 : side === "right" ? box.width : side;
+    const y = align === "top" ? 0 : align === "center" ? box.height / 2 : align === "bottom" ? box.height : align;
+    return elementToViewport({
+      x,
+      y
+    }, box);
+  }
+  return elementToViewport({
+    x: box.width / 2,
+    y: box.height / 2
+  }, box);
+}
+const locationStrategies = {
+  static: staticLocationStrategy,
+  // specific viewport position, usually centered
+  connected: connectedLocationStrategy
+  // connected to a certain element
+};
+const makeLocationStrategyProps = propsFactory({
+  locationStrategy: {
+    type: [String, Function],
+    default: "static",
+    validator: (val) => typeof val === "function" || val in locationStrategies
   },
+  location: {
+    type: String,
+    default: "bottom"
+  },
+  origin: {
+    type: String,
+    default: "auto"
+  },
+  offset: [Number, String, Array],
+  stickToTarget: Boolean,
+  viewportMargin: {
+    type: [Number, String],
+    default: 12
+  }
+}, "VOverlay-location-strategies");
+function useLocationStrategies(props, data) {
+  const contentStyles = /* @__PURE__ */ ref({});
+  const updateLocation = /* @__PURE__ */ ref();
+  if (IN_BROWSER) {
+    useToggleScope(() => !!(data.isActive.value && props.locationStrategy), (reset) => {
+      watch(() => props.locationStrategy, reset);
+      onScopeDispose(() => {
+        window.removeEventListener("resize", onResize);
+        visualViewport?.removeEventListener("resize", onVisualResize);
+        visualViewport?.removeEventListener("scroll", onVisualScroll);
+        updateLocation.value = void 0;
+      });
+      window.addEventListener("resize", onResize, {
+        passive: true
+      });
+      visualViewport?.addEventListener("resize", onVisualResize, {
+        passive: true
+      });
+      visualViewport?.addEventListener("scroll", onVisualScroll, {
+        passive: true
+      });
+      if (typeof props.locationStrategy === "function") {
+        updateLocation.value = props.locationStrategy(data, props, contentStyles)?.updateLocation;
+      } else {
+        updateLocation.value = locationStrategies[props.locationStrategy](data, props, contentStyles)?.updateLocation;
+      }
+    });
+  }
+  function onResize(e) {
+    updateLocation.value?.(e);
+  }
+  function onVisualResize(e) {
+    updateLocation.value?.(e);
+  }
+  function onVisualScroll(e) {
+    updateLocation.value?.(e);
+  }
+  return {
+    contentStyles,
+    updateLocation
+  };
+}
+function staticLocationStrategy() {
+}
+function getIntrinsicSize(el, isRtl) {
+  const contentBox = nullifyTransforms(el);
+  if (isRtl) {
+    contentBox.x += parseFloat(el.style.right || 0);
+  } else {
+    contentBox.x -= parseFloat(el.style.left || 0);
+  }
+  contentBox.y -= parseFloat(el.style.top || 0);
+  return contentBox;
+}
+function connectedLocationStrategy(data, props, contentStyles) {
+  const activatorFixed = Array.isArray(data.target.value) || isFixedPosition(data.target.value);
+  if (activatorFixed) {
+    Object.assign(contentStyles.value, {
+      position: "fixed",
+      top: 0,
+      [data.isRtl.value ? "right" : "left"]: 0
+    });
+  }
+  const {
+    preferredAnchor,
+    preferredOrigin
+  } = destructComputed(() => {
+    const parsedAnchor = parseAnchor(props.location, data.isRtl.value);
+    const parsedOrigin = props.origin === "overlap" ? parsedAnchor : props.origin === "auto" ? flipSide(parsedAnchor) : parseAnchor(props.origin, data.isRtl.value);
+    if (parsedAnchor.side === parsedOrigin.side && parsedAnchor.align === flipAlign(parsedOrigin).align) {
+      return {
+        preferredAnchor: flipCorner(parsedAnchor),
+        preferredOrigin: flipCorner(parsedOrigin)
+      };
+    } else {
+      return {
+        preferredAnchor: parsedAnchor,
+        preferredOrigin: parsedOrigin
+      };
+    }
+  });
+  const [minWidth, minHeight, maxWidth, maxHeight] = ["minWidth", "minHeight", "maxWidth", "maxHeight"].map((key) => {
+    return computed(() => {
+      const val = parseFloat(props[key]);
+      return isNaN(val) ? Infinity : val;
+    });
+  });
+  const offset = computed(() => {
+    if (Array.isArray(props.offset)) {
+      return props.offset;
+    }
+    if (typeof props.offset === "string") {
+      const offset2 = props.offset.split(" ").map(parseFloat);
+      if (offset2.length < 2) offset2.push(0);
+      return offset2;
+    }
+    return typeof props.offset === "number" ? [props.offset, 0] : [0, 0];
+  });
+  let observe = false;
+  let lastFrame = -1;
+  const flipped = new CircularBuffer(4);
+  const observer = new ResizeObserver(() => {
+    if (!observe) return;
+    requestAnimationFrame((newTime) => {
+      if (newTime !== lastFrame) flipped.clear();
+      requestAnimationFrame((newNewTime) => {
+        lastFrame = newNewTime;
+      });
+    });
+    if (flipped.isFull) {
+      const values = flipped.values();
+      if (deepEqual(values.at(-1), values.at(-3)) && !deepEqual(values.at(-1), values.at(-2))) {
+        return;
+      }
+    }
+    const result = updateLocation();
+    if (result) flipped.push(result.flipped);
+  });
+  let targetBox = new Box({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0
+  });
+  watch(data.target, (newTarget, oldTarget) => {
+    if (oldTarget && !Array.isArray(oldTarget)) observer.unobserve(oldTarget);
+    if (!Array.isArray(newTarget)) {
+      if (newTarget) observer.observe(newTarget);
+    } else if (!deepEqual(newTarget, oldTarget)) {
+      updateLocation();
+    }
+  }, {
+    immediate: true
+  });
+  watch(data.contentEl, (newContentEl, oldContentEl) => {
+    if (oldContentEl) observer.unobserve(oldContentEl);
+    if (newContentEl) observer.observe(newContentEl);
+  }, {
+    immediate: true
+  });
+  onScopeDispose(() => {
+    observer.disconnect();
+  });
+  function updateLocation() {
+    observe = false;
+    requestAnimationFrame(() => observe = true);
+    if (!data.target.value || !data.contentEl.value) return;
+    if (Array.isArray(data.target.value) || data.target.value.offsetParent || data.target.value.getClientRects().length) {
+      targetBox = getTargetBox(data.target.value);
+    }
+    const contentBox = getIntrinsicSize(data.contentEl.value, data.isRtl.value);
+    const scrollParents = getScrollParents(data.contentEl.value);
+    const viewportMargin = Number(props.viewportMargin);
+    if (!scrollParents.length) {
+      scrollParents.push(document.documentElement);
+      if (!(data.contentEl.value.style.top && data.contentEl.value.style.left)) {
+        contentBox.x -= parseFloat(document.documentElement.style.getPropertyValue("--v-body-scroll-x") || 0);
+        contentBox.y -= parseFloat(document.documentElement.style.getPropertyValue("--v-body-scroll-y") || 0);
+      }
+    }
+    const viewport = scrollParents.reduce((box, el) => {
+      const scrollBox = getElementBox(el);
+      if (box) {
+        return new Box({
+          x: Math.max(box.left, scrollBox.left),
+          y: Math.max(box.top, scrollBox.top),
+          width: Math.min(box.right, scrollBox.right) - Math.max(box.left, scrollBox.left),
+          height: Math.min(box.bottom, scrollBox.bottom) - Math.max(box.top, scrollBox.top)
+        });
+      }
+      return scrollBox;
+    }, void 0);
+    if (props.stickToTarget) {
+      viewport.x += Math.min(viewportMargin, targetBox.x);
+      viewport.y += Math.min(viewportMargin, targetBox.y);
+      viewport.width = Math.max(viewport.width - viewportMargin * 2, targetBox.x + targetBox.width - viewportMargin);
+      viewport.height = Math.max(viewport.height - viewportMargin * 2, targetBox.y + targetBox.height - viewportMargin);
+    } else {
+      viewport.x += viewportMargin;
+      viewport.y += viewportMargin;
+      viewport.width -= viewportMargin * 2;
+      viewport.height -= viewportMargin * 2;
+    }
+    let placement = {
+      anchor: preferredAnchor.value,
+      origin: preferredOrigin.value
+    };
+    function checkOverflow(_placement) {
+      const box = new Box(contentBox);
+      const targetPoint = anchorToPoint(_placement.anchor, targetBox);
+      const contentPoint = anchorToPoint(_placement.origin, box);
+      let {
+        x: x2,
+        y: y2
+      } = getOffset(targetPoint, contentPoint);
+      switch (_placement.anchor.side) {
+        case "top":
+          y2 -= offset.value[0];
+          break;
+        case "bottom":
+          y2 += offset.value[0];
+          break;
+        case "left":
+          x2 -= offset.value[0];
+          break;
+        case "right":
+          x2 += offset.value[0];
+          break;
+      }
+      switch (_placement.anchor.align) {
+        case "top":
+          y2 -= offset.value[1];
+          break;
+        case "bottom":
+          y2 += offset.value[1];
+          break;
+        case "left":
+          x2 -= offset.value[1];
+          break;
+        case "right":
+          x2 += offset.value[1];
+          break;
+      }
+      box.x += x2;
+      box.y += y2;
+      box.width = Math.min(box.width, maxWidth.value);
+      box.height = Math.min(box.height, maxHeight.value);
+      const overflows = getOverflow(box, viewport);
+      return {
+        overflows,
+        x: x2,
+        y: y2
+      };
+    }
+    let x = 0;
+    let y = 0;
+    const available = {
+      x: 0,
+      y: 0
+    };
+    const flipped2 = {
+      x: false,
+      y: false
+    };
+    let resets = -1;
+    while (true) {
+      if (resets++ > 10) {
+        break;
+      }
+      const {
+        x: _x,
+        y: _y,
+        overflows
+      } = checkOverflow(placement);
+      x += _x;
+      y += _y;
+      contentBox.x += _x;
+      contentBox.y += _y;
+      {
+        const axis2 = getAxis(placement.anchor);
+        const hasOverflowX = overflows.x.before || overflows.x.after;
+        const hasOverflowY = overflows.y.before || overflows.y.after;
+        let reset = false;
+        ["x", "y"].forEach((key) => {
+          if (key === "x" && hasOverflowX && !flipped2.x || key === "y" && hasOverflowY && !flipped2.y) {
+            const newPlacement = {
+              anchor: {
+                ...placement.anchor
+              },
+              origin: {
+                ...placement.origin
+              }
+            };
+            const flip = key === "x" ? axis2 === "y" ? flipAlign : flipSide : axis2 === "y" ? flipSide : flipAlign;
+            newPlacement.anchor = flip(newPlacement.anchor);
+            newPlacement.origin = flip(newPlacement.origin);
+            const {
+              overflows: newOverflows
+            } = checkOverflow(newPlacement);
+            if (newOverflows[key].before <= overflows[key].before && newOverflows[key].after <= overflows[key].after || newOverflows[key].before + newOverflows[key].after < (overflows[key].before + overflows[key].after) / 2) {
+              placement = newPlacement;
+              reset = flipped2[key] = true;
+            }
+          }
+        });
+        if (reset) continue;
+      }
+      if (overflows.x.before) {
+        x += overflows.x.before;
+        contentBox.x += overflows.x.before;
+      }
+      if (overflows.x.after) {
+        x -= overflows.x.after;
+        contentBox.x -= overflows.x.after;
+      }
+      if (overflows.y.before) {
+        y += overflows.y.before;
+        contentBox.y += overflows.y.before;
+      }
+      if (overflows.y.after) {
+        y -= overflows.y.after;
+        contentBox.y -= overflows.y.after;
+      }
+      {
+        const overflows2 = getOverflow(contentBox, viewport);
+        available.x = viewport.width - overflows2.x.before - overflows2.x.after;
+        available.y = viewport.height - overflows2.y.before - overflows2.y.after;
+        x += overflows2.x.before;
+        contentBox.x += overflows2.x.before;
+        y += overflows2.y.before;
+        contentBox.y += overflows2.y.before;
+      }
+      break;
+    }
+    const axis = getAxis(placement.anchor);
+    Object.assign(contentStyles.value, {
+      "--v-overlay-anchor-origin": `${placement.anchor.side} ${placement.anchor.align}`,
+      transformOrigin: `${placement.origin.side} ${placement.origin.align}`,
+      // transform: `translate(${pixelRound(x)}px, ${pixelRound(y)}px)`,
+      top: convertToUnit(pixelRound(y)),
+      left: data.isRtl.value ? void 0 : convertToUnit(pixelRound(x)),
+      right: data.isRtl.value ? convertToUnit(pixelRound(-x)) : void 0,
+      minWidth: convertToUnit(axis === "y" ? Math.min(minWidth.value, targetBox.width) : minWidth.value),
+      maxWidth: convertToUnit(pixelCeil(clamp(available.x, minWidth.value === Infinity ? 0 : minWidth.value, maxWidth.value))),
+      maxHeight: convertToUnit(pixelCeil(clamp(available.y, minHeight.value === Infinity ? 0 : minHeight.value, maxHeight.value)))
+    });
+    return {
+      available,
+      contentBox,
+      flipped: flipped2
+    };
+  }
+  watch(() => [preferredAnchor.value, preferredOrigin.value, props.offset, props.minWidth, props.minHeight, props.maxWidth, props.maxHeight], () => updateLocation());
+  nextTick(() => {
+    const result = updateLocation();
+    if (!result) return;
+    const {
+      available,
+      contentBox
+    } = result;
+    if (contentBox.height > available.y) {
+      requestAnimationFrame(() => {
+        updateLocation();
+        requestAnimationFrame(() => {
+          updateLocation();
+        });
+      });
+    }
+  });
+  return {
+    updateLocation
+  };
+}
+function pixelRound(val) {
+  return Math.round(val * devicePixelRatio) / devicePixelRatio;
+}
+function pixelCeil(val) {
+  return Math.ceil(val * devicePixelRatio) / devicePixelRatio;
+}
+let clean = true;
+const frames = [];
+function requestNewFrame(cb) {
+  if (!clean || frames.length) {
+    frames.push(cb);
+    run();
+  } else {
+    clean = false;
+    cb();
+    run();
+  }
+}
+let raf = -1;
+function run() {
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => {
+    const frame = frames.shift();
+    if (frame) frame();
+    if (frames.length) run();
+    else clean = true;
+  });
+}
+const scrollStrategies = {
+  none: null,
+  close: closeScrollStrategy,
+  block: blockScrollStrategy,
+  reposition: repositionScrollStrategy
+};
+const makeScrollStrategyProps = propsFactory({
+  scrollStrategy: {
+    type: [String, Function],
+    default: "block",
+    validator: (val) => typeof val === "function" || val in scrollStrategies
+  }
+}, "VOverlay-scroll-strategies");
+function useScrollStrategies(props, data) {
+  if (!IN_BROWSER) return;
+  let scope;
+  watchEffect(async () => {
+    scope?.stop();
+    if (!(data.isActive.value && props.scrollStrategy)) return;
+    scope = effectScope();
+    await new Promise((resolve2) => setTimeout(resolve2));
+    scope.active && scope.run(() => {
+      if (typeof props.scrollStrategy === "function") {
+        props.scrollStrategy(data, props, scope);
+      } else {
+        scrollStrategies[props.scrollStrategy]?.(data, props, scope);
+      }
+    });
+  });
+  onScopeDispose(() => {
+    scope?.stop();
+  });
+}
+function closeScrollStrategy(data) {
+  function onScroll(e) {
+    data.isActive.value = false;
+  }
+  bindScroll(getTargetEl(data.target.value, data.contentEl.value), onScroll);
+}
+function blockScrollStrategy(data, props) {
+  const offsetParent = data.root.value?.offsetParent;
+  const target = getTargetEl(data.target.value, data.contentEl.value);
+  const scrollElements = [.../* @__PURE__ */ new Set([...getScrollParents(target, props.contained ? offsetParent : void 0), ...getScrollParents(data.contentEl.value, props.contained ? offsetParent : void 0)])].filter((el) => !el.classList.contains("v-overlay-scroll-blocked"));
+  const scrollbarWidth = window.innerWidth - document.documentElement.offsetWidth;
+  const scrollableParent = ((el) => hasScrollbar(el) && el)(offsetParent || document.documentElement);
+  if (scrollableParent) {
+    data.root.value.classList.add("v-overlay--scroll-blocked");
+  }
+  scrollElements.forEach((el, i) => {
+    el.style.setProperty("--v-body-scroll-x", convertToUnit(-el.scrollLeft));
+    el.style.setProperty("--v-body-scroll-y", convertToUnit(-el.scrollTop));
+    if (el !== document.documentElement) {
+      el.style.setProperty("--v-scrollbar-offset", convertToUnit(scrollbarWidth));
+    }
+    el.classList.add("v-overlay-scroll-blocked");
+  });
+  onScopeDispose(() => {
+    scrollElements.forEach((el, i) => {
+      const x = parseFloat(el.style.getPropertyValue("--v-body-scroll-x"));
+      const y = parseFloat(el.style.getPropertyValue("--v-body-scroll-y"));
+      const scrollBehavior = el.style.scrollBehavior;
+      el.style.scrollBehavior = "auto";
+      el.style.removeProperty("--v-body-scroll-x");
+      el.style.removeProperty("--v-body-scroll-y");
+      el.style.removeProperty("--v-scrollbar-offset");
+      el.classList.remove("v-overlay-scroll-blocked");
+      el.scrollLeft = -x;
+      el.scrollTop = -y;
+      el.style.scrollBehavior = scrollBehavior;
+    });
+    if (scrollableParent) {
+      data.root.value.classList.remove("v-overlay--scroll-blocked");
+    }
+  });
+}
+function repositionScrollStrategy(data, props, scope) {
+  let slow = false;
+  let raf2 = -1;
+  let ric = -1;
+  function update(e) {
+    requestNewFrame(() => {
+      const start = performance.now();
+      data.updateLocation.value?.(e);
+      const time = performance.now() - start;
+      slow = time / (1e3 / 60) > 2;
+    });
+  }
+  ric = (typeof requestIdleCallback === "undefined" ? (cb) => cb() : requestIdleCallback)(() => {
+    scope.run(() => {
+      bindScroll(getTargetEl(data.target.value, data.contentEl.value), (e) => {
+        if (slow) {
+          cancelAnimationFrame(raf2);
+          raf2 = requestAnimationFrame(() => {
+            raf2 = requestAnimationFrame(() => {
+              update(e);
+            });
+          });
+        } else {
+          update(e);
+        }
+      });
+    });
+  });
+  onScopeDispose(() => {
+    typeof cancelIdleCallback !== "undefined" && cancelIdleCallback(ric);
+    cancelAnimationFrame(raf2);
+  });
+}
+function getTargetEl(target, contentEl) {
+  return Array.isArray(target) ? document.elementsFromPoint(...target).find((el) => !contentEl?.contains(el)) : target ?? contentEl;
+}
+function bindScroll(el, onScroll) {
+  const scrollElements = [document, ...getScrollParents(el)];
+  scrollElements.forEach((el2) => {
+    el2.addEventListener("scroll", onScroll, {
+      passive: true
+    });
+  });
+  onScopeDispose(() => {
+    scrollElements.forEach((el2) => {
+      el2.removeEventListener("scroll", onScroll);
+    });
+  });
+}
+const VMenuSymbol = Symbol.for("vuetify:v-menu");
+const makeDelayProps = propsFactory({
+  closeDelay: [Number, String],
+  openDelay: [Number, String]
+}, "delay");
+function useDelay(props, cb) {
+  let clearDelay = () => {
+  };
+  function runDelay(isOpening, options) {
+    clearDelay?.();
+    const delay = isOpening ? props.openDelay : props.closeDelay;
+    const normalizedDelay = Math.max(options?.minDelay ?? 0, Number(delay ?? 0));
+    return new Promise((resolve2) => {
+      clearDelay = defer(normalizedDelay, () => {
+        cb?.(isOpening);
+        resolve2(isOpening);
+      });
+    });
+  }
+  function runOpenDelay() {
+    return runDelay(true);
+  }
+  function runCloseDelay(options) {
+    return runDelay(false, options);
+  }
+  return {
+    clearDelay,
+    runOpenDelay,
+    runCloseDelay
+  };
+}
+const makeActivatorProps = propsFactory({
+  target: [String, Object],
+  activator: [String, Object],
+  activatorProps: {
+    type: Object,
+    default: () => ({})
+  },
+  openOnClick: {
+    type: Boolean,
+    default: void 0
+  },
+  openOnHover: Boolean,
+  openOnFocus: {
+    type: Boolean,
+    default: void 0
+  },
+  closeOnContentClick: Boolean,
+  ...makeDelayProps()
+}, "VOverlay-activator");
+function useActivator(props, _ref) {
+  let {
+    isActive,
+    isTop,
+    contentEl
+  } = _ref;
+  const vm = getCurrentInstance("useActivator");
+  const activatorEl = /* @__PURE__ */ ref();
+  let isHovered = false;
+  let isFocused = false;
+  let firstEnter = true;
+  const openOnFocus = computed(() => props.openOnFocus || props.openOnFocus == null && props.openOnHover);
+  const openOnClick = computed(() => props.openOnClick || props.openOnClick == null && !props.openOnHover && !openOnFocus.value);
+  const {
+    runOpenDelay,
+    runCloseDelay
+  } = useDelay(props, (value) => {
+    if (value === (props.openOnHover && isHovered || openOnFocus.value && isFocused) && !(props.openOnHover && isActive.value && !isTop.value)) {
+      if (isActive.value !== value) {
+        firstEnter = true;
+      }
+      isActive.value = value;
+    }
+  });
+  const cursorTarget = /* @__PURE__ */ ref();
+  const availableEvents = {
+    onClick: (e) => {
+      e.stopPropagation();
+      activatorEl.value = e.currentTarget || e.target;
+      if (!isActive.value) {
+        cursorTarget.value = [e.clientX, e.clientY];
+      }
+      isActive.value = !isActive.value;
+    },
+    onMouseenter: (e) => {
+      isHovered = true;
+      activatorEl.value = e.currentTarget || e.target;
+      runOpenDelay();
+    },
+    onMouseleave: (e) => {
+      isHovered = false;
+      runCloseDelay();
+    },
+    onFocus: (e) => {
+      if (matchesSelector(e.target, ":focus-visible") === false) return;
+      isFocused = true;
+      e.stopPropagation();
+      activatorEl.value = e.currentTarget || e.target;
+      runOpenDelay();
+    },
+    onBlur: (e) => {
+      isFocused = false;
+      e.stopPropagation();
+      runCloseDelay({
+        minDelay: 1
+      });
+    }
+  };
+  const activatorEvents = computed(() => {
+    const events = {};
+    if (openOnClick.value) {
+      events.onClick = availableEvents.onClick;
+    }
+    if (props.openOnHover) {
+      events.onMouseenter = availableEvents.onMouseenter;
+      events.onMouseleave = availableEvents.onMouseleave;
+    }
+    if (openOnFocus.value) {
+      events.onFocus = availableEvents.onFocus;
+      events.onBlur = availableEvents.onBlur;
+    }
+    return events;
+  });
+  const contentEvents = computed(() => {
+    const events = {};
+    if (props.openOnHover) {
+      events.onMouseenter = () => {
+        isHovered = true;
+        runOpenDelay();
+      };
+      events.onMouseleave = () => {
+        isHovered = false;
+        runCloseDelay();
+      };
+    }
+    if (openOnFocus.value) {
+      events.onFocusin = (e) => {
+        if (!e.target.matches(":focus-visible")) return;
+        isFocused = true;
+        runOpenDelay();
+      };
+      events.onFocusout = () => {
+        isFocused = false;
+        runCloseDelay({
+          minDelay: 1
+        });
+      };
+    }
+    if (props.closeOnContentClick) {
+      const menu = inject$1(VMenuSymbol, null);
+      events.onClick = () => {
+        isActive.value = false;
+        menu?.closeParents();
+      };
+    }
+    return events;
+  });
+  const scrimEvents = computed(() => {
+    const events = {};
+    if (props.openOnHover) {
+      events.onMouseenter = () => {
+        if (firstEnter) {
+          isHovered = true;
+          firstEnter = false;
+          runOpenDelay();
+        }
+      };
+      events.onMouseleave = () => {
+        isHovered = false;
+        runCloseDelay();
+      };
+    }
+    return events;
+  });
+  watch(isTop, (val) => {
+    if (val && (props.openOnHover && !isHovered && (!openOnFocus.value || !isFocused) || openOnFocus.value && !isFocused && (!props.openOnHover || !isHovered)) && !contentEl.value?.contains(document.activeElement)) {
+      isActive.value = false;
+    }
+  });
+  watch(isActive, (val) => {
+    if (!val) {
+      setTimeout(() => {
+        cursorTarget.value = void 0;
+      });
+    }
+  }, {
+    flush: "post"
+  });
+  const activatorRef = templateRef();
+  watchEffect(() => {
+    if (!activatorRef.value) return;
+    nextTick(() => {
+      activatorEl.value = activatorRef.el;
+    });
+  });
+  const targetRef = templateRef();
+  const target = computed(() => {
+    if (props.target === "cursor" && cursorTarget.value) return cursorTarget.value;
+    if (targetRef.value) return targetRef.el;
+    return getTarget(props.target, vm) || activatorEl.value;
+  });
+  const targetEl = computed(() => {
+    return Array.isArray(target.value) ? void 0 : target.value;
+  });
+  let scope;
+  watch(() => !!props.activator, (val) => {
+    if (val && IN_BROWSER) {
+      scope = effectScope();
+      scope.run(() => {
+        _useActivator(props, vm, {
+          activatorEl,
+          activatorEvents
+        });
+      });
+    } else if (scope) {
+      scope.stop();
+    }
+  }, {
+    flush: "post",
+    immediate: true
+  });
+  onScopeDispose(() => {
+    scope?.stop();
+  });
+  return {
+    activatorEl,
+    activatorRef,
+    target,
+    targetEl,
+    targetRef,
+    activatorEvents,
+    contentEvents,
+    scrimEvents
+  };
+}
+function _useActivator(props, vm, _ref2) {
+  let {
+    activatorEl,
+    activatorEvents
+  } = _ref2;
+  watch(() => props.activator, (val, oldVal) => {
+    if (oldVal && val !== oldVal) {
+      const activator = getActivator(oldVal);
+      activator && unbindActivatorProps(activator);
+    }
+    if (val) {
+      nextTick(() => bindActivatorProps());
+    }
+  }, {
+    immediate: true
+  });
+  watch(() => props.activatorProps, () => {
+    bindActivatorProps();
+  });
+  onScopeDispose(() => {
+    unbindActivatorProps();
+  });
+  function bindActivatorProps() {
+    let el = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getActivator();
+    let _props = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : props.activatorProps;
+    if (!el) return;
+    bindProps(el, mergeProps(activatorEvents.value, _props));
+  }
+  function unbindActivatorProps() {
+    let el = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getActivator();
+    let _props = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : props.activatorProps;
+    if (!el) return;
+    unbindProps(el, mergeProps(activatorEvents.value, _props));
+  }
+  function getActivator() {
+    let selector = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : props.activator;
+    const activator = getTarget(selector, vm);
+    activatorEl.value = activator?.nodeType === Node.ELEMENT_NODE ? activator : void 0;
+    return activatorEl.value;
+  }
+}
+function getTarget(selector, vm) {
+  if (!selector) return;
+  let target;
+  if (selector === "parent") {
+    let el = vm?.proxy?.$el?.parentNode;
+    while (el?.hasAttribute("data-no-activator")) {
+      el = el.parentNode;
+    }
+    target = el;
+  } else if (typeof selector === "string") {
+    target = document.querySelector(selector);
+  } else if ("$el" in selector) {
+    target = selector.$el;
+  } else {
+    target = selector;
+  }
+  return target;
+}
+const makeFocusTrapProps = propsFactory({
+  retainFocus: Boolean,
+  captureFocus: Boolean,
+  /** @deprecated */
+  disableInitialFocus: Boolean
+}, "focusTrap");
+const registry = /* @__PURE__ */ new Map();
+let subscribers = 0;
+function onKeydown(e) {
+  const activeElement = document.activeElement;
+  if (e.key !== "Tab" || !activeElement) return;
+  const parentTraps = Array.from(registry.values()).filter((_ref) => {
+    let {
+      isActive,
+      contentEl
+    } = _ref;
+    return isActive.value && contentEl.value?.contains(activeElement);
+  }).map((x) => x.contentEl.value);
+  let closestTrap;
+  let currentParent = activeElement.parentElement;
+  while (currentParent) {
+    if (parentTraps.includes(currentParent)) {
+      closestTrap = currentParent;
+      break;
+    }
+    currentParent = currentParent.parentElement;
+  }
+  if (!closestTrap) return;
+  const focusable = focusableChildren(closestTrap).filter((x) => x.tabIndex >= 0);
+  if (!focusable.length) return;
+  const active = document.activeElement;
+  if (focusable.length === 1 && focusable[0].classList.contains("v-list") && focusable[0].contains(active)) {
+    e.preventDefault();
+    return;
+  }
+  const firstElement = focusable[0];
+  const lastElement = focusable[focusable.length - 1];
+  if (e.shiftKey && (active === firstElement || firstElement.classList.contains("v-list") && firstElement.contains(active))) {
+    e.preventDefault();
+    lastElement.focus();
+  }
+  if (!e.shiftKey && (active === lastElement || lastElement.classList.contains("v-list") && lastElement.contains(active))) {
+    e.preventDefault();
+    firstElement.focus();
+  }
+}
+function useFocusTrap(props, _ref2) {
+  let {
+    isActive,
+    localTop,
+    contentEl
+  } = _ref2;
+  const trapId = Symbol("trap");
+  let focusTrapSuppressed = false;
+  let focusTrapSuppressionTimeout = -1;
+  async function onPointerdown() {
+    focusTrapSuppressed = true;
+    focusTrapSuppressionTimeout = window.setTimeout(() => {
+      focusTrapSuppressed = false;
+    }, 100);
+  }
+  async function captureOnFocus(e) {
+    const before = e.relatedTarget;
+    const after = e.target;
+    document.removeEventListener("pointerdown", onPointerdown);
+    document.removeEventListener("keydown", captureOnKeydown);
+    await nextTick();
+    if (isActive.value && !focusTrapSuppressed && before !== after && contentEl.value && // We're the menu without open submenus or overlays
+    toValue(localTop) && // It isn't the document or the container body
+    ![document, contentEl.value].includes(after) && // It isn't inside the container body
+    !contentEl.value.contains(after)) {
+      const focusable = focusableChildren(contentEl.value);
+      focusable[0]?.focus();
+    }
+  }
+  function captureOnKeydown(e) {
+    if (e.key !== "Tab") return;
+    document.removeEventListener("keydown", captureOnKeydown);
+    if (isActive.value && contentEl.value && e.target && !contentEl.value.contains(e.target)) {
+      const allFocusableElements = focusableChildren(document.documentElement);
+      if (e.shiftKey && e.target === allFocusableElements.at(0) || !e.shiftKey && e.target === allFocusableElements.at(-1)) {
+        const focusable = focusableChildren(contentEl.value);
+        if (focusable.length > 0) {
+          e.preventDefault();
+          focusable[0].focus();
+        }
+      }
+    }
+  }
+  const shouldCapture = /* @__PURE__ */ toRef(() => isActive.value && props.captureFocus && !props.disableInitialFocus);
+  if (IN_BROWSER) {
+    watch(() => props.retainFocus, (val) => {
+      if (val) {
+        registry.set(trapId, {
+          isActive,
+          contentEl
+        });
+      } else {
+        registry.delete(trapId);
+      }
+    }, {
+      immediate: true
+    });
+    watch(shouldCapture, (val) => {
+      if (val) {
+        document.addEventListener("pointerdown", onPointerdown);
+        document.addEventListener("focusin", captureOnFocus, {
+          once: true
+        });
+        document.addEventListener("keydown", captureOnKeydown);
+      } else {
+        document.removeEventListener("pointerdown", onPointerdown);
+        document.removeEventListener("focusin", captureOnFocus);
+        document.removeEventListener("keydown", captureOnKeydown);
+      }
+    }, {
+      immediate: true
+    });
+    if (subscribers++ < 1) {
+      document.addEventListener("keydown", onKeydown);
+    }
+  }
+  onScopeDispose(() => {
+    registry.delete(trapId);
+    clearTimeout(focusTrapSuppressionTimeout);
+    document.removeEventListener("pointerdown", onPointerdown);
+    document.removeEventListener("focusin", captureOnFocus);
+    document.removeEventListener("keydown", captureOnKeydown);
+    if (--subscribers < 1) {
+      document.removeEventListener("keydown", onKeydown);
+    }
+  });
+}
+function useHydration() {
+  if (!IN_BROWSER) return /* @__PURE__ */ shallowRef(false);
+  const {
+    ssr
+  } = useDisplay();
+  if (ssr) {
+    const isMounted = /* @__PURE__ */ shallowRef(false);
+    onMounted(() => {
+      isMounted.value = true;
+    });
+    return isMounted;
+  } else {
+    return /* @__PURE__ */ shallowRef(true);
+  }
+}
+const makeLazyProps = propsFactory({
+  eager: Boolean
+}, "lazy");
+function useLazy(props, active) {
+  const isBooted = /* @__PURE__ */ shallowRef(false);
+  const hasContent = /* @__PURE__ */ toRef(() => isBooted.value || props.eager || active.value);
+  watch(active, () => isBooted.value = true);
+  function onAfterLeave() {
+    if (!props.eager) isBooted.value = false;
+  }
+  return {
+    isBooted,
+    hasContent,
+    onAfterLeave
+  };
+}
+function useScopeId() {
+  const vm = getCurrentInstance("useScopeId");
+  const scopeId = vm.vnode.scopeId;
+  return {
+    scopeId: scopeId ? {
+      [scopeId]: ""
+    } : void 0
+  };
+}
+const StackSymbol = Symbol.for("vuetify:stack");
+const globalStack = /* @__PURE__ */ reactive([]);
+function useStack(isActive, zIndex, disableGlobalStack) {
+  const vm = getCurrentInstance("useStack");
+  const createStackEntry = !disableGlobalStack;
+  const parent = inject$1(StackSymbol, void 0);
+  const stack2 = /* @__PURE__ */ reactive({
+    activeChildren: /* @__PURE__ */ new Set()
+  });
+  provide(StackSymbol, stack2);
+  const _zIndex = /* @__PURE__ */ shallowRef(Number(toValue(zIndex)));
+  useToggleScope(isActive, () => {
+    const lastZIndex = globalStack.at(-1)?.[1];
+    _zIndex.value = lastZIndex ? lastZIndex + 10 : Number(toValue(zIndex));
+    if (createStackEntry) {
+      globalStack.push([vm.uid, _zIndex.value]);
+    }
+    parent?.activeChildren.add(vm.uid);
+    onScopeDispose(() => {
+      if (createStackEntry) {
+        const idx = (/* @__PURE__ */ toRaw(globalStack)).findIndex((v) => v[0] === vm.uid);
+        globalStack.splice(idx, 1);
+      }
+      parent?.activeChildren.delete(vm.uid);
+    });
+  });
+  const globalTop = /* @__PURE__ */ shallowRef(true);
+  if (createStackEntry) {
+    watchEffect(() => {
+      const _isTop = globalStack.at(-1)?.[0] === vm.uid;
+      setTimeout(() => globalTop.value = _isTop);
+    });
+  }
+  const localTop = /* @__PURE__ */ toRef(() => !stack2.activeChildren.size);
+  return {
+    globalTop: /* @__PURE__ */ readonly(globalTop),
+    localTop,
+    stackStyles: /* @__PURE__ */ toRef(() => ({
+      zIndex: _zIndex.value
+    }))
+  };
+}
+function useTeleport(target) {
+  const teleportTarget = computed(() => {
+    const _target = target();
+    if (_target === true || !IN_BROWSER) return void 0;
+    const targetElement = _target === false ? document.body : typeof _target === "string" ? document.querySelector(_target) : _target;
+    if (targetElement == null) {
+      return void 0;
+    }
+    let container = [...targetElement.children].find((el) => el.matches(".v-overlay-container"));
+    if (!container) {
+      container = document.createElement("div");
+      container.className = "v-overlay-container";
+      targetElement.appendChild(container);
+    }
+    return container;
+  });
+  return {
+    teleportTarget
+  };
+}
+function defaultConditional() {
+  return true;
+}
+function checkEvent(e, el, binding) {
+  if (!e || checkIsActive(e, binding) === false) return false;
+  const root = attachedRoot(el);
+  if (typeof ShadowRoot !== "undefined" && root instanceof ShadowRoot && root.host === e.target) return false;
+  const elements = (typeof binding.value === "object" && binding.value.include || (() => []))();
+  elements.push(el);
+  return !elements.some((el2) => el2?.contains(e.target));
+}
+function checkIsActive(e, binding) {
+  const isActive = typeof binding.value === "object" && binding.value.closeConditional || defaultConditional;
+  return isActive(e);
+}
+function directive(e, el, binding) {
+  const handler = typeof binding.value === "function" ? binding.value : binding.value.handler;
+  e.shadowTarget = e.target;
+  el._clickOutside.lastMousedownWasOutside && checkEvent(e, el, binding) && setTimeout(() => {
+    checkIsActive(e, binding) && handler && handler(e);
+  }, 0);
+}
+function handleShadow(el, callback) {
+  const root = attachedRoot(el);
+  callback(document);
+  if (typeof ShadowRoot !== "undefined" && root instanceof ShadowRoot) {
+    callback(root);
+  }
+}
+const ClickOutside = {
+  // [data-app] may not be found
+  // if using bind, inserted makes
+  // sure that the root element is
+  // available, iOS does not support
+  // clicks on body
+  mounted(el, binding) {
+    const onClick = (e) => directive(e, el, binding);
+    const onMousedown = (e) => {
+      el._clickOutside.lastMousedownWasOutside = checkEvent(e, el, binding);
+    };
+    handleShadow(el, (app2) => {
+      app2.addEventListener("click", onClick, true);
+      app2.addEventListener("mousedown", onMousedown, true);
+    });
+    if (!el._clickOutside) {
+      el._clickOutside = {
+        lastMousedownWasOutside: false
+      };
+    }
+    el._clickOutside[binding.instance.$.uid] = {
+      onClick,
+      onMousedown
+    };
+  },
+  beforeUnmount(el, binding) {
+    if (!el._clickOutside) return;
+    handleShadow(el, (app2) => {
+      if (!app2 || !el._clickOutside?.[binding.instance.$.uid]) return;
+      const {
+        onClick,
+        onMousedown
+      } = el._clickOutside[binding.instance.$.uid];
+      app2.removeEventListener("click", onClick, true);
+      app2.removeEventListener("mousedown", onMousedown, true);
+    });
+    delete el._clickOutside[binding.instance.$.uid];
+  }
+};
+function Scrim(props) {
+  const {
+    modelValue,
+    color,
+    ...rest
+  } = props;
+  return createVNode(Transition, {
+    "name": "fade-transition",
+    "appear": true
+  }, {
+    default: () => [props.modelValue && createBaseVNode("div", mergeProps({
+      "class": ["v-overlay__scrim", props.color.backgroundColorClasses.value],
+      "style": props.color.backgroundColorStyles.value
+    }, rest), null)]
+  });
+}
+const makeVOverlayProps = propsFactory({
+  absolute: Boolean,
+  attach: [Boolean, String, Object],
+  closeOnBack: {
+    type: Boolean,
+    default: true
+  },
+  contained: Boolean,
+  contentClass: null,
+  contentProps: null,
+  disabled: Boolean,
+  opacity: [Number, String],
+  noClickAnimation: Boolean,
+  modelValue: Boolean,
+  persistent: Boolean,
+  scrim: {
+    type: [Boolean, String],
+    default: true
+  },
+  zIndex: {
+    type: [Number, String],
+    default: 2e3
+  },
+  ...makeActivatorProps(),
   ...makeComponentProps(),
-  ...makeThemeProps()
-}, "VDivider");
-const VDivider = genericComponent()({
-  name: "VDivider",
-  props: makeVDividerProps(),
+  ...makeDimensionProps(),
+  ...makeLazyProps(),
+  ...makeLocationStrategyProps(),
+  ...makeScrollStrategyProps(),
+  ...makeFocusTrapProps(),
+  ...makeThemeProps(),
+  ...makeTransitionProps$1()
+}, "VOverlay");
+const VOverlay = genericComponent()({
+  name: "VOverlay",
+  directives: {
+    vClickOutside: ClickOutside
+  },
+  inheritAttrs: false,
+  props: {
+    _disableGlobalStack: Boolean,
+    ...omit(makeVOverlayProps(), ["disableInitialFocus"])
+  },
+  emits: {
+    "click:outside": (e) => true,
+    "update:modelValue": (value) => true,
+    keydown: (e) => true,
+    afterEnter: () => true,
+    afterLeave: () => true
+  },
   setup(props, _ref) {
     let {
+      slots,
       attrs,
-      slots
+      emit: emit2
     } = _ref;
+    const vm = getCurrentInstance("VOverlay");
+    const root = /* @__PURE__ */ ref();
+    const scrimEl = /* @__PURE__ */ ref();
+    const contentEl = /* @__PURE__ */ ref();
+    const model = useProxiedModel(props, "modelValue");
+    const isActive = computed({
+      get: () => model.value,
+      set: (v) => {
+        if (!(v && props.disabled)) model.value = v;
+      }
+    });
     const {
       themeClasses
     } = provideTheme(props);
     const {
-      textColorClasses,
-      textColorStyles
-    } = useTextColor(() => props.color);
-    const dividerStyles = computed(() => {
-      const styles = {};
-      if (props.length) {
-        styles[props.vertical ? "height" : "width"] = convertToUnit(props.length);
-      }
-      if (props.thickness) {
-        styles[props.vertical ? "borderRightWidth" : "borderTopWidth"] = convertToUnit(props.thickness);
-      }
-      return styles;
+      rtlClasses,
+      isRtl
+    } = useRtl();
+    const {
+      hasContent,
+      onAfterLeave: _onAfterLeave
+    } = useLazy(props, isActive);
+    const scrimColor = useBackgroundColor(() => {
+      return typeof props.scrim === "string" ? props.scrim : null;
     });
-    const contentStyles = /* @__PURE__ */ toRef(() => {
-      const margin = Array.isArray(props.contentOffset) ? props.contentOffset[0] : props.contentOffset;
-      const shift = Array.isArray(props.contentOffset) ? props.contentOffset[1] : 0;
-      return {
-        marginBlock: props.vertical && margin ? convertToUnit(margin) : void 0,
-        marginInline: !props.vertical && margin ? convertToUnit(margin) : void 0,
-        transform: shift ? `translate${props.vertical ? "X" : "Y"}(${convertToUnit(shift)})` : void 0
-      };
+    const {
+      globalTop,
+      localTop,
+      stackStyles
+    } = useStack(isActive, () => props.zIndex, props._disableGlobalStack);
+    const {
+      activatorEl,
+      activatorRef,
+      target,
+      targetEl,
+      targetRef,
+      activatorEvents,
+      contentEvents,
+      scrimEvents
+    } = useActivator(props, {
+      isActive,
+      isTop: localTop,
+      contentEl
+    });
+    const {
+      teleportTarget
+    } = useTeleport(() => {
+      const target2 = props.attach || props.contained;
+      if (target2) return target2;
+      const rootNode = activatorEl?.value?.getRootNode() || vm.proxy?.$el?.getRootNode();
+      if (rootNode instanceof ShadowRoot) return rootNode;
+      return false;
+    });
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    const isMounted = useHydration();
+    const {
+      scopeId
+    } = useScopeId();
+    watch(() => props.disabled, (v) => {
+      if (v) isActive.value = false;
+    });
+    const {
+      contentStyles,
+      updateLocation
+    } = useLocationStrategies(props, {
+      isRtl,
+      contentEl,
+      target,
+      isActive
+    });
+    useScrollStrategies(props, {
+      root,
+      contentEl,
+      targetEl,
+      target,
+      isActive,
+      updateLocation
+    });
+    function onClickOutside(e) {
+      emit2("click:outside", e);
+      if (!props.persistent) isActive.value = false;
+      else animateClick();
+    }
+    function closeConditional(e) {
+      return isActive.value && localTop.value && // If using scrim, only close if clicking on it rather than anything opened on top
+      (!props.scrim || e.target === scrimEl.value || e instanceof MouseEvent && e.shadowTarget === scrimEl.value);
+    }
+    useFocusTrap(props, {
+      isActive,
+      localTop,
+      contentEl
+    });
+    IN_BROWSER && watch(isActive, (val) => {
+      if (val) {
+        window.addEventListener("keydown", onKeydown2);
+      } else {
+        window.removeEventListener("keydown", onKeydown2);
+      }
+    }, {
+      immediate: true
+    });
+    onBeforeUnmount(() => {
+      if (!IN_BROWSER) return;
+      window.removeEventListener("keydown", onKeydown2);
+    });
+    function onKeydown2(e) {
+      if (e.key === "Escape" && globalTop.value) {
+        if (!contentEl.value?.contains(document.activeElement)) {
+          emit2("keydown", e);
+        }
+        if (!props.persistent) {
+          isActive.value = false;
+          if (contentEl.value?.contains(document.activeElement)) {
+            activatorEl.value?.focus();
+          }
+        } else animateClick();
+      }
+    }
+    function onKeydownSelf(e) {
+      if (e.key === "Escape" && !globalTop.value) return;
+      emit2("keydown", e);
+    }
+    const router2 = useRouter();
+    useToggleScope(() => props.closeOnBack, () => {
+      useBackButton(router2, (next) => {
+        if (globalTop.value && isActive.value) {
+          next(false);
+          if (!props.persistent) isActive.value = false;
+          else animateClick();
+        } else {
+          next();
+        }
+      });
+    });
+    const top = /* @__PURE__ */ ref();
+    watch(() => isActive.value && (props.absolute || props.contained) && teleportTarget.value == null, (val) => {
+      if (val) {
+        const scrollParent = getScrollParent(root.value);
+        if (scrollParent && scrollParent !== document.scrollingElement) {
+          top.value = scrollParent.scrollTop;
+        }
+      }
+    });
+    function animateClick() {
+      if (props.noClickAnimation) return;
+      contentEl.value && animate(contentEl.value, [{
+        transformOrigin: "center"
+      }, {
+        transform: "scale(1.03)"
+      }, {
+        transformOrigin: "center"
+      }], {
+        duration: 150,
+        easing: standardEasing
+      });
+    }
+    function onAfterEnter() {
+      emit2("afterEnter");
+    }
+    function onAfterLeave() {
+      _onAfterLeave();
+      emit2("afterLeave");
+    }
+    useRender(() => createBaseVNode(Fragment, null, [slots.activator?.({
+      isActive: isActive.value,
+      targetRef,
+      props: mergeProps({
+        ref: activatorRef
+      }, activatorEvents.value, props.activatorProps)
+    }), isMounted.value && hasContent.value && createVNode(Teleport, {
+      "disabled": !teleportTarget.value,
+      "to": teleportTarget.value
+    }, {
+      default: () => [createBaseVNode("div", mergeProps({
+        "class": ["v-overlay", {
+          "v-overlay--absolute": props.absolute || props.contained,
+          "v-overlay--active": isActive.value,
+          "v-overlay--contained": props.contained
+        }, themeClasses.value, rtlClasses.value, props.class],
+        "style": [stackStyles.value, {
+          "--v-overlay-opacity": props.opacity,
+          top: convertToUnit(top.value)
+        }, props.style],
+        "ref": root,
+        "onKeydown": onKeydownSelf
+      }, scopeId, attrs), [createVNode(Scrim, mergeProps({
+        "color": scrimColor,
+        "modelValue": isActive.value && !!props.scrim,
+        "ref": scrimEl
+      }, scrimEvents.value), null), createVNode(MaybeTransition, {
+        "appear": true,
+        "persisted": true,
+        "transition": props.transition,
+        "target": target.value,
+        "onAfterEnter": onAfterEnter,
+        "onAfterLeave": onAfterLeave
+      }, {
+        default: () => [withDirectives(createBaseVNode("div", mergeProps({
+          "ref": contentEl,
+          "class": ["v-overlay__content", props.contentClass],
+          "style": [dimensionStyles.value, contentStyles.value]
+        }, contentEvents.value, props.contentProps), [slots.default?.({
+          isActive
+        })]), [[vShow, isActive.value], [ClickOutside, {
+          handler: onClickOutside,
+          closeConditional,
+          include: () => [activatorEl.value]
+        }]])]
+      })])]
+    })]));
+    return {
+      activatorEl,
+      scrimEl,
+      target,
+      animateClick,
+      contentEl,
+      rootEl: root,
+      globalTop,
+      localTop,
+      updateLocation
+    };
+  }
+});
+const Refs = Symbol("Forwarded refs");
+function getDescriptor(obj, key) {
+  let currentObj = obj;
+  while (currentObj) {
+    const descriptor = Reflect.getOwnPropertyDescriptor(currentObj, key);
+    if (descriptor) return descriptor;
+    currentObj = Object.getPrototypeOf(currentObj);
+  }
+  return void 0;
+}
+function forwardRefs(target) {
+  for (var _len = arguments.length, refs = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    refs[_key - 1] = arguments[_key];
+  }
+  target[Refs] = refs;
+  return new Proxy(target, {
+    get(target2, key) {
+      if (Reflect.has(target2, key)) {
+        return Reflect.get(target2, key);
+      }
+      if (typeof key === "symbol" || key.startsWith("$") || key.startsWith("__")) return;
+      for (const ref2 of refs) {
+        if (ref2.value && Reflect.has(ref2.value, key)) {
+          const val = Reflect.get(ref2.value, key);
+          return typeof val === "function" ? val.bind(ref2.value) : val;
+        }
+      }
+    },
+    has(target2, key) {
+      if (Reflect.has(target2, key)) {
+        return true;
+      }
+      if (typeof key === "symbol" || key.startsWith("$") || key.startsWith("__")) return false;
+      for (const ref2 of refs) {
+        if (ref2.value && Reflect.has(ref2.value, key)) {
+          return true;
+        }
+      }
+      return false;
+    },
+    set(target2, key, value) {
+      if (Reflect.has(target2, key)) {
+        return Reflect.set(target2, key, value);
+      }
+      if (typeof key === "symbol" || key.startsWith("$") || key.startsWith("__")) return false;
+      for (const ref2 of refs) {
+        if (ref2.value && Reflect.has(ref2.value, key)) {
+          return Reflect.set(ref2.value, key, value);
+        }
+      }
+      return false;
+    },
+    getOwnPropertyDescriptor(target2, key) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(target2, key);
+      if (descriptor) return descriptor;
+      if (typeof key === "symbol" || key.startsWith("$") || key.startsWith("__")) return;
+      for (const ref2 of refs) {
+        if (!ref2.value) continue;
+        const descriptor2 = getDescriptor(ref2.value, key) ?? ("_" in ref2.value ? getDescriptor(ref2.value._?.setupState, key) : void 0);
+        if (descriptor2) return descriptor2;
+      }
+      for (const ref2 of refs) {
+        const childRefs = ref2.value && ref2.value[Refs];
+        if (!childRefs) continue;
+        const queue2 = childRefs.slice();
+        while (queue2.length) {
+          const ref3 = queue2.shift();
+          const descriptor2 = getDescriptor(ref3.value, key);
+          if (descriptor2) return descriptor2;
+          const childRefs2 = ref3.value && ref3.value[Refs];
+          if (childRefs2) queue2.push(...childRefs2);
+        }
+      }
+      return void 0;
+    }
+  });
+}
+const makeVDialogProps = propsFactory({
+  fullscreen: Boolean,
+  scrollable: Boolean,
+  ...omit(makeVOverlayProps({
+    captureFocus: true,
+    origin: "center center",
+    scrollStrategy: "block",
+    transition: {
+      component: VDialogTransition
+    },
+    zIndex: 2400,
+    retainFocus: true
+  }), ["disableInitialFocus"])
+}, "VDialog");
+const VDialog = genericComponent()({
+  name: "VDialog",
+  props: makeVDialogProps(),
+  emits: {
+    "update:modelValue": (value) => true,
+    afterEnter: () => true,
+    afterLeave: () => true
+  },
+  setup(props, _ref) {
+    let {
+      emit: emit2,
+      slots
+    } = _ref;
+    const isActive = useProxiedModel(props, "modelValue");
+    const {
+      scopeId
+    } = useScopeId();
+    const overlay = /* @__PURE__ */ ref();
+    function onAfterEnter() {
+      emit2("afterEnter");
+      if ((props.scrim || props.retainFocus) && overlay.value?.contentEl && !overlay.value.contentEl.contains(document.activeElement)) {
+        overlay.value.contentEl.focus({
+          preventScroll: true
+        });
+      }
+    }
+    function onAfterLeave() {
+      emit2("afterLeave");
+    }
+    watch(isActive, async (val) => {
+      if (!val) {
+        await nextTick();
+        overlay.value.activatorEl?.focus({
+          preventScroll: true
+        });
+      }
     });
     useRender(() => {
-      const divider = createBaseVNode("hr", {
-        "class": normalizeClass([{
-          "v-divider": true,
-          "v-divider--gradient": props.gradient && !slots.default,
-          "v-divider--inset": props.inset,
-          "v-divider--vertical": props.vertical
-        }, themeClasses.value, textColorClasses.value, props.class]),
-        "style": normalizeStyle([dividerStyles.value, textColorStyles.value, {
-          "--v-border-opacity": props.opacity
-        }, {
-          "border-style": props.variant
-        }, props.style]),
-        "aria-orientation": !attrs.role || attrs.role === "separator" ? props.vertical ? "vertical" : "horizontal" : void 0,
-        "role": `${attrs.role || "separator"}`
-      }, null);
-      if (!slots.default) return divider;
-      return createBaseVNode("div", {
-        "class": normalizeClass(["v-divider__wrapper", {
-          "v-divider__wrapper--gradient": props.gradient,
-          "v-divider__wrapper--inset": props.inset,
-          "v-divider__wrapper--vertical": props.vertical
-        }])
-      }, [divider, createBaseVNode("div", {
-        "class": "v-divider__content",
-        "style": normalizeStyle(contentStyles.value)
-      }, [slots.default()]), divider]);
+      const overlayProps = VOverlay.filterProps(props);
+      const activatorProps = mergeProps({
+        "aria-haspopup": "dialog"
+      }, props.activatorProps);
+      const contentProps = mergeProps({
+        tabindex: -1
+      }, props.contentProps);
+      return createVNode(VOverlay, mergeProps({
+        "ref": overlay,
+        "class": ["v-dialog", {
+          "v-dialog--fullscreen": props.fullscreen,
+          "v-dialog--scrollable": props.scrollable
+        }, props.class],
+        "style": props.style
+      }, overlayProps, {
+        "modelValue": isActive.value,
+        "onUpdate:modelValue": ($event) => isActive.value = $event,
+        "aria-modal": "true",
+        "activatorProps": activatorProps,
+        "contentProps": contentProps,
+        "height": !props.fullscreen ? props.height : void 0,
+        "width": !props.fullscreen ? props.width : void 0,
+        "maxHeight": !props.fullscreen ? props.maxHeight : void 0,
+        "maxWidth": !props.fullscreen ? props.maxWidth : void 0,
+        "role": "dialog",
+        "onAfterEnter": onAfterEnter,
+        "onAfterLeave": onAfterLeave
+      }, scopeId), {
+        activator: slots.activator,
+        default: function() {
+          for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+          }
+          return createVNode(VDefaultsProvider, {
+            "root": "VDialog"
+          }, {
+            default: () => [slots.default?.(...args)]
+          });
+        }
+      });
     });
+    return forwardRefs({}, overlay);
+  }
+});
+const makeVContainerProps = propsFactory({
+  fluid: {
+    type: Boolean,
+    default: false
+  },
+  ...makeComponentProps(),
+  ...makeDimensionProps(),
+  ...makeTagProps()
+}, "VContainer");
+const VContainer = genericComponent()({
+  name: "VContainer",
+  props: makeVContainerProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const {
+      rtlClasses
+    } = useRtl();
+    const {
+      dimensionStyles
+    } = useDimension(props);
+    useRender(() => createVNode(props.tag, {
+      "class": normalizeClass(["v-container", {
+        "v-container--fluid": props.fluid
+      }, rtlClasses.value, props.class]),
+      "style": normalizeStyle([dimensionStyles.value, props.style])
+    }, slots));
     return {};
   }
 });
+const breakpointProps = (() => {
+  return breakpoints.reduce((props, val) => {
+    props[val] = {
+      type: [Boolean, String, Number],
+      default: false
+    };
+    return props;
+  }, {});
+})();
+const offsetProps = (() => {
+  return breakpoints.reduce((props, val) => {
+    const offsetKey = "offset" + capitalize(val);
+    props[offsetKey] = {
+      type: [String, Number],
+      default: null
+    };
+    return props;
+  }, {});
+})();
+const orderProps = (() => {
+  return breakpoints.reduce((props, val) => {
+    const orderKey = "order" + capitalize(val);
+    props[orderKey] = {
+      type: [String, Number],
+      default: null
+    };
+    return props;
+  }, {});
+})();
+const propMap$1 = {
+  col: Object.keys(breakpointProps),
+  offset: Object.keys(offsetProps),
+  order: Object.keys(orderProps)
+};
+function breakpointClass$1(type, prop, val) {
+  let className = type;
+  if (val == null || val === false) {
+    return void 0;
+  }
+  if (prop) {
+    const breakpoint = prop.replace(type, "");
+    className += `-${breakpoint}`;
+  }
+  if (type === "col") {
+    className = "v-" + className;
+  }
+  if (type === "col" && (val === "" || val === true)) {
+    return className.toLowerCase();
+  }
+  className += `-${val}`;
+  return className.toLowerCase();
+}
+const ALIGN_SELF_VALUES = ["auto", "start", "end", "center", "baseline", "stretch"];
+const makeVColProps = propsFactory({
+  cols: {
+    type: [Boolean, String, Number],
+    default: false
+  },
+  ...breakpointProps,
+  offset: {
+    type: [String, Number],
+    default: null
+  },
+  ...offsetProps,
+  order: {
+    type: [String, Number],
+    default: null
+  },
+  ...orderProps,
+  alignSelf: {
+    type: String,
+    default: null,
+    validator: (str) => ALIGN_SELF_VALUES.includes(str)
+  },
+  ...makeComponentProps(),
+  ...makeTagProps()
+}, "VCol");
+const VCol = genericComponent()({
+  name: "VCol",
+  props: makeVColProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const classes = computed(() => {
+      const classList = [];
+      let type;
+      for (type in propMap$1) {
+        propMap$1[type].forEach((prop) => {
+          const value = props[prop];
+          const className = breakpointClass$1(type, prop, value);
+          if (className) classList.push(className);
+        });
+      }
+      const hasColClasses = classList.some((className) => className.startsWith("v-col-"));
+      classList.push({
+        // Default to .v-col if no other col-{bp}-* classes generated nor `cols` specified.
+        "v-col": !hasColClasses || !props.cols,
+        [`v-col-${props.cols}`]: props.cols,
+        [`offset-${props.offset}`]: props.offset,
+        [`order-${props.order}`]: props.order,
+        [`align-self-${props.alignSelf}`]: props.alignSelf
+      });
+      return classList;
+    });
+    return () => h(props.tag, {
+      class: [classes.value, props.class],
+      style: props.style
+    }, slots.default?.());
+  }
+});
+const ALIGNMENT = ["start", "end", "center"];
+const SPACE = ["space-between", "space-around", "space-evenly"];
+function makeRowProps(prefix, def2) {
+  return breakpoints.reduce((props, val) => {
+    const prefixKey = prefix + capitalize(val);
+    props[prefixKey] = def2();
+    return props;
+  }, {});
+}
+const ALIGN_VALUES = [...ALIGNMENT, "baseline", "stretch"];
+const alignValidator = (str) => ALIGN_VALUES.includes(str);
+const alignProps = makeRowProps("align", () => ({
+  type: String,
+  default: null,
+  validator: alignValidator
+}));
+const JUSTIFY_VALUES = [...ALIGNMENT, ...SPACE];
+const justifyValidator = (str) => JUSTIFY_VALUES.includes(str);
+const justifyProps = makeRowProps("justify", () => ({
+  type: String,
+  default: null,
+  validator: justifyValidator
+}));
+const ALIGN_CONTENT_VALUES = [...ALIGNMENT, ...SPACE, "stretch"];
+const alignContentValidator = (str) => ALIGN_CONTENT_VALUES.includes(str);
+const alignContentProps = makeRowProps("alignContent", () => ({
+  type: String,
+  default: null,
+  validator: alignContentValidator
+}));
+const propMap = {
+  align: Object.keys(alignProps),
+  justify: Object.keys(justifyProps),
+  alignContent: Object.keys(alignContentProps)
+};
+const classMap = {
+  align: "align",
+  justify: "justify",
+  alignContent: "align-content"
+};
+function breakpointClass(type, prop, val) {
+  let className = classMap[type];
+  if (val == null) {
+    return void 0;
+  }
+  if (prop) {
+    const breakpoint = prop.replace(type, "");
+    className += `-${breakpoint}`;
+  }
+  className += `-${val}`;
+  return className.toLowerCase();
+}
+const makeVRowProps = propsFactory({
+  dense: Boolean,
+  noGutters: Boolean,
+  align: {
+    type: String,
+    default: null,
+    validator: alignValidator
+  },
+  ...alignProps,
+  justify: {
+    type: String,
+    default: null,
+    validator: justifyValidator
+  },
+  ...justifyProps,
+  alignContent: {
+    type: String,
+    default: null,
+    validator: alignContentValidator
+  },
+  ...alignContentProps,
+  ...makeComponentProps(),
+  ...makeTagProps()
+}, "VRow");
+const VRow = genericComponent()({
+  name: "VRow",
+  props: makeVRowProps(),
+  setup(props, _ref) {
+    let {
+      slots
+    } = _ref;
+    const classes = computed(() => {
+      const classList = [];
+      let type;
+      for (type in propMap) {
+        propMap[type].forEach((prop) => {
+          const value = props[prop];
+          const className = breakpointClass(type, prop, value);
+          if (className) classList.push(className);
+        });
+      }
+      classList.push({
+        "v-row--no-gutters": props.noGutters,
+        "v-row--dense": props.dense,
+        [`align-${props.align}`]: props.align,
+        [`justify-${props.justify}`]: props.justify,
+        [`align-content-${props.alignContent}`]: props.alignContent
+      });
+      return classList;
+    });
+    return () => h(props.tag, {
+      class: ["v-row", classes.value, props.class],
+      style: props.style
+    }, slots.default?.());
+  }
+});
+const VSpacer = createSimpleFunctional("v-spacer", "div", "VSpacer");
 const ListKey = Symbol.for("vuetify:list");
 function createList() {
   let {
@@ -17024,6 +20503,89 @@ const VListSubheader = genericComponent()({
     return {};
   }
 });
+const allowedVariants$1 = ["dotted", "dashed", "solid", "double"];
+const makeVDividerProps = propsFactory({
+  color: String,
+  contentOffset: [Number, String, Array],
+  gradient: Boolean,
+  inset: Boolean,
+  length: [Number, String],
+  opacity: [Number, String],
+  thickness: [Number, String],
+  vertical: Boolean,
+  variant: {
+    type: String,
+    default: "solid",
+    validator: (v) => allowedVariants$1.includes(v)
+  },
+  ...makeComponentProps(),
+  ...makeThemeProps()
+}, "VDivider");
+const VDivider = genericComponent()({
+  name: "VDivider",
+  props: makeVDividerProps(),
+  setup(props, _ref) {
+    let {
+      attrs,
+      slots
+    } = _ref;
+    const {
+      themeClasses
+    } = provideTheme(props);
+    const {
+      textColorClasses,
+      textColorStyles
+    } = useTextColor(() => props.color);
+    const dividerStyles = computed(() => {
+      const styles = {};
+      if (props.length) {
+        styles[props.vertical ? "height" : "width"] = convertToUnit(props.length);
+      }
+      if (props.thickness) {
+        styles[props.vertical ? "borderRightWidth" : "borderTopWidth"] = convertToUnit(props.thickness);
+      }
+      return styles;
+    });
+    const contentStyles = /* @__PURE__ */ toRef(() => {
+      const margin = Array.isArray(props.contentOffset) ? props.contentOffset[0] : props.contentOffset;
+      const shift = Array.isArray(props.contentOffset) ? props.contentOffset[1] : 0;
+      return {
+        marginBlock: props.vertical && margin ? convertToUnit(margin) : void 0,
+        marginInline: !props.vertical && margin ? convertToUnit(margin) : void 0,
+        transform: shift ? `translate${props.vertical ? "X" : "Y"}(${convertToUnit(shift)})` : void 0
+      };
+    });
+    useRender(() => {
+      const divider = createBaseVNode("hr", {
+        "class": normalizeClass([{
+          "v-divider": true,
+          "v-divider--gradient": props.gradient && !slots.default,
+          "v-divider--inset": props.inset,
+          "v-divider--vertical": props.vertical
+        }, themeClasses.value, textColorClasses.value, props.class]),
+        "style": normalizeStyle([dividerStyles.value, textColorStyles.value, {
+          "--v-border-opacity": props.opacity
+        }, {
+          "border-style": props.variant
+        }, props.style]),
+        "aria-orientation": !attrs.role || attrs.role === "separator" ? props.vertical ? "vertical" : "horizontal" : void 0,
+        "role": `${attrs.role || "separator"}`
+      }, null);
+      if (!slots.default) return divider;
+      return createBaseVNode("div", {
+        "class": normalizeClass(["v-divider__wrapper", {
+          "v-divider__wrapper--gradient": props.gradient,
+          "v-divider__wrapper--inset": props.inset,
+          "v-divider__wrapper--vertical": props.vertical
+        }])
+      }, [divider, createBaseVNode("div", {
+        "class": "v-divider__content",
+        "style": normalizeStyle(contentStyles.value)
+      }, [slots.default()]), divider]);
+    });
+    return {};
+  }
+});
 const makeVListChildrenProps = propsFactory({
   items: Array,
   returnObject: Boolean
@@ -17462,1974 +21024,6 @@ const VList = genericComponent()({
     };
   }
 });
-function useIntersectionObserver(callback, options) {
-  const intersectionRef = /* @__PURE__ */ ref();
-  const isIntersecting = /* @__PURE__ */ shallowRef(false);
-  if (SUPPORTS_INTERSECTION) {
-    const observer = new IntersectionObserver((entries) => {
-      isIntersecting.value = !!entries.find((entry) => entry.isIntersecting);
-    }, options);
-    onScopeDispose(() => {
-      observer.disconnect();
-    });
-    watch(intersectionRef, (newValue, oldValue) => {
-      if (oldValue) {
-        observer.unobserve(oldValue);
-        isIntersecting.value = false;
-      }
-      if (newValue) observer.observe(newValue);
-    }, {
-      flush: "post"
-    });
-  }
-  return {
-    intersectionRef,
-    isIntersecting
-  };
-}
-const makeVProgressCircularProps = propsFactory({
-  bgColor: String,
-  color: String,
-  indeterminate: [Boolean, String],
-  rounded: Boolean,
-  modelValue: {
-    type: [Number, String],
-    default: 0
-  },
-  rotate: {
-    type: [Number, String],
-    default: 0
-  },
-  width: {
-    type: [Number, String],
-    default: 4
-  },
-  ...makeComponentProps(),
-  ...makeSizeProps(),
-  ...makeTagProps({
-    tag: "div"
-  }),
-  ...makeThemeProps()
-}, "VProgressCircular");
-const VProgressCircular = genericComponent()({
-  name: "VProgressCircular",
-  props: makeVProgressCircularProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const MAGIC_RADIUS_CONSTANT = 20;
-    const CIRCUMFERENCE = 2 * Math.PI * MAGIC_RADIUS_CONSTANT;
-    const root = /* @__PURE__ */ ref();
-    const {
-      themeClasses
-    } = provideTheme(props);
-    const {
-      sizeClasses,
-      sizeStyles
-    } = useSize(props);
-    const {
-      textColorClasses,
-      textColorStyles
-    } = useTextColor(() => props.color);
-    const {
-      textColorClasses: underlayColorClasses,
-      textColorStyles: underlayColorStyles
-    } = useTextColor(() => props.bgColor);
-    const {
-      intersectionRef,
-      isIntersecting
-    } = useIntersectionObserver();
-    const {
-      resizeRef,
-      contentRect
-    } = useResizeObserver();
-    const normalizedValue = /* @__PURE__ */ toRef(() => clamp(parseFloat(props.modelValue), 0, 100));
-    const width = /* @__PURE__ */ toRef(() => Number(props.width));
-    const size = /* @__PURE__ */ toRef(() => {
-      return sizeStyles.value ? Number(props.size) : contentRect.value ? contentRect.value.width : Math.max(width.value, 32);
-    });
-    const diameter = /* @__PURE__ */ toRef(() => MAGIC_RADIUS_CONSTANT / (1 - width.value / size.value) * 2);
-    const strokeWidth = /* @__PURE__ */ toRef(() => width.value / size.value * diameter.value);
-    const strokeDashOffset = /* @__PURE__ */ toRef(() => {
-      const baseLength = (100 - normalizedValue.value) / 100 * CIRCUMFERENCE;
-      return props.rounded && normalizedValue.value > 0 && normalizedValue.value < 100 ? convertToUnit(Math.min(CIRCUMFERENCE - 0.01, baseLength + strokeWidth.value)) : convertToUnit(baseLength);
-    });
-    const startAngle = computed(() => {
-      const baseAngle = Number(props.rotate);
-      return props.rounded ? baseAngle + strokeWidth.value / 2 / CIRCUMFERENCE * 360 : baseAngle;
-    });
-    watchEffect(() => {
-      intersectionRef.value = root.value;
-      resizeRef.value = root.value;
-    });
-    useRender(() => createVNode(props.tag, {
-      "ref": root,
-      "class": normalizeClass(["v-progress-circular", {
-        "v-progress-circular--indeterminate": !!props.indeterminate,
-        "v-progress-circular--visible": isIntersecting.value,
-        "v-progress-circular--disable-shrink": props.indeterminate && (props.indeterminate === "disable-shrink" || PREFERS_REDUCED_MOTION())
-      }, themeClasses.value, sizeClasses.value, textColorClasses.value, props.class]),
-      "style": normalizeStyle([sizeStyles.value, textColorStyles.value, props.style]),
-      "role": "progressbar",
-      "aria-valuemin": "0",
-      "aria-valuemax": "100",
-      "aria-valuenow": props.indeterminate ? void 0 : normalizedValue.value
-    }, {
-      default: () => [createBaseVNode("svg", {
-        "style": {
-          transform: `rotate(calc(-90deg + ${startAngle.value}deg))`
-        },
-        "xmlns": "http://www.w3.org/2000/svg",
-        "viewBox": `0 0 ${diameter.value} ${diameter.value}`
-      }, [createBaseVNode("circle", {
-        "class": normalizeClass(["v-progress-circular__underlay", underlayColorClasses.value]),
-        "style": normalizeStyle(underlayColorStyles.value),
-        "fill": "transparent",
-        "cx": "50%",
-        "cy": "50%",
-        "r": MAGIC_RADIUS_CONSTANT,
-        "stroke-width": strokeWidth.value,
-        "stroke-dasharray": CIRCUMFERENCE,
-        "stroke-dashoffset": 0
-      }, null), createBaseVNode("circle", {
-        "class": "v-progress-circular__overlay",
-        "fill": "transparent",
-        "cx": "50%",
-        "cy": "50%",
-        "r": MAGIC_RADIUS_CONSTANT,
-        "stroke-width": strokeWidth.value,
-        "stroke-dasharray": CIRCUMFERENCE,
-        "stroke-dashoffset": strokeDashOffset.value,
-        "stroke-linecap": props.rounded ? "round" : void 0
-      }, null)]), slots.default && createBaseVNode("div", {
-        "class": "v-progress-circular__content"
-      }, [slots.default({
-        value: normalizedValue.value
-      })])]
-    }));
-    return {};
-  }
-});
-const oppositeMap = {
-  center: "center",
-  top: "bottom",
-  bottom: "top",
-  left: "right",
-  right: "left"
-};
-const makeLocationProps = propsFactory({
-  location: String
-}, "location");
-function useLocation(props) {
-  let opposite = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
-  let offset = arguments.length > 2 ? arguments[2] : void 0;
-  const {
-    isRtl
-  } = useRtl();
-  const locationStyles = computed(() => {
-    if (!props.location) return {};
-    const {
-      side,
-      align
-    } = parseAnchor(props.location.split(" ").length > 1 ? props.location : `${props.location} center`, isRtl.value);
-    function getOffset2(side2) {
-      return offset ? offset(side2) : 0;
-    }
-    const styles = {};
-    if (side !== "center") {
-      if (opposite) styles[oppositeMap[side]] = `calc(100% - ${getOffset2(side)}px)`;
-      else styles[side] = 0;
-    }
-    if (align !== "center") {
-      if (opposite) styles[oppositeMap[align]] = `calc(100% - ${getOffset2(align)}px)`;
-      else styles[align] = 0;
-    } else {
-      if (side === "center") styles.top = styles.left = "50%";
-      else {
-        styles[{
-          top: "left",
-          bottom: "left",
-          left: "top",
-          right: "top"
-        }[side]] = "50%";
-      }
-      styles.transform = {
-        top: "translateX(-50%)",
-        bottom: "translateX(-50%)",
-        left: "translateY(-50%)",
-        right: "translateY(-50%)",
-        center: "translate(-50%, -50%)"
-      }[side];
-    }
-    return styles;
-  });
-  return {
-    locationStyles
-  };
-}
-const makeChunksProps = propsFactory({
-  chunkCount: {
-    type: [Number, String],
-    default: null
-  },
-  chunkWidth: {
-    type: [Number, String],
-    default: null
-  },
-  chunkGap: {
-    type: [Number, String],
-    default: 4
-  }
-}, "chunks");
-function useChunks(props, containerWidth) {
-  const hasChunks = /* @__PURE__ */ toRef(() => !!props.chunkCount || !!props.chunkWidth);
-  const chunkWidth = computed(() => {
-    const containerSize = toValue(containerWidth);
-    if (!containerSize) {
-      return 0;
-    }
-    if (!props.chunkCount) {
-      return Number(props.chunkWidth);
-    }
-    const count = Number(props.chunkCount);
-    const availableWidth = containerSize - Number(props.chunkGap) * (count - 1);
-    return availableWidth / count;
-  });
-  const chunkGap = /* @__PURE__ */ toRef(() => Number(props.chunkGap));
-  const chunksMaskStyles = computed(() => {
-    if (!hasChunks.value) {
-      return {};
-    }
-    const chunkGapPx = convertToUnit(chunkGap.value);
-    const chunkWidthPx = convertToUnit(chunkWidth.value);
-    return {
-      maskRepeat: "repeat-x",
-      maskImage: `linear-gradient(90deg, #000, #000 ${chunkWidthPx}, transparent ${chunkWidthPx}, transparent)`,
-      maskSize: `calc(${chunkWidthPx} + ${chunkGapPx}) 100%`
-    };
-  });
-  function snapValueToChunk(val) {
-    const containerSize = toValue(containerWidth);
-    if (!containerSize) {
-      return val;
-    }
-    const gapRelativeSize = 100 * chunkGap.value / containerSize;
-    const chunkRelativeSize = 100 * (chunkWidth.value + chunkGap.value) / containerSize;
-    const filledChunks = Math.floor((val + gapRelativeSize) / chunkRelativeSize);
-    return clamp(0, filledChunks * chunkRelativeSize - gapRelativeSize / 2, 100);
-  }
-  return {
-    hasChunks,
-    chunksMaskStyles,
-    snapValueToChunk
-  };
-}
-const makeVProgressLinearProps = propsFactory({
-  absolute: Boolean,
-  active: {
-    type: Boolean,
-    default: true
-  },
-  bgColor: String,
-  bgOpacity: [Number, String],
-  bufferValue: {
-    type: [Number, String],
-    default: 0
-  },
-  bufferColor: String,
-  bufferOpacity: [Number, String],
-  clickable: Boolean,
-  color: String,
-  height: {
-    type: [Number, String],
-    default: 4
-  },
-  indeterminate: Boolean,
-  max: {
-    type: [Number, String],
-    default: 100
-  },
-  modelValue: {
-    type: [Number, String],
-    default: 0
-  },
-  opacity: [Number, String],
-  reverse: Boolean,
-  stream: Boolean,
-  striped: Boolean,
-  roundedBar: Boolean,
-  ...makeChunksProps(),
-  ...makeComponentProps(),
-  ...makeLocationProps({
-    location: "top"
-  }),
-  ...makeRoundedProps(),
-  ...makeTagProps(),
-  ...makeThemeProps()
-}, "VProgressLinear");
-const VProgressLinear = genericComponent()({
-  name: "VProgressLinear",
-  props: makeVProgressLinearProps(),
-  emits: {
-    "update:modelValue": (value) => true
-  },
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const root = /* @__PURE__ */ ref();
-    const progress = useProxiedModel(props, "modelValue");
-    const {
-      isRtl,
-      rtlClasses
-    } = useRtl();
-    const {
-      themeClasses
-    } = provideTheme(props);
-    const {
-      locationStyles
-    } = useLocation(props);
-    const {
-      textColorClasses,
-      textColorStyles
-    } = useTextColor(() => props.color);
-    const {
-      backgroundColorClasses,
-      backgroundColorStyles
-    } = useBackgroundColor(() => props.bgColor || props.color);
-    const {
-      backgroundColorClasses: bufferColorClasses,
-      backgroundColorStyles: bufferColorStyles
-    } = useBackgroundColor(() => props.bufferColor || props.bgColor || props.color);
-    const {
-      backgroundColorClasses: barColorClasses,
-      backgroundColorStyles: barColorStyles
-    } = useBackgroundColor(() => props.color);
-    const {
-      roundedClasses
-    } = useRounded(props);
-    const {
-      intersectionRef,
-      isIntersecting
-    } = useIntersectionObserver();
-    const max = computed(() => parseFloat(props.max));
-    const height = computed(() => parseFloat(props.height));
-    const normalizedBuffer = computed(() => clamp(parseFloat(props.bufferValue) / max.value * 100, 0, 100));
-    const normalizedValue = computed(() => clamp(parseFloat(progress.value) / max.value * 100, 0, 100));
-    const isReversed = computed(() => isRtl.value !== props.reverse);
-    const transition = computed(() => props.indeterminate ? "fade-transition" : "slide-x-transition");
-    const containerWidth = /* @__PURE__ */ shallowRef(0);
-    const {
-      hasChunks,
-      chunksMaskStyles,
-      snapValueToChunk
-    } = useChunks(props, containerWidth);
-    useToggleScope(hasChunks, () => {
-      const {
-        resizeRef
-      } = useResizeObserver((entries) => containerWidth.value = entries[0].contentRect.width);
-      watchEffect(() => resizeRef.value = root.value);
-    });
-    const bufferWidth = computed(() => {
-      return hasChunks.value ? snapValueToChunk(normalizedBuffer.value) : normalizedBuffer.value;
-    });
-    const barWidth = computed(() => {
-      return hasChunks.value ? snapValueToChunk(normalizedValue.value) : normalizedValue.value;
-    });
-    function handleClick(e) {
-      if (!intersectionRef.value) return;
-      const {
-        left,
-        right,
-        width
-      } = intersectionRef.value.getBoundingClientRect();
-      const value = isReversed.value ? width - e.clientX + (right - width) : e.clientX - left;
-      progress.value = Math.round(value / width * max.value);
-    }
-    watchEffect(() => {
-      intersectionRef.value = root.value;
-    });
-    useRender(() => createVNode(props.tag, {
-      "ref": root,
-      "class": normalizeClass(["v-progress-linear", {
-        "v-progress-linear--absolute": props.absolute,
-        "v-progress-linear--active": props.active && isIntersecting.value,
-        "v-progress-linear--reverse": isReversed.value,
-        "v-progress-linear--rounded": props.rounded,
-        "v-progress-linear--rounded-bar": props.roundedBar,
-        "v-progress-linear--striped": props.striped,
-        "v-progress-linear--clickable": props.clickable
-      }, roundedClasses.value, themeClasses.value, rtlClasses.value, props.class]),
-      "style": normalizeStyle([{
-        bottom: props.location === "bottom" ? 0 : void 0,
-        top: props.location === "top" ? 0 : void 0,
-        height: props.active ? convertToUnit(height.value) : 0,
-        "--v-progress-linear-height": convertToUnit(height.value),
-        ...props.absolute ? locationStyles.value : {}
-      }, chunksMaskStyles.value, props.style]),
-      "role": "progressbar",
-      "aria-hidden": props.active ? "false" : "true",
-      "aria-valuemin": "0",
-      "aria-valuemax": props.max,
-      "aria-valuenow": props.indeterminate ? void 0 : Math.min(parseFloat(progress.value), max.value),
-      "onClick": props.clickable && handleClick
-    }, {
-      default: () => [props.stream && createBaseVNode("div", {
-        "key": "stream",
-        "class": normalizeClass(["v-progress-linear__stream", textColorClasses.value]),
-        "style": {
-          ...textColorStyles.value,
-          [isReversed.value ? "left" : "right"]: convertToUnit(-height.value),
-          borderTop: `${convertToUnit(height.value / 2)} dotted`,
-          opacity: parseFloat(props.bufferOpacity),
-          top: `calc(50% - ${convertToUnit(height.value / 4)})`,
-          width: convertToUnit(100 - normalizedBuffer.value, "%"),
-          "--v-progress-linear-stream-to": convertToUnit(height.value * (isReversed.value ? 1 : -1))
-        }
-      }, null), createBaseVNode("div", {
-        "class": normalizeClass(["v-progress-linear__background", backgroundColorClasses.value]),
-        "style": normalizeStyle([backgroundColorStyles.value, {
-          opacity: parseFloat(props.bgOpacity),
-          width: props.stream ? 0 : void 0
-        }])
-      }, null), createBaseVNode("div", {
-        "class": normalizeClass(["v-progress-linear__buffer", bufferColorClasses.value]),
-        "style": normalizeStyle([bufferColorStyles.value, {
-          opacity: parseFloat(props.bufferOpacity),
-          width: convertToUnit(bufferWidth.value, "%")
-        }])
-      }, null), createVNode(Transition, {
-        "name": transition.value
-      }, {
-        default: () => [!props.indeterminate ? createBaseVNode("div", {
-          "class": normalizeClass(["v-progress-linear__determinate", barColorClasses.value]),
-          "style": normalizeStyle([barColorStyles.value, {
-            width: convertToUnit(barWidth.value, "%")
-          }])
-        }, null) : createBaseVNode("div", {
-          "class": "v-progress-linear__indeterminate"
-        }, [["long", "short"].map((bar) => createBaseVNode("div", {
-          "key": bar,
-          "class": normalizeClass(["v-progress-linear__indeterminate", bar, barColorClasses.value]),
-          "style": normalizeStyle(barColorStyles.value)
-        }, null))])]
-      }), slots.default && createBaseVNode("div", {
-        "class": "v-progress-linear__content"
-      }, [slots.default({
-        value: normalizedValue.value,
-        buffer: normalizedBuffer.value
-      })])]
-    }));
-    return {};
-  }
-});
-const _hoisted_1$1 = {
-  key: 0,
-  class: "text-caption text-disabled ml-1"
-};
-const _hoisted_2$1 = { class: "folder-stats" };
-const _hoisted_3$1 = { class: "folder-info" };
-const _hoisted_4$1 = { class: "text-caption text-medium-emphasis" };
-const _hoisted_5$1 = { class: "folder-stats" };
-const _hoisted_6$1 = { class: "folder-info" };
-const _hoisted_7$1 = { class: "text-caption text-disabled" };
-const _sfc_main$2 = {
-  __name: "FolderItem",
-  props: {
-    folder: { type: Object, required: true },
-    depth: { type: Number, default: 0 },
-    expandedIds: { type: Set, required: true },
-    parentSize: { type: Number, default: 0 },
-    totalSize: { type: Number, default: 0 },
-    drive: { type: String, default: "C" }
-  },
-  emits: ["toggle"],
-  setup(__props, { emit: __emit }) {
-    const props = __props;
-    const emit2 = __emit;
-    const loadedChildren = /* @__PURE__ */ ref([]);
-    const loadedFiles = /* @__PURE__ */ ref([]);
-    const loadingFiles = /* @__PURE__ */ ref(false);
-    const loadingChildren = /* @__PURE__ */ ref(false);
-    const localChildren = computed(() => {
-      if (props.folder.child?.length) return props.folder.child;
-      return loadedChildren.value;
-    });
-    const hasChildren = computed(() => (props.folder.child_count ?? localChildren.value.length) > 0);
-    const isExpanded = computed(() => props.expandedIds.has(props.folder.record_number));
-    async function toggleFolder() {
-      if (!hasChildren.value && !(props.folder.file_count > 0)) return;
-      emit2("toggle", props.folder.record_number);
-      if (!isExpanded.value) {
-        if (loadedChildren.value.length === 0 && !props.folder.child?.length && (props.folder.child_count ?? 0) > 0) {
-          loadingChildren.value = true;
-          try {
-            loadedChildren.value = await window.mftAPI.getChildren(props.drive, props.folder.record_number);
-          } catch (e) {
-            console.error("Erreur chargement sous-dossiers:", e);
-          } finally {
-            loadingChildren.value = false;
-          }
-        }
-        if (loadedFiles.value.length === 0 && props.folder.file_count > 0) {
-          loadingFiles.value = true;
-          try {
-            loadedFiles.value = await window.mftAPI.getFiles(props.drive, props.folder.record_number);
-          } catch (e) {
-            console.error("Erreur chargement fichiers:", e);
-          } finally {
-            loadingFiles.value = false;
-          }
-        }
-      }
-    }
-    const percent = computed(() => {
-      const baseSize = props.totalSize || props.parentSize;
-      if (!baseSize || !props.folder.size_bytes) return 0;
-      return Math.min(100, props.folder.size_bytes / baseSize * 100);
-    });
-    const percentLabel = computed(() => {
-      if (percent.value >= 10) return `${Math.round(percent.value)}%`;
-      if (percent.value >= 1) return `${percent.value.toFixed(1)}%`;
-      if (percent.value > 0) return `${percent.value.toFixed(2)}%`;
-      return "0%";
-    });
-    const folderColor = computed(() => {
-      const colors = ["amber", "orange", "deep-orange", "brown", "blue-grey"];
-      return colors[Math.min(props.depth, colors.length - 1)];
-    });
-    function barColor(p2) {
-      if (p2 >= 60) return "error";
-      if (p2 >= 30) return "warning";
-      return "success";
-    }
-    const FILE_ICONS = {
-      mp4: "mdi-file-video",
-      mkv: "mdi-file-video",
-      avi: "mdi-file-video",
-      mov: "mdi-file-video",
-      wmv: "mdi-file-video",
-      webm: "mdi-file-video",
-      mp3: "mdi-file-music",
-      wav: "mdi-file-music",
-      flac: "mdi-file-music",
-      aac: "mdi-file-music",
-      ogg: "mdi-file-music",
-      m4a: "mdi-file-music",
-      jpg: "mdi-file-image",
-      jpeg: "mdi-file-image",
-      png: "mdi-file-image",
-      gif: "mdi-file-image",
-      bmp: "mdi-file-image",
-      svg: "mdi-file-image",
-      webp: "mdi-file-image",
-      ico: "mdi-file-image",
-      tiff: "mdi-file-image",
-      pdf: "mdi-file-pdf-box",
-      doc: "mdi-file-word",
-      docx: "mdi-file-word",
-      xls: "mdi-file-excel",
-      xlsx: "mdi-file-excel",
-      ppt: "mdi-file-powerpoint",
-      pptx: "mdi-file-powerpoint",
-      txt: "mdi-file-document-outline",
-      md: "mdi-language-markdown",
-      csv: "mdi-file-delimited",
-      zip: "mdi-zip-box",
-      rar: "mdi-zip-box",
-      "7z": "mdi-zip-box",
-      tar: "mdi-zip-box",
-      gz: "mdi-zip-box",
-      js: "mdi-language-javascript",
-      ts: "mdi-language-typescript",
-      py: "mdi-language-python",
-      html: "mdi-language-html5",
-      css: "mdi-language-css3",
-      json: "mdi-code-json",
-      sql: "mdi-database",
-      sh: "mdi-console",
-      exe: "mdi-application",
-      iso: "mdi-disc",
-      dll: "mdi-puzzle",
-      msi: "mdi-package-variant"
-    };
-    const FILE_COLORS = {
-      mp4: "blue",
-      mkv: "blue",
-      avi: "blue",
-      mov: "blue",
-      webm: "blue",
-      mp3: "purple",
-      wav: "purple",
-      flac: "purple",
-      aac: "purple",
-      m4a: "purple",
-      jpg: "teal",
-      jpeg: "teal",
-      png: "teal",
-      gif: "teal",
-      svg: "teal",
-      webp: "teal",
-      pdf: "red",
-      doc: "blue-darken-2",
-      docx: "blue-darken-2",
-      xls: "green-darken-2",
-      xlsx: "green-darken-2",
-      ppt: "orange-darken-2",
-      pptx: "orange-darken-2",
-      txt: "grey",
-      md: "grey-darken-1",
-      csv: "green",
-      zip: "amber-darken-2",
-      rar: "amber-darken-2",
-      "7z": "amber-darken-2",
-      gz: "amber-darken-2",
-      tar: "amber-darken-2",
-      js: "yellow-darken-3",
-      ts: "blue",
-      py: "blue-darken-1",
-      html: "orange-darken-2",
-      css: "blue",
-      json: "grey",
-      sql: "cyan-darken-2",
-      exe: "red-darken-2",
-      iso: "indigo",
-      dll: "grey-darken-2"
-    };
-    function fileIcon(ext) {
-      return FILE_ICONS[ext?.toLowerCase()] ?? "mdi-file-outline";
-    }
-    function fileColor(ext) {
-      return FILE_COLORS[ext?.toLowerCase()] ?? "grey";
-    }
-    return (_ctx, _cache) => {
-      const _component_FolderItem = resolveComponent("FolderItem", true);
-      return openBlock(), createElementBlock("div", null, [
-        __props.folder.is_dir !== false ? (openBlock(), createBlock(VListItem, {
-          key: 0,
-          style: normalizeStyle({ paddingLeft: `${16 + __props.depth * 20}px` }),
-          active: false,
-          rounded: "lg",
-          class: "folder-item",
-          onClick: toggleFolder
-        }, {
-          prepend: withCtx(() => [
-            loadingFiles.value || loadingChildren.value ? (openBlock(), createBlock(VProgressCircular, {
-              key: 0,
-              indeterminate: "",
-              size: "14",
-              width: "2",
-              class: "mr-1"
-            })) : hasChildren.value || __props.folder.file_count > 0 ? (openBlock(), createBlock(VIcon, {
-              key: 1,
-              icon: isExpanded.value ? "mdi-chevron-down" : "mdi-chevron-right",
-              size: "18",
-              class: "mr-1",
-              color: "medium-emphasis"
-            }, null, 8, ["icon"])) : (openBlock(), createBlock(VIcon, {
-              key: 2,
-              size: "18",
-              class: "mr-1",
-              style: { "opacity": "0" }
-            })),
-            createVNode(VIcon, {
-              icon: isExpanded.value ? "mdi-folder-open" : "mdi-folder",
-              color: folderColor.value,
-              size: "20",
-              class: "mr-2"
-            }, null, 8, ["icon", "color"])
-          ]),
-          append: withCtx(() => [
-            createBaseVNode("div", _hoisted_2$1, [
-              createVNode(VProgressLinear, {
-                "model-value": percent.value,
-                color: barColor(percent.value),
-                "bg-color": "surface-variant",
-                rounded: "",
-                height: "6",
-                class: "folder-bar"
-              }, null, 8, ["model-value", "color"]),
-              createBaseVNode("div", _hoisted_3$1, [
-                createBaseVNode("span", _hoisted_4$1, toDisplayString(__props.folder.size_display), 1),
-                createVNode(VChip, {
-                  color: barColor(percent.value),
-                  size: "x-small",
-                  variant: "tonal",
-                  class: "ml-2"
-                }, {
-                  default: withCtx(() => [
-                    createTextVNode(toDisplayString(percentLabel.value), 1)
-                  ]),
-                  _: 1
-                }, 8, ["color"])
-              ])
-            ])
-          ]),
-          default: withCtx(() => [
-            createVNode(VListItemTitle, { class: "folder-name" }, {
-              default: withCtx(() => [
-                createTextVNode(toDisplayString(__props.folder.name) + " ", 1),
-                __props.folder.file_count > 0 ? (openBlock(), createElementBlock("span", _hoisted_1$1, " (" + toDisplayString(__props.folder.file_count) + " fichiers) ", 1)) : createCommentVNode("", true)
-              ]),
-              _: 1
-            })
-          ]),
-          _: 1
-        }, 8, ["style"])) : (openBlock(), createBlock(VListItem, {
-          key: 1,
-          style: normalizeStyle({ paddingLeft: `${16 + __props.depth * 20 + 38}px` }),
-          active: false,
-          rounded: "lg",
-          class: "file-item"
-        }, {
-          prepend: withCtx(() => [
-            createVNode(VIcon, {
-              color: fileColor(__props.folder.ext),
-              size: "16",
-              class: "mr-2"
-            }, {
-              default: withCtx(() => [
-                createTextVNode(toDisplayString(fileIcon(__props.folder.ext)), 1)
-              ]),
-              _: 1
-            }, 8, ["color"])
-          ]),
-          append: withCtx(() => [
-            createBaseVNode("div", _hoisted_5$1, [
-              createVNode(VProgressLinear, {
-                "model-value": percent.value,
-                color: barColor(percent.value),
-                "bg-color": "surface-variant",
-                rounded: "",
-                height: "4",
-                class: "folder-bar"
-              }, null, 8, ["model-value", "color"]),
-              createBaseVNode("div", _hoisted_6$1, [
-                createBaseVNode("span", _hoisted_7$1, toDisplayString(__props.folder.size_display), 1),
-                createVNode(VChip, {
-                  color: barColor(percent.value),
-                  size: "x-small",
-                  variant: "tonal",
-                  class: "ml-2"
-                }, {
-                  default: withCtx(() => [
-                    createTextVNode(toDisplayString(percentLabel.value), 1)
-                  ]),
-                  _: 1
-                }, 8, ["color"])
-              ])
-            ])
-          ]),
-          default: withCtx(() => [
-            createVNode(VListItemTitle, { class: "file-name" }, {
-              default: withCtx(() => [
-                createTextVNode(toDisplayString(__props.folder.name), 1)
-              ]),
-              _: 1
-            })
-          ]),
-          _: 1
-        }, 8, ["style"])),
-        __props.folder.is_dir !== false && isExpanded.value ? (openBlock(), createElementBlock(Fragment, { key: 2 }, [
-          (openBlock(true), createElementBlock(Fragment, null, renderList(localChildren.value, (child) => {
-            return openBlock(), createBlock(_component_FolderItem, {
-              key: child.record_number,
-              folder: child,
-              depth: __props.depth + 1,
-              "parent-size": __props.folder.size_bytes,
-              "total-size": __props.totalSize,
-              drive: __props.drive,
-              "expanded-ids": __props.expandedIds,
-              onToggle: _cache[0] || (_cache[0] = ($event) => emit2("toggle", $event))
-            }, null, 8, ["folder", "depth", "parent-size", "total-size", "drive", "expanded-ids"]);
-          }), 128)),
-          (openBlock(true), createElementBlock(Fragment, null, renderList(loadedFiles.value, (file) => {
-            return openBlock(), createBlock(_component_FolderItem, {
-              key: file.record_number,
-              folder: file,
-              depth: __props.depth + 1,
-              "parent-size": __props.folder.size_bytes,
-              "total-size": __props.totalSize,
-              drive: __props.drive,
-              "expanded-ids": __props.expandedIds,
-              onToggle: _cache[1] || (_cache[1] = ($event) => emit2("toggle", $event))
-            }, null, 8, ["folder", "depth", "parent-size", "total-size", "drive", "expanded-ids"]);
-          }), 128))
-        ], 64)) : createCommentVNode("", true),
-        __props.depth === 0 && __props.folder.is_dir !== false ? (openBlock(), createBlock(VDivider, {
-          key: 3,
-          class: "my-1",
-          opacity: "0.1"
-        })) : createCommentVNode("", true)
-      ]);
-    };
-  }
-};
-const FolderItem = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-24738dae"]]);
-const VAlertTitle = createSimpleFunctional("v-alert-title");
-const makeVBtnGroupProps = propsFactory({
-  baseColor: String,
-  divided: Boolean,
-  direction: {
-    type: String,
-    default: "horizontal"
-  },
-  ...makeBorderProps(),
-  ...makeComponentProps(),
-  ...makeDensityProps(),
-  ...makeElevationProps(),
-  ...makeRoundedProps(),
-  ...makeTagProps(),
-  ...makeThemeProps(),
-  ...makeVariantProps()
-}, "VBtnGroup");
-const VBtnGroup = genericComponent()({
-  name: "VBtnGroup",
-  props: makeVBtnGroupProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const {
-      themeClasses
-    } = provideTheme(props);
-    const {
-      densityClasses
-    } = useDensity(props);
-    const {
-      borderClasses
-    } = useBorder(props);
-    const {
-      elevationClasses
-    } = useElevation(props);
-    const {
-      roundedClasses
-    } = useRounded(props);
-    provideDefaults({
-      VBtn: {
-        height: /* @__PURE__ */ toRef(() => props.direction === "horizontal" ? "auto" : null),
-        baseColor: /* @__PURE__ */ toRef(() => props.baseColor),
-        color: /* @__PURE__ */ toRef(() => props.color),
-        density: /* @__PURE__ */ toRef(() => props.density),
-        flat: true,
-        variant: /* @__PURE__ */ toRef(() => props.variant)
-      }
-    });
-    useRender(() => {
-      return createVNode(props.tag, {
-        "class": normalizeClass(["v-btn-group", `v-btn-group--${props.direction}`, {
-          "v-btn-group--divided": props.divided
-        }, themeClasses.value, borderClasses.value, densityClasses.value, elevationClasses.value, roundedClasses.value, props.class]),
-        "style": normalizeStyle(props.style)
-      }, slots);
-    });
-  }
-});
-const VBtnToggleSymbol = Symbol.for("vuetify:v-btn-toggle");
-const makeVBtnToggleProps = propsFactory({
-  ...makeVBtnGroupProps(),
-  ...makeGroupProps()
-}, "VBtnToggle");
-genericComponent()({
-  name: "VBtnToggle",
-  props: makeVBtnToggleProps(),
-  emits: {
-    "update:modelValue": (value) => true
-  },
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const {
-      isSelected,
-      next,
-      prev,
-      select,
-      selected
-    } = useGroup(props, VBtnToggleSymbol);
-    useRender(() => {
-      const btnGroupProps = VBtnGroup.filterProps(props);
-      return createVNode(VBtnGroup, mergeProps({
-        "class": ["v-btn-toggle", props.class]
-      }, btnGroupProps, {
-        "style": props.style
-      }), {
-        default: () => [slots.default?.({
-          isSelected,
-          next,
-          prev,
-          select,
-          selected
-        })]
-      });
-    });
-    return {
-      next,
-      prev,
-      select
-    };
-  }
-});
-const makeLoaderProps = propsFactory({
-  loading: [Boolean, String]
-}, "loader");
-function useLoader(props) {
-  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
-  const loaderClasses = /* @__PURE__ */ toRef(() => ({
-    [`${name}--loading`]: props.loading
-  }));
-  return {
-    loaderClasses
-  };
-}
-function LoaderSlot(props, _ref) {
-  let {
-    slots
-  } = _ref;
-  return createBaseVNode("div", {
-    "class": normalizeClass(`${props.name}__loader`)
-  }, [slots.default?.({
-    color: props.color,
-    isActive: props.active
-  }) || createVNode(VProgressLinear, {
-    "absolute": props.absolute,
-    "active": props.active,
-    "color": props.color,
-    "height": "2",
-    "indeterminate": true
-  }, null)]);
-}
-const positionValues = ["static", "relative", "fixed", "absolute", "sticky"];
-const makePositionProps = propsFactory({
-  position: {
-    type: String,
-    validator: (
-      /* istanbul ignore next */
-      (v) => positionValues.includes(v)
-    )
-  }
-}, "position");
-function usePosition(props) {
-  let name = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : getCurrentInstanceName();
-  const positionClasses = /* @__PURE__ */ toRef(() => {
-    return props.position ? `${name}--${props.position}` : void 0;
-  });
-  return {
-    positionClasses
-  };
-}
-function useSelectLink(link, select) {
-  watch(() => link.isActive?.value, (isActive) => {
-    if (link.isLink.value && isActive != null && select) {
-      nextTick(() => {
-        select(isActive);
-      });
-    }
-  }, {
-    immediate: true
-  });
-}
-const makeVBtnProps = propsFactory({
-  active: {
-    type: Boolean,
-    default: void 0
-  },
-  activeColor: String,
-  baseColor: String,
-  symbol: {
-    type: null,
-    default: VBtnToggleSymbol
-  },
-  flat: Boolean,
-  icon: [Boolean, String, Function, Object],
-  prependIcon: IconValue,
-  appendIcon: IconValue,
-  block: Boolean,
-  readonly: Boolean,
-  slim: Boolean,
-  stacked: Boolean,
-  spaced: String,
-  ripple: {
-    type: [Boolean, Object],
-    default: true
-  },
-  text: {
-    type: [String, Number, Boolean],
-    default: void 0
-  },
-  ...makeBorderProps(),
-  ...makeComponentProps(),
-  ...makeDensityProps(),
-  ...makeDimensionProps(),
-  ...makeElevationProps(),
-  ...makeGroupItemProps(),
-  ...makeLoaderProps(),
-  ...makeLocationProps(),
-  ...makePositionProps(),
-  ...makeRoundedProps(),
-  ...makeRouterProps(),
-  ...makeSizeProps(),
-  ...makeTagProps({
-    tag: "button"
-  }),
-  ...makeThemeProps(),
-  ...makeVariantProps({
-    variant: "elevated"
-  })
-}, "VBtn");
-const VBtn = genericComponent()({
-  name: "VBtn",
-  props: makeVBtnProps(),
-  emits: {
-    "group:selected": (val) => true
-  },
-  setup(props, _ref) {
-    let {
-      attrs,
-      slots
-    } = _ref;
-    const {
-      themeClasses
-    } = provideTheme(props);
-    const {
-      borderClasses
-    } = useBorder(props);
-    const {
-      densityClasses
-    } = useDensity(props);
-    const {
-      dimensionStyles
-    } = useDimension(props);
-    const {
-      elevationClasses
-    } = useElevation(props);
-    const {
-      loaderClasses
-    } = useLoader(props);
-    const {
-      locationStyles
-    } = useLocation(props);
-    const {
-      positionClasses
-    } = usePosition(props);
-    const {
-      roundedClasses
-    } = useRounded(props);
-    const {
-      sizeClasses,
-      sizeStyles
-    } = useSize(props);
-    const group = useGroupItem(props, props.symbol, false);
-    const link = useLink(props, attrs);
-    const isActive = computed(() => {
-      if (props.active !== void 0) {
-        return props.active;
-      }
-      if (link.isRouterLink.value) {
-        return link.isActive?.value;
-      }
-      return group?.isSelected.value;
-    });
-    const color = /* @__PURE__ */ toRef(() => isActive.value ? props.activeColor ?? props.color : props.color);
-    const variantProps = computed(() => {
-      const showColor = group?.isSelected.value && (!link.isLink.value || link.isActive?.value) || !group || link.isActive?.value;
-      return {
-        color: showColor ? color.value ?? props.baseColor : props.baseColor,
-        variant: props.variant
-      };
-    });
-    const {
-      colorClasses,
-      colorStyles,
-      variantClasses
-    } = useVariant(variantProps);
-    const isDisabled = computed(() => group?.disabled.value || props.disabled);
-    const isElevated = /* @__PURE__ */ toRef(() => {
-      return props.variant === "elevated" && !(props.disabled || props.flat || props.border);
-    });
-    const valueAttr = computed(() => {
-      if (props.value === void 0 || typeof props.value === "symbol") return void 0;
-      return Object(props.value) === props.value ? JSON.stringify(props.value, null, 0) : props.value;
-    });
-    function onClick(e) {
-      if (isDisabled.value || link.isLink.value && (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0 || attrs.target === "_blank")) return;
-      if (link.isRouterLink.value) {
-        link.navigate?.(e);
-      } else {
-        group?.toggle();
-      }
-    }
-    useSelectLink(link, group?.select);
-    useRender(() => {
-      const Tag = link.isLink.value ? "a" : props.tag;
-      const hasPrepend = !!(props.prependIcon || slots.prepend);
-      const hasAppend = !!(props.appendIcon || slots.append);
-      const hasIcon = !!(props.icon && props.icon !== true);
-      return withDirectives(createVNode(Tag, mergeProps(link.linkProps, {
-        "type": Tag === "a" ? void 0 : "button",
-        "class": ["v-btn", group?.selectedClass.value, {
-          "v-btn--active": isActive.value,
-          "v-btn--block": props.block,
-          "v-btn--disabled": isDisabled.value,
-          "v-btn--elevated": isElevated.value,
-          "v-btn--flat": props.flat,
-          "v-btn--icon": !!props.icon,
-          "v-btn--loading": props.loading,
-          "v-btn--readonly": props.readonly,
-          "v-btn--slim": props.slim,
-          "v-btn--stacked": props.stacked
-        }, props.spaced ? ["v-btn--spaced", `v-btn--spaced-${props.spaced}`] : [], themeClasses.value, borderClasses.value, colorClasses.value, densityClasses.value, elevationClasses.value, loaderClasses.value, positionClasses.value, roundedClasses.value, sizeClasses.value, variantClasses.value, props.class],
-        "style": [colorStyles.value, dimensionStyles.value, locationStyles.value, sizeStyles.value, props.style],
-        "aria-busy": props.loading ? true : void 0,
-        "disabled": isDisabled.value && Tag !== "a" || void 0,
-        "tabindex": props.loading || props.readonly ? -1 : void 0,
-        "onClick": onClick,
-        "value": valueAttr.value
-      }), {
-        default: () => [genOverlays(true, "v-btn"), !props.icon && hasPrepend && createBaseVNode("span", {
-          "key": "prepend",
-          "class": "v-btn__prepend"
-        }, [!slots.prepend ? createVNode(VIcon, {
-          "key": "prepend-icon",
-          "icon": props.prependIcon
-        }, null) : createVNode(VDefaultsProvider, {
-          "key": "prepend-defaults",
-          "disabled": !props.prependIcon,
-          "defaults": {
-            VIcon: {
-              icon: props.prependIcon
-            }
-          }
-        }, slots.prepend)]), createBaseVNode("span", {
-          "class": "v-btn__content",
-          "data-no-activator": ""
-        }, [!slots.default && hasIcon ? createVNode(VIcon, {
-          "key": "content-icon",
-          "icon": props.icon
-        }, null) : createVNode(VDefaultsProvider, {
-          "key": "content-defaults",
-          "disabled": !hasIcon,
-          "defaults": {
-            VIcon: {
-              icon: props.icon
-            }
-          }
-        }, {
-          default: () => [slots.default?.() ?? toDisplayString(props.text)]
-        })]), !props.icon && hasAppend && createBaseVNode("span", {
-          "key": "append",
-          "class": "v-btn__append"
-        }, [!slots.append ? createVNode(VIcon, {
-          "key": "append-icon",
-          "icon": props.appendIcon
-        }, null) : createVNode(VDefaultsProvider, {
-          "key": "append-defaults",
-          "disabled": !props.appendIcon,
-          "defaults": {
-            VIcon: {
-              icon: props.appendIcon
-            }
-          }
-        }, slots.append)]), !!props.loading && createBaseVNode("span", {
-          "key": "loader",
-          "class": "v-btn__loader"
-        }, [slots.loader?.() ?? createVNode(VProgressCircular, {
-          "color": typeof props.loading === "boolean" ? void 0 : props.loading,
-          "indeterminate": true,
-          "width": "2"
-        }, null)])]
-      }), [[Ripple, !isDisabled.value && props.ripple, "", {
-        center: !!props.icon
-      }]]);
-    });
-    return {
-      group
-    };
-  }
-});
-const makeIconSizeProps = propsFactory({
-  iconSize: [Number, String],
-  iconSizes: {
-    type: Array,
-    default: () => [["x-small", 10], ["small", 16], ["default", 24], ["large", 28], ["x-large", 32]]
-  }
-}, "iconSize");
-function useIconSizes(props, fallback) {
-  const iconSize = computed(() => {
-    const iconSizeMap = new Map(props.iconSizes);
-    const _iconSize = props.iconSize ?? fallback() ?? "default";
-    return iconSizeMap.has(_iconSize) ? iconSizeMap.get(_iconSize) : _iconSize;
-  });
-  return {
-    iconSize
-  };
-}
-const allowedTypes = ["success", "info", "warning", "error"];
-const makeVAlertProps = propsFactory({
-  border: {
-    type: [Boolean, String],
-    validator: (val) => {
-      return typeof val === "boolean" || ["top", "end", "bottom", "start"].includes(val);
-    }
-  },
-  borderColor: String,
-  closable: Boolean,
-  closeIcon: {
-    type: IconValue,
-    default: "$close"
-  },
-  closeLabel: {
-    type: String,
-    default: "$vuetify.close"
-  },
-  icon: {
-    type: [Boolean, String, Function, Object],
-    default: null
-  },
-  modelValue: {
-    type: Boolean,
-    default: true
-  },
-  prominent: Boolean,
-  title: String,
-  text: String,
-  type: {
-    type: String,
-    validator: (val) => allowedTypes.includes(val)
-  },
-  ...makeComponentProps(),
-  ...makeDensityProps(),
-  ...makeDimensionProps(),
-  ...makeElevationProps(),
-  ...makeIconSizeProps(),
-  ...makeLocationProps(),
-  ...makePositionProps(),
-  ...makeRoundedProps(),
-  ...makeTagProps(),
-  ...makeThemeProps(),
-  ...makeVariantProps({
-    variant: "flat"
-  })
-}, "VAlert");
-const VAlert = genericComponent()({
-  name: "VAlert",
-  props: makeVAlertProps(),
-  emits: {
-    "click:close": (e) => true,
-    "update:modelValue": (value) => true
-  },
-  setup(props, _ref) {
-    let {
-      emit: emit2,
-      slots
-    } = _ref;
-    const isActive = useProxiedModel(props, "modelValue");
-    const icon = /* @__PURE__ */ toRef(() => {
-      if (props.icon === false) return void 0;
-      if (!props.type) return props.icon;
-      return props.icon ?? `$${props.type}`;
-    });
-    const {
-      iconSize
-    } = useIconSizes(props, () => props.prominent ? 44 : void 0);
-    const {
-      themeClasses
-    } = provideTheme(props);
-    const {
-      colorClasses,
-      colorStyles,
-      variantClasses
-    } = useVariant(() => ({
-      color: props.color ?? props.type,
-      variant: props.variant
-    }));
-    const {
-      densityClasses
-    } = useDensity(props);
-    const {
-      dimensionStyles
-    } = useDimension(props);
-    const {
-      elevationClasses
-    } = useElevation(props);
-    const {
-      locationStyles
-    } = useLocation(props);
-    const {
-      positionClasses
-    } = usePosition(props);
-    const {
-      roundedClasses
-    } = useRounded(props);
-    const {
-      textColorClasses,
-      textColorStyles
-    } = useTextColor(() => props.borderColor);
-    const {
-      t
-    } = useLocale();
-    const closeProps = /* @__PURE__ */ toRef(() => ({
-      "aria-label": t(props.closeLabel),
-      onClick(e) {
-        isActive.value = false;
-        emit2("click:close", e);
-      }
-    }));
-    return () => {
-      const hasPrepend = !!(slots.prepend || icon.value);
-      const hasTitle = !!(slots.title || props.title);
-      const hasClose = !!(slots.close || props.closable);
-      const iconProps = {
-        density: props.density,
-        icon: icon.value,
-        size: props.iconSize || props.prominent ? iconSize.value : void 0
-      };
-      return isActive.value && createVNode(props.tag, {
-        "class": normalizeClass(["v-alert", props.border && {
-          "v-alert--border": !!props.border,
-          [`v-alert--border-${props.border === true ? "start" : props.border}`]: true
-        }, {
-          "v-alert--prominent": props.prominent
-        }, themeClasses.value, colorClasses.value, densityClasses.value, elevationClasses.value, positionClasses.value, roundedClasses.value, variantClasses.value, props.class]),
-        "style": normalizeStyle([colorStyles.value, dimensionStyles.value, locationStyles.value, props.style]),
-        "role": "alert"
-      }, {
-        default: () => [genOverlays(false, "v-alert"), props.border && createBaseVNode("div", {
-          "key": "border",
-          "class": normalizeClass(["v-alert__border", textColorClasses.value]),
-          "style": normalizeStyle(textColorStyles.value)
-        }, null), hasPrepend && createBaseVNode("div", {
-          "key": "prepend",
-          "class": "v-alert__prepend"
-        }, [!slots.prepend ? createVNode(VIcon, mergeProps({
-          "key": "prepend-icon"
-        }, iconProps), null) : createVNode(VDefaultsProvider, {
-          "key": "prepend-defaults",
-          "disabled": !icon.value,
-          "defaults": {
-            VIcon: {
-              ...iconProps
-            }
-          }
-        }, slots.prepend)]), createBaseVNode("div", {
-          "class": "v-alert__content"
-        }, [hasTitle && createVNode(VAlertTitle, {
-          "key": "title"
-        }, {
-          default: () => [slots.title?.() ?? props.title]
-        }), slots.text?.() ?? props.text, slots.default?.()]), slots.append && createBaseVNode("div", {
-          "key": "append",
-          "class": "v-alert__append"
-        }, [slots.append()]), hasClose && createBaseVNode("div", {
-          "key": "close",
-          "class": "v-alert__close"
-        }, [!slots.close ? createVNode(VBtn, mergeProps({
-          "key": "close-btn",
-          "icon": props.closeIcon,
-          "size": "x-small",
-          "variant": "text"
-        }, closeProps.value), null) : createVNode(VDefaultsProvider, {
-          "key": "close-defaults",
-          "defaults": {
-            VBtn: {
-              icon: props.closeIcon,
-              size: "x-small",
-              variant: "text"
-            }
-          }
-        }, {
-          default: () => [slots.close?.({
-            props: closeProps.value
-          })]
-        })])]
-      });
-    };
-  }
-});
-const makeVCardActionsProps = propsFactory({
-  ...makeComponentProps(),
-  ...makeTagProps()
-}, "VCardActions");
-const VCardActions = genericComponent()({
-  name: "VCardActions",
-  props: makeVCardActionsProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    provideDefaults({
-      VBtn: {
-        slim: true,
-        variant: "text"
-      }
-    });
-    useRender(() => createVNode(props.tag, {
-      "class": normalizeClass(["v-card-actions", props.class]),
-      "style": normalizeStyle(props.style)
-    }, slots));
-    return {};
-  }
-});
-const makeVCardSubtitleProps = propsFactory({
-  opacity: [Number, String],
-  ...makeComponentProps(),
-  ...makeTagProps()
-}, "VCardSubtitle");
-const VCardSubtitle = genericComponent()({
-  name: "VCardSubtitle",
-  props: makeVCardSubtitleProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    useRender(() => createVNode(props.tag, {
-      "class": normalizeClass(["v-card-subtitle", props.class]),
-      "style": normalizeStyle([{
-        "--v-card-subtitle-opacity": props.opacity
-      }, props.style])
-    }, slots));
-    return {};
-  }
-});
-const VCardTitle = createSimpleFunctional("v-card-title");
-const makeCardItemProps = propsFactory({
-  appendAvatar: String,
-  appendIcon: IconValue,
-  prependAvatar: String,
-  prependIcon: IconValue,
-  subtitle: {
-    type: [String, Number, Boolean],
-    default: void 0
-  },
-  title: {
-    type: [String, Number, Boolean],
-    default: void 0
-  },
-  ...makeComponentProps(),
-  ...makeDensityProps(),
-  ...makeTagProps()
-}, "VCardItem");
-const VCardItem = genericComponent()({
-  name: "VCardItem",
-  props: makeCardItemProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    useRender(() => {
-      const hasPrependMedia = !!(props.prependAvatar || props.prependIcon);
-      const hasPrepend = !!(hasPrependMedia || slots.prepend);
-      const hasAppendMedia = !!(props.appendAvatar || props.appendIcon);
-      const hasAppend = !!(hasAppendMedia || slots.append);
-      const hasTitle = !!(props.title != null || slots.title);
-      const hasSubtitle = !!(props.subtitle != null || slots.subtitle);
-      return createVNode(props.tag, {
-        "class": normalizeClass(["v-card-item", props.class]),
-        "style": normalizeStyle(props.style)
-      }, {
-        default: () => [hasPrepend && createBaseVNode("div", {
-          "key": "prepend",
-          "class": "v-card-item__prepend"
-        }, [!slots.prepend ? createBaseVNode(Fragment, null, [props.prependAvatar && createVNode(VAvatar, {
-          "key": "prepend-avatar",
-          "density": props.density,
-          "image": props.prependAvatar
-        }, null), props.prependIcon && createVNode(VIcon, {
-          "key": "prepend-icon",
-          "density": props.density,
-          "icon": props.prependIcon
-        }, null)]) : createVNode(VDefaultsProvider, {
-          "key": "prepend-defaults",
-          "disabled": !hasPrependMedia,
-          "defaults": {
-            VAvatar: {
-              density: props.density,
-              image: props.prependAvatar
-            },
-            VIcon: {
-              density: props.density,
-              icon: props.prependIcon
-            }
-          }
-        }, slots.prepend)]), createBaseVNode("div", {
-          "class": "v-card-item__content"
-        }, [hasTitle && createVNode(VCardTitle, {
-          "key": "title"
-        }, {
-          default: () => [slots.title?.() ?? toDisplayString(props.title)]
-        }), hasSubtitle && createVNode(VCardSubtitle, {
-          "key": "subtitle"
-        }, {
-          default: () => [slots.subtitle?.() ?? toDisplayString(props.subtitle)]
-        }), slots.default?.()]), hasAppend && createBaseVNode("div", {
-          "key": "append",
-          "class": "v-card-item__append"
-        }, [!slots.append ? createBaseVNode(Fragment, null, [props.appendIcon && createVNode(VIcon, {
-          "key": "append-icon",
-          "density": props.density,
-          "icon": props.appendIcon
-        }, null), props.appendAvatar && createVNode(VAvatar, {
-          "key": "append-avatar",
-          "density": props.density,
-          "image": props.appendAvatar
-        }, null)]) : createVNode(VDefaultsProvider, {
-          "key": "append-defaults",
-          "disabled": !hasAppendMedia,
-          "defaults": {
-            VAvatar: {
-              density: props.density,
-              image: props.appendAvatar
-            },
-            VIcon: {
-              density: props.density,
-              icon: props.appendIcon
-            }
-          }
-        }, slots.append)])]
-      });
-    });
-    return {};
-  }
-});
-const makeVCardTextProps = propsFactory({
-  opacity: [Number, String],
-  ...makeComponentProps(),
-  ...makeTagProps()
-}, "VCardText");
-const VCardText = genericComponent()({
-  name: "VCardText",
-  props: makeVCardTextProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    useRender(() => createVNode(props.tag, {
-      "class": normalizeClass(["v-card-text", props.class]),
-      "style": normalizeStyle([{
-        "--v-card-text-opacity": props.opacity
-      }, props.style])
-    }, slots));
-    return {};
-  }
-});
-const makeVCardProps = propsFactory({
-  appendAvatar: String,
-  appendIcon: IconValue,
-  disabled: Boolean,
-  flat: Boolean,
-  hover: Boolean,
-  image: String,
-  link: {
-    type: Boolean,
-    default: void 0
-  },
-  prependAvatar: String,
-  prependIcon: IconValue,
-  ripple: {
-    type: [Boolean, Object],
-    default: true
-  },
-  subtitle: {
-    type: [String, Number, Boolean],
-    default: void 0
-  },
-  text: {
-    type: [String, Number, Boolean],
-    default: void 0
-  },
-  title: {
-    type: [String, Number, Boolean],
-    default: void 0
-  },
-  ...makeBorderProps(),
-  ...makeComponentProps(),
-  ...makeDensityProps(),
-  ...makeDimensionProps(),
-  ...makeElevationProps(),
-  ...makeLoaderProps(),
-  ...makeLocationProps(),
-  ...makePositionProps(),
-  ...makeRoundedProps(),
-  ...makeRouterProps(),
-  ...makeTagProps(),
-  ...makeThemeProps(),
-  ...makeVariantProps({
-    variant: "elevated"
-  })
-}, "VCard");
-const VCard = genericComponent()({
-  name: "VCard",
-  directives: {
-    vRipple: Ripple
-  },
-  props: makeVCardProps(),
-  setup(props, _ref) {
-    let {
-      attrs,
-      slots
-    } = _ref;
-    const {
-      themeClasses
-    } = provideTheme(props);
-    const {
-      borderClasses
-    } = useBorder(props);
-    const {
-      colorClasses,
-      colorStyles,
-      variantClasses
-    } = useVariant(props);
-    const {
-      densityClasses
-    } = useDensity(props);
-    const {
-      dimensionStyles
-    } = useDimension(props);
-    const {
-      elevationClasses
-    } = useElevation(props);
-    const {
-      loaderClasses
-    } = useLoader(props);
-    const {
-      locationStyles
-    } = useLocation(props);
-    const {
-      positionClasses
-    } = usePosition(props);
-    const {
-      roundedClasses
-    } = useRounded(props);
-    const link = useLink(props, attrs);
-    const loadingColor = /* @__PURE__ */ shallowRef(void 0);
-    watch(() => props.loading, (val, old) => {
-      loadingColor.value = !val && typeof old === "string" ? old : typeof val === "boolean" ? void 0 : val;
-    }, {
-      immediate: true
-    });
-    useRender(() => {
-      const isLink = props.link !== false && link.isLink.value;
-      const isClickable = !props.disabled && props.link !== false && (props.link || link.isClickable.value);
-      const Tag = isLink ? "a" : props.tag;
-      const hasTitle = !!(slots.title || props.title != null);
-      const hasSubtitle = !!(slots.subtitle || props.subtitle != null);
-      const hasHeader = hasTitle || hasSubtitle;
-      const hasAppend = !!(slots.append || props.appendAvatar || props.appendIcon);
-      const hasPrepend = !!(slots.prepend || props.prependAvatar || props.prependIcon);
-      const hasImage = !!(slots.image || props.image);
-      const hasCardItem = hasHeader || hasPrepend || hasAppend;
-      const hasText = !!(slots.text || props.text != null);
-      return withDirectives(createVNode(Tag, mergeProps(link.linkProps, {
-        "class": ["v-card", {
-          "v-card--disabled": props.disabled,
-          "v-card--flat": props.flat,
-          "v-card--hover": props.hover && !(props.disabled || props.flat),
-          "v-card--link": isClickable
-        }, themeClasses.value, borderClasses.value, colorClasses.value, densityClasses.value, elevationClasses.value, loaderClasses.value, positionClasses.value, roundedClasses.value, variantClasses.value, props.class],
-        "style": [colorStyles.value, dimensionStyles.value, locationStyles.value, props.style],
-        "onClick": isClickable && link.navigate,
-        "tabindex": props.disabled ? -1 : void 0
-      }), {
-        default: () => [hasImage && createBaseVNode("div", {
-          "key": "image",
-          "class": "v-card__image"
-        }, [!slots.image ? createVNode(VImg, {
-          "key": "image-img",
-          "cover": true,
-          "src": props.image
-        }, null) : createVNode(VDefaultsProvider, {
-          "key": "image-defaults",
-          "disabled": !props.image,
-          "defaults": {
-            VImg: {
-              cover: true,
-              src: props.image
-            }
-          }
-        }, slots.image)]), createVNode(LoaderSlot, {
-          "name": "v-card",
-          "active": !!props.loading,
-          "color": loadingColor.value
-        }, {
-          default: slots.loader
-        }), hasCardItem && createVNode(VCardItem, {
-          "key": "item",
-          "prependAvatar": props.prependAvatar,
-          "prependIcon": props.prependIcon,
-          "title": props.title,
-          "subtitle": props.subtitle,
-          "appendAvatar": props.appendAvatar,
-          "appendIcon": props.appendIcon
-        }, {
-          default: slots.item,
-          prepend: slots.prepend,
-          title: slots.title,
-          subtitle: slots.subtitle,
-          append: slots.append
-        }), hasText && createVNode(VCardText, {
-          "key": "text"
-        }, {
-          default: () => [slots.text?.() ?? props.text]
-        }), slots.default?.(), slots.actions && createVNode(VCardActions, null, {
-          default: slots.actions
-        }), genOverlays(isClickable, "v-card")]
-      }), [[Ripple, isClickable && props.ripple]]);
-    });
-    return {};
-  }
-});
-const makeVContainerProps = propsFactory({
-  fluid: {
-    type: Boolean,
-    default: false
-  },
-  ...makeComponentProps(),
-  ...makeDimensionProps(),
-  ...makeTagProps()
-}, "VContainer");
-const VContainer = genericComponent()({
-  name: "VContainer",
-  props: makeVContainerProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const {
-      rtlClasses
-    } = useRtl();
-    const {
-      dimensionStyles
-    } = useDimension(props);
-    useRender(() => createVNode(props.tag, {
-      "class": normalizeClass(["v-container", {
-        "v-container--fluid": props.fluid
-      }, rtlClasses.value, props.class]),
-      "style": normalizeStyle([dimensionStyles.value, props.style])
-    }, slots));
-    return {};
-  }
-});
-const breakpointProps = (() => {
-  return breakpoints.reduce((props, val) => {
-    props[val] = {
-      type: [Boolean, String, Number],
-      default: false
-    };
-    return props;
-  }, {});
-})();
-const offsetProps = (() => {
-  return breakpoints.reduce((props, val) => {
-    const offsetKey = "offset" + capitalize(val);
-    props[offsetKey] = {
-      type: [String, Number],
-      default: null
-    };
-    return props;
-  }, {});
-})();
-const orderProps = (() => {
-  return breakpoints.reduce((props, val) => {
-    const orderKey = "order" + capitalize(val);
-    props[orderKey] = {
-      type: [String, Number],
-      default: null
-    };
-    return props;
-  }, {});
-})();
-const propMap$1 = {
-  col: Object.keys(breakpointProps),
-  offset: Object.keys(offsetProps),
-  order: Object.keys(orderProps)
-};
-function breakpointClass$1(type, prop, val) {
-  let className = type;
-  if (val == null || val === false) {
-    return void 0;
-  }
-  if (prop) {
-    const breakpoint = prop.replace(type, "");
-    className += `-${breakpoint}`;
-  }
-  if (type === "col") {
-    className = "v-" + className;
-  }
-  if (type === "col" && (val === "" || val === true)) {
-    return className.toLowerCase();
-  }
-  className += `-${val}`;
-  return className.toLowerCase();
-}
-const ALIGN_SELF_VALUES = ["auto", "start", "end", "center", "baseline", "stretch"];
-const makeVColProps = propsFactory({
-  cols: {
-    type: [Boolean, String, Number],
-    default: false
-  },
-  ...breakpointProps,
-  offset: {
-    type: [String, Number],
-    default: null
-  },
-  ...offsetProps,
-  order: {
-    type: [String, Number],
-    default: null
-  },
-  ...orderProps,
-  alignSelf: {
-    type: String,
-    default: null,
-    validator: (str) => ALIGN_SELF_VALUES.includes(str)
-  },
-  ...makeComponentProps(),
-  ...makeTagProps()
-}, "VCol");
-const VCol = genericComponent()({
-  name: "VCol",
-  props: makeVColProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const classes = computed(() => {
-      const classList = [];
-      let type;
-      for (type in propMap$1) {
-        propMap$1[type].forEach((prop) => {
-          const value = props[prop];
-          const className = breakpointClass$1(type, prop, value);
-          if (className) classList.push(className);
-        });
-      }
-      const hasColClasses = classList.some((className) => className.startsWith("v-col-"));
-      classList.push({
-        // Default to .v-col if no other col-{bp}-* classes generated nor `cols` specified.
-        "v-col": !hasColClasses || !props.cols,
-        [`v-col-${props.cols}`]: props.cols,
-        [`offset-${props.offset}`]: props.offset,
-        [`order-${props.order}`]: props.order,
-        [`align-self-${props.alignSelf}`]: props.alignSelf
-      });
-      return classList;
-    });
-    return () => h(props.tag, {
-      class: [classes.value, props.class],
-      style: props.style
-    }, slots.default?.());
-  }
-});
-const ALIGNMENT = ["start", "end", "center"];
-const SPACE = ["space-between", "space-around", "space-evenly"];
-function makeRowProps(prefix, def2) {
-  return breakpoints.reduce((props, val) => {
-    const prefixKey = prefix + capitalize(val);
-    props[prefixKey] = def2();
-    return props;
-  }, {});
-}
-const ALIGN_VALUES = [...ALIGNMENT, "baseline", "stretch"];
-const alignValidator = (str) => ALIGN_VALUES.includes(str);
-const alignProps = makeRowProps("align", () => ({
-  type: String,
-  default: null,
-  validator: alignValidator
-}));
-const JUSTIFY_VALUES = [...ALIGNMENT, ...SPACE];
-const justifyValidator = (str) => JUSTIFY_VALUES.includes(str);
-const justifyProps = makeRowProps("justify", () => ({
-  type: String,
-  default: null,
-  validator: justifyValidator
-}));
-const ALIGN_CONTENT_VALUES = [...ALIGNMENT, ...SPACE, "stretch"];
-const alignContentValidator = (str) => ALIGN_CONTENT_VALUES.includes(str);
-const alignContentProps = makeRowProps("alignContent", () => ({
-  type: String,
-  default: null,
-  validator: alignContentValidator
-}));
-const propMap = {
-  align: Object.keys(alignProps),
-  justify: Object.keys(justifyProps),
-  alignContent: Object.keys(alignContentProps)
-};
-const classMap = {
-  align: "align",
-  justify: "justify",
-  alignContent: "align-content"
-};
-function breakpointClass(type, prop, val) {
-  let className = classMap[type];
-  if (val == null) {
-    return void 0;
-  }
-  if (prop) {
-    const breakpoint = prop.replace(type, "");
-    className += `-${breakpoint}`;
-  }
-  className += `-${val}`;
-  return className.toLowerCase();
-}
-const makeVRowProps = propsFactory({
-  dense: Boolean,
-  noGutters: Boolean,
-  align: {
-    type: String,
-    default: null,
-    validator: alignValidator
-  },
-  ...alignProps,
-  justify: {
-    type: String,
-    default: null,
-    validator: justifyValidator
-  },
-  ...justifyProps,
-  alignContent: {
-    type: String,
-    default: null,
-    validator: alignContentValidator
-  },
-  ...alignContentProps,
-  ...makeComponentProps(),
-  ...makeTagProps()
-}, "VRow");
-const VRow = genericComponent()({
-  name: "VRow",
-  props: makeVRowProps(),
-  setup(props, _ref) {
-    let {
-      slots
-    } = _ref;
-    const classes = computed(() => {
-      const classList = [];
-      let type;
-      for (type in propMap) {
-        propMap[type].forEach((prop) => {
-          const value = props[prop];
-          const className = breakpointClass(type, prop, value);
-          if (className) classList.push(className);
-        });
-      }
-      classList.push({
-        "v-row--no-gutters": props.noGutters,
-        "v-row--dense": props.dense,
-        [`align-${props.align}`]: props.align,
-        [`justify-${props.justify}`]: props.justify,
-        [`align-content-${props.alignContent}`]: props.alignContent
-      });
-      return classList;
-    });
-    return () => h(props.tag, {
-      class: ["v-row", classes.value, props.class],
-      style: props.style
-    }, slots.default?.());
-  }
-});
-const VSpacer = createSimpleFunctional("v-spacer", "div", "VSpacer");
 const makeVLabelProps = propsFactory({
   text: String,
   onClick: EventProp(),
@@ -19846,7 +21440,7 @@ const makeVMessagesProps = propsFactory({
     default: () => []
   },
   ...makeComponentProps(),
-  ...makeTransitionProps({
+  ...makeTransitionProps$1({
     transition: {
       component: VSlideYTransition,
       leaveAbsolute: true,
@@ -20247,1550 +21841,6 @@ const VInput = genericComponent()({
     };
   }
 });
-const Refs = Symbol("Forwarded refs");
-function getDescriptor(obj, key) {
-  let currentObj = obj;
-  while (currentObj) {
-    const descriptor = Reflect.getOwnPropertyDescriptor(currentObj, key);
-    if (descriptor) return descriptor;
-    currentObj = Object.getPrototypeOf(currentObj);
-  }
-  return void 0;
-}
-function forwardRefs(target) {
-  for (var _len = arguments.length, refs = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-    refs[_key - 1] = arguments[_key];
-  }
-  target[Refs] = refs;
-  return new Proxy(target, {
-    get(target2, key) {
-      if (Reflect.has(target2, key)) {
-        return Reflect.get(target2, key);
-      }
-      if (typeof key === "symbol" || key.startsWith("$") || key.startsWith("__")) return;
-      for (const ref2 of refs) {
-        if (ref2.value && Reflect.has(ref2.value, key)) {
-          const val = Reflect.get(ref2.value, key);
-          return typeof val === "function" ? val.bind(ref2.value) : val;
-        }
-      }
-    },
-    has(target2, key) {
-      if (Reflect.has(target2, key)) {
-        return true;
-      }
-      if (typeof key === "symbol" || key.startsWith("$") || key.startsWith("__")) return false;
-      for (const ref2 of refs) {
-        if (ref2.value && Reflect.has(ref2.value, key)) {
-          return true;
-        }
-      }
-      return false;
-    },
-    set(target2, key, value) {
-      if (Reflect.has(target2, key)) {
-        return Reflect.set(target2, key, value);
-      }
-      if (typeof key === "symbol" || key.startsWith("$") || key.startsWith("__")) return false;
-      for (const ref2 of refs) {
-        if (ref2.value && Reflect.has(ref2.value, key)) {
-          return Reflect.set(ref2.value, key, value);
-        }
-      }
-      return false;
-    },
-    getOwnPropertyDescriptor(target2, key) {
-      const descriptor = Reflect.getOwnPropertyDescriptor(target2, key);
-      if (descriptor) return descriptor;
-      if (typeof key === "symbol" || key.startsWith("$") || key.startsWith("__")) return;
-      for (const ref2 of refs) {
-        if (!ref2.value) continue;
-        const descriptor2 = getDescriptor(ref2.value, key) ?? ("_" in ref2.value ? getDescriptor(ref2.value._?.setupState, key) : void 0);
-        if (descriptor2) return descriptor2;
-      }
-      for (const ref2 of refs) {
-        const childRefs = ref2.value && ref2.value[Refs];
-        if (!childRefs) continue;
-        const queue2 = childRefs.slice();
-        while (queue2.length) {
-          const ref3 = queue2.shift();
-          const descriptor2 = getDescriptor(ref3.value, key);
-          if (descriptor2) return descriptor2;
-          const childRefs2 = ref3.value && ref3.value[Refs];
-          if (childRefs2) queue2.push(...childRefs2);
-        }
-      }
-      return void 0;
-    }
-  });
-}
-function elementToViewport(point, offset) {
-  return {
-    x: point.x + offset.x,
-    y: point.y + offset.y
-  };
-}
-function getOffset(a, b) {
-  return {
-    x: a.x - b.x,
-    y: a.y - b.y
-  };
-}
-function anchorToPoint(anchor, box) {
-  if (anchor.side === "top" || anchor.side === "bottom") {
-    const {
-      side,
-      align
-    } = anchor;
-    const x = align === "left" ? 0 : align === "center" ? box.width / 2 : align === "right" ? box.width : align;
-    const y = side === "top" ? 0 : side === "bottom" ? box.height : side;
-    return elementToViewport({
-      x,
-      y
-    }, box);
-  } else if (anchor.side === "left" || anchor.side === "right") {
-    const {
-      side,
-      align
-    } = anchor;
-    const x = side === "left" ? 0 : side === "right" ? box.width : side;
-    const y = align === "top" ? 0 : align === "center" ? box.height / 2 : align === "bottom" ? box.height : align;
-    return elementToViewport({
-      x,
-      y
-    }, box);
-  }
-  return elementToViewport({
-    x: box.width / 2,
-    y: box.height / 2
-  }, box);
-}
-const locationStrategies = {
-  static: staticLocationStrategy,
-  // specific viewport position, usually centered
-  connected: connectedLocationStrategy
-  // connected to a certain element
-};
-const makeLocationStrategyProps = propsFactory({
-  locationStrategy: {
-    type: [String, Function],
-    default: "static",
-    validator: (val) => typeof val === "function" || val in locationStrategies
-  },
-  location: {
-    type: String,
-    default: "bottom"
-  },
-  origin: {
-    type: String,
-    default: "auto"
-  },
-  offset: [Number, String, Array],
-  stickToTarget: Boolean,
-  viewportMargin: {
-    type: [Number, String],
-    default: 12
-  }
-}, "VOverlay-location-strategies");
-function useLocationStrategies(props, data) {
-  const contentStyles = /* @__PURE__ */ ref({});
-  const updateLocation = /* @__PURE__ */ ref();
-  if (IN_BROWSER) {
-    useToggleScope(() => !!(data.isActive.value && props.locationStrategy), (reset) => {
-      watch(() => props.locationStrategy, reset);
-      onScopeDispose(() => {
-        window.removeEventListener("resize", onResize);
-        visualViewport?.removeEventListener("resize", onVisualResize);
-        visualViewport?.removeEventListener("scroll", onVisualScroll);
-        updateLocation.value = void 0;
-      });
-      window.addEventListener("resize", onResize, {
-        passive: true
-      });
-      visualViewport?.addEventListener("resize", onVisualResize, {
-        passive: true
-      });
-      visualViewport?.addEventListener("scroll", onVisualScroll, {
-        passive: true
-      });
-      if (typeof props.locationStrategy === "function") {
-        updateLocation.value = props.locationStrategy(data, props, contentStyles)?.updateLocation;
-      } else {
-        updateLocation.value = locationStrategies[props.locationStrategy](data, props, contentStyles)?.updateLocation;
-      }
-    });
-  }
-  function onResize(e) {
-    updateLocation.value?.(e);
-  }
-  function onVisualResize(e) {
-    updateLocation.value?.(e);
-  }
-  function onVisualScroll(e) {
-    updateLocation.value?.(e);
-  }
-  return {
-    contentStyles,
-    updateLocation
-  };
-}
-function staticLocationStrategy() {
-}
-function getIntrinsicSize(el, isRtl) {
-  const contentBox = nullifyTransforms(el);
-  if (isRtl) {
-    contentBox.x += parseFloat(el.style.right || 0);
-  } else {
-    contentBox.x -= parseFloat(el.style.left || 0);
-  }
-  contentBox.y -= parseFloat(el.style.top || 0);
-  return contentBox;
-}
-function connectedLocationStrategy(data, props, contentStyles) {
-  const activatorFixed = Array.isArray(data.target.value) || isFixedPosition(data.target.value);
-  if (activatorFixed) {
-    Object.assign(contentStyles.value, {
-      position: "fixed",
-      top: 0,
-      [data.isRtl.value ? "right" : "left"]: 0
-    });
-  }
-  const {
-    preferredAnchor,
-    preferredOrigin
-  } = destructComputed(() => {
-    const parsedAnchor = parseAnchor(props.location, data.isRtl.value);
-    const parsedOrigin = props.origin === "overlap" ? parsedAnchor : props.origin === "auto" ? flipSide(parsedAnchor) : parseAnchor(props.origin, data.isRtl.value);
-    if (parsedAnchor.side === parsedOrigin.side && parsedAnchor.align === flipAlign(parsedOrigin).align) {
-      return {
-        preferredAnchor: flipCorner(parsedAnchor),
-        preferredOrigin: flipCorner(parsedOrigin)
-      };
-    } else {
-      return {
-        preferredAnchor: parsedAnchor,
-        preferredOrigin: parsedOrigin
-      };
-    }
-  });
-  const [minWidth, minHeight, maxWidth, maxHeight] = ["minWidth", "minHeight", "maxWidth", "maxHeight"].map((key) => {
-    return computed(() => {
-      const val = parseFloat(props[key]);
-      return isNaN(val) ? Infinity : val;
-    });
-  });
-  const offset = computed(() => {
-    if (Array.isArray(props.offset)) {
-      return props.offset;
-    }
-    if (typeof props.offset === "string") {
-      const offset2 = props.offset.split(" ").map(parseFloat);
-      if (offset2.length < 2) offset2.push(0);
-      return offset2;
-    }
-    return typeof props.offset === "number" ? [props.offset, 0] : [0, 0];
-  });
-  let observe = false;
-  let lastFrame = -1;
-  const flipped = new CircularBuffer(4);
-  const observer = new ResizeObserver(() => {
-    if (!observe) return;
-    requestAnimationFrame((newTime) => {
-      if (newTime !== lastFrame) flipped.clear();
-      requestAnimationFrame((newNewTime) => {
-        lastFrame = newNewTime;
-      });
-    });
-    if (flipped.isFull) {
-      const values = flipped.values();
-      if (deepEqual(values.at(-1), values.at(-3)) && !deepEqual(values.at(-1), values.at(-2))) {
-        return;
-      }
-    }
-    const result = updateLocation();
-    if (result) flipped.push(result.flipped);
-  });
-  let targetBox = new Box({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0
-  });
-  watch(data.target, (newTarget, oldTarget) => {
-    if (oldTarget && !Array.isArray(oldTarget)) observer.unobserve(oldTarget);
-    if (!Array.isArray(newTarget)) {
-      if (newTarget) observer.observe(newTarget);
-    } else if (!deepEqual(newTarget, oldTarget)) {
-      updateLocation();
-    }
-  }, {
-    immediate: true
-  });
-  watch(data.contentEl, (newContentEl, oldContentEl) => {
-    if (oldContentEl) observer.unobserve(oldContentEl);
-    if (newContentEl) observer.observe(newContentEl);
-  }, {
-    immediate: true
-  });
-  onScopeDispose(() => {
-    observer.disconnect();
-  });
-  function updateLocation() {
-    observe = false;
-    requestAnimationFrame(() => observe = true);
-    if (!data.target.value || !data.contentEl.value) return;
-    if (Array.isArray(data.target.value) || data.target.value.offsetParent || data.target.value.getClientRects().length) {
-      targetBox = getTargetBox(data.target.value);
-    }
-    const contentBox = getIntrinsicSize(data.contentEl.value, data.isRtl.value);
-    const scrollParents = getScrollParents(data.contentEl.value);
-    const viewportMargin = Number(props.viewportMargin);
-    if (!scrollParents.length) {
-      scrollParents.push(document.documentElement);
-      if (!(data.contentEl.value.style.top && data.contentEl.value.style.left)) {
-        contentBox.x -= parseFloat(document.documentElement.style.getPropertyValue("--v-body-scroll-x") || 0);
-        contentBox.y -= parseFloat(document.documentElement.style.getPropertyValue("--v-body-scroll-y") || 0);
-      }
-    }
-    const viewport = scrollParents.reduce((box, el) => {
-      const scrollBox = getElementBox(el);
-      if (box) {
-        return new Box({
-          x: Math.max(box.left, scrollBox.left),
-          y: Math.max(box.top, scrollBox.top),
-          width: Math.min(box.right, scrollBox.right) - Math.max(box.left, scrollBox.left),
-          height: Math.min(box.bottom, scrollBox.bottom) - Math.max(box.top, scrollBox.top)
-        });
-      }
-      return scrollBox;
-    }, void 0);
-    if (props.stickToTarget) {
-      viewport.x += Math.min(viewportMargin, targetBox.x);
-      viewport.y += Math.min(viewportMargin, targetBox.y);
-      viewport.width = Math.max(viewport.width - viewportMargin * 2, targetBox.x + targetBox.width - viewportMargin);
-      viewport.height = Math.max(viewport.height - viewportMargin * 2, targetBox.y + targetBox.height - viewportMargin);
-    } else {
-      viewport.x += viewportMargin;
-      viewport.y += viewportMargin;
-      viewport.width -= viewportMargin * 2;
-      viewport.height -= viewportMargin * 2;
-    }
-    let placement = {
-      anchor: preferredAnchor.value,
-      origin: preferredOrigin.value
-    };
-    function checkOverflow(_placement) {
-      const box = new Box(contentBox);
-      const targetPoint = anchorToPoint(_placement.anchor, targetBox);
-      const contentPoint = anchorToPoint(_placement.origin, box);
-      let {
-        x: x2,
-        y: y2
-      } = getOffset(targetPoint, contentPoint);
-      switch (_placement.anchor.side) {
-        case "top":
-          y2 -= offset.value[0];
-          break;
-        case "bottom":
-          y2 += offset.value[0];
-          break;
-        case "left":
-          x2 -= offset.value[0];
-          break;
-        case "right":
-          x2 += offset.value[0];
-          break;
-      }
-      switch (_placement.anchor.align) {
-        case "top":
-          y2 -= offset.value[1];
-          break;
-        case "bottom":
-          y2 += offset.value[1];
-          break;
-        case "left":
-          x2 -= offset.value[1];
-          break;
-        case "right":
-          x2 += offset.value[1];
-          break;
-      }
-      box.x += x2;
-      box.y += y2;
-      box.width = Math.min(box.width, maxWidth.value);
-      box.height = Math.min(box.height, maxHeight.value);
-      const overflows = getOverflow(box, viewport);
-      return {
-        overflows,
-        x: x2,
-        y: y2
-      };
-    }
-    let x = 0;
-    let y = 0;
-    const available = {
-      x: 0,
-      y: 0
-    };
-    const flipped2 = {
-      x: false,
-      y: false
-    };
-    let resets = -1;
-    while (true) {
-      if (resets++ > 10) {
-        break;
-      }
-      const {
-        x: _x,
-        y: _y,
-        overflows
-      } = checkOverflow(placement);
-      x += _x;
-      y += _y;
-      contentBox.x += _x;
-      contentBox.y += _y;
-      {
-        const axis2 = getAxis(placement.anchor);
-        const hasOverflowX = overflows.x.before || overflows.x.after;
-        const hasOverflowY = overflows.y.before || overflows.y.after;
-        let reset = false;
-        ["x", "y"].forEach((key) => {
-          if (key === "x" && hasOverflowX && !flipped2.x || key === "y" && hasOverflowY && !flipped2.y) {
-            const newPlacement = {
-              anchor: {
-                ...placement.anchor
-              },
-              origin: {
-                ...placement.origin
-              }
-            };
-            const flip = key === "x" ? axis2 === "y" ? flipAlign : flipSide : axis2 === "y" ? flipSide : flipAlign;
-            newPlacement.anchor = flip(newPlacement.anchor);
-            newPlacement.origin = flip(newPlacement.origin);
-            const {
-              overflows: newOverflows
-            } = checkOverflow(newPlacement);
-            if (newOverflows[key].before <= overflows[key].before && newOverflows[key].after <= overflows[key].after || newOverflows[key].before + newOverflows[key].after < (overflows[key].before + overflows[key].after) / 2) {
-              placement = newPlacement;
-              reset = flipped2[key] = true;
-            }
-          }
-        });
-        if (reset) continue;
-      }
-      if (overflows.x.before) {
-        x += overflows.x.before;
-        contentBox.x += overflows.x.before;
-      }
-      if (overflows.x.after) {
-        x -= overflows.x.after;
-        contentBox.x -= overflows.x.after;
-      }
-      if (overflows.y.before) {
-        y += overflows.y.before;
-        contentBox.y += overflows.y.before;
-      }
-      if (overflows.y.after) {
-        y -= overflows.y.after;
-        contentBox.y -= overflows.y.after;
-      }
-      {
-        const overflows2 = getOverflow(contentBox, viewport);
-        available.x = viewport.width - overflows2.x.before - overflows2.x.after;
-        available.y = viewport.height - overflows2.y.before - overflows2.y.after;
-        x += overflows2.x.before;
-        contentBox.x += overflows2.x.before;
-        y += overflows2.y.before;
-        contentBox.y += overflows2.y.before;
-      }
-      break;
-    }
-    const axis = getAxis(placement.anchor);
-    Object.assign(contentStyles.value, {
-      "--v-overlay-anchor-origin": `${placement.anchor.side} ${placement.anchor.align}`,
-      transformOrigin: `${placement.origin.side} ${placement.origin.align}`,
-      // transform: `translate(${pixelRound(x)}px, ${pixelRound(y)}px)`,
-      top: convertToUnit(pixelRound(y)),
-      left: data.isRtl.value ? void 0 : convertToUnit(pixelRound(x)),
-      right: data.isRtl.value ? convertToUnit(pixelRound(-x)) : void 0,
-      minWidth: convertToUnit(axis === "y" ? Math.min(minWidth.value, targetBox.width) : minWidth.value),
-      maxWidth: convertToUnit(pixelCeil(clamp(available.x, minWidth.value === Infinity ? 0 : minWidth.value, maxWidth.value))),
-      maxHeight: convertToUnit(pixelCeil(clamp(available.y, minHeight.value === Infinity ? 0 : minHeight.value, maxHeight.value)))
-    });
-    return {
-      available,
-      contentBox,
-      flipped: flipped2
-    };
-  }
-  watch(() => [preferredAnchor.value, preferredOrigin.value, props.offset, props.minWidth, props.minHeight, props.maxWidth, props.maxHeight], () => updateLocation());
-  nextTick(() => {
-    const result = updateLocation();
-    if (!result) return;
-    const {
-      available,
-      contentBox
-    } = result;
-    if (contentBox.height > available.y) {
-      requestAnimationFrame(() => {
-        updateLocation();
-        requestAnimationFrame(() => {
-          updateLocation();
-        });
-      });
-    }
-  });
-  return {
-    updateLocation
-  };
-}
-function pixelRound(val) {
-  return Math.round(val * devicePixelRatio) / devicePixelRatio;
-}
-function pixelCeil(val) {
-  return Math.ceil(val * devicePixelRatio) / devicePixelRatio;
-}
-let clean = true;
-const frames = [];
-function requestNewFrame(cb) {
-  if (!clean || frames.length) {
-    frames.push(cb);
-    run();
-  } else {
-    clean = false;
-    cb();
-    run();
-  }
-}
-let raf = -1;
-function run() {
-  cancelAnimationFrame(raf);
-  raf = requestAnimationFrame(() => {
-    const frame = frames.shift();
-    if (frame) frame();
-    if (frames.length) run();
-    else clean = true;
-  });
-}
-const scrollStrategies = {
-  none: null,
-  close: closeScrollStrategy,
-  block: blockScrollStrategy,
-  reposition: repositionScrollStrategy
-};
-const makeScrollStrategyProps = propsFactory({
-  scrollStrategy: {
-    type: [String, Function],
-    default: "block",
-    validator: (val) => typeof val === "function" || val in scrollStrategies
-  }
-}, "VOverlay-scroll-strategies");
-function useScrollStrategies(props, data) {
-  if (!IN_BROWSER) return;
-  let scope;
-  watchEffect(async () => {
-    scope?.stop();
-    if (!(data.isActive.value && props.scrollStrategy)) return;
-    scope = effectScope();
-    await new Promise((resolve2) => setTimeout(resolve2));
-    scope.active && scope.run(() => {
-      if (typeof props.scrollStrategy === "function") {
-        props.scrollStrategy(data, props, scope);
-      } else {
-        scrollStrategies[props.scrollStrategy]?.(data, props, scope);
-      }
-    });
-  });
-  onScopeDispose(() => {
-    scope?.stop();
-  });
-}
-function closeScrollStrategy(data) {
-  function onScroll(e) {
-    data.isActive.value = false;
-  }
-  bindScroll(getTargetEl(data.target.value, data.contentEl.value), onScroll);
-}
-function blockScrollStrategy(data, props) {
-  const offsetParent = data.root.value?.offsetParent;
-  const target = getTargetEl(data.target.value, data.contentEl.value);
-  const scrollElements = [.../* @__PURE__ */ new Set([...getScrollParents(target, props.contained ? offsetParent : void 0), ...getScrollParents(data.contentEl.value, props.contained ? offsetParent : void 0)])].filter((el) => !el.classList.contains("v-overlay-scroll-blocked"));
-  const scrollbarWidth = window.innerWidth - document.documentElement.offsetWidth;
-  const scrollableParent = ((el) => hasScrollbar(el) && el)(offsetParent || document.documentElement);
-  if (scrollableParent) {
-    data.root.value.classList.add("v-overlay--scroll-blocked");
-  }
-  scrollElements.forEach((el, i) => {
-    el.style.setProperty("--v-body-scroll-x", convertToUnit(-el.scrollLeft));
-    el.style.setProperty("--v-body-scroll-y", convertToUnit(-el.scrollTop));
-    if (el !== document.documentElement) {
-      el.style.setProperty("--v-scrollbar-offset", convertToUnit(scrollbarWidth));
-    }
-    el.classList.add("v-overlay-scroll-blocked");
-  });
-  onScopeDispose(() => {
-    scrollElements.forEach((el, i) => {
-      const x = parseFloat(el.style.getPropertyValue("--v-body-scroll-x"));
-      const y = parseFloat(el.style.getPropertyValue("--v-body-scroll-y"));
-      const scrollBehavior = el.style.scrollBehavior;
-      el.style.scrollBehavior = "auto";
-      el.style.removeProperty("--v-body-scroll-x");
-      el.style.removeProperty("--v-body-scroll-y");
-      el.style.removeProperty("--v-scrollbar-offset");
-      el.classList.remove("v-overlay-scroll-blocked");
-      el.scrollLeft = -x;
-      el.scrollTop = -y;
-      el.style.scrollBehavior = scrollBehavior;
-    });
-    if (scrollableParent) {
-      data.root.value.classList.remove("v-overlay--scroll-blocked");
-    }
-  });
-}
-function repositionScrollStrategy(data, props, scope) {
-  let slow = false;
-  let raf2 = -1;
-  let ric = -1;
-  function update(e) {
-    requestNewFrame(() => {
-      const start = performance.now();
-      data.updateLocation.value?.(e);
-      const time = performance.now() - start;
-      slow = time / (1e3 / 60) > 2;
-    });
-  }
-  ric = (typeof requestIdleCallback === "undefined" ? (cb) => cb() : requestIdleCallback)(() => {
-    scope.run(() => {
-      bindScroll(getTargetEl(data.target.value, data.contentEl.value), (e) => {
-        if (slow) {
-          cancelAnimationFrame(raf2);
-          raf2 = requestAnimationFrame(() => {
-            raf2 = requestAnimationFrame(() => {
-              update(e);
-            });
-          });
-        } else {
-          update(e);
-        }
-      });
-    });
-  });
-  onScopeDispose(() => {
-    typeof cancelIdleCallback !== "undefined" && cancelIdleCallback(ric);
-    cancelAnimationFrame(raf2);
-  });
-}
-function getTargetEl(target, contentEl) {
-  return Array.isArray(target) ? document.elementsFromPoint(...target).find((el) => !contentEl?.contains(el)) : target ?? contentEl;
-}
-function bindScroll(el, onScroll) {
-  const scrollElements = [document, ...getScrollParents(el)];
-  scrollElements.forEach((el2) => {
-    el2.addEventListener("scroll", onScroll, {
-      passive: true
-    });
-  });
-  onScopeDispose(() => {
-    scrollElements.forEach((el2) => {
-      el2.removeEventListener("scroll", onScroll);
-    });
-  });
-}
-const VMenuSymbol = Symbol.for("vuetify:v-menu");
-const makeDelayProps = propsFactory({
-  closeDelay: [Number, String],
-  openDelay: [Number, String]
-}, "delay");
-function useDelay(props, cb) {
-  let clearDelay = () => {
-  };
-  function runDelay(isOpening, options) {
-    clearDelay?.();
-    const delay = isOpening ? props.openDelay : props.closeDelay;
-    const normalizedDelay = Math.max(options?.minDelay ?? 0, Number(delay ?? 0));
-    return new Promise((resolve2) => {
-      clearDelay = defer(normalizedDelay, () => {
-        cb?.(isOpening);
-        resolve2(isOpening);
-      });
-    });
-  }
-  function runOpenDelay() {
-    return runDelay(true);
-  }
-  function runCloseDelay(options) {
-    return runDelay(false, options);
-  }
-  return {
-    clearDelay,
-    runOpenDelay,
-    runCloseDelay
-  };
-}
-const makeActivatorProps = propsFactory({
-  target: [String, Object],
-  activator: [String, Object],
-  activatorProps: {
-    type: Object,
-    default: () => ({})
-  },
-  openOnClick: {
-    type: Boolean,
-    default: void 0
-  },
-  openOnHover: Boolean,
-  openOnFocus: {
-    type: Boolean,
-    default: void 0
-  },
-  closeOnContentClick: Boolean,
-  ...makeDelayProps()
-}, "VOverlay-activator");
-function useActivator(props, _ref) {
-  let {
-    isActive,
-    isTop,
-    contentEl
-  } = _ref;
-  const vm = getCurrentInstance("useActivator");
-  const activatorEl = /* @__PURE__ */ ref();
-  let isHovered = false;
-  let isFocused = false;
-  let firstEnter = true;
-  const openOnFocus = computed(() => props.openOnFocus || props.openOnFocus == null && props.openOnHover);
-  const openOnClick = computed(() => props.openOnClick || props.openOnClick == null && !props.openOnHover && !openOnFocus.value);
-  const {
-    runOpenDelay,
-    runCloseDelay
-  } = useDelay(props, (value) => {
-    if (value === (props.openOnHover && isHovered || openOnFocus.value && isFocused) && !(props.openOnHover && isActive.value && !isTop.value)) {
-      if (isActive.value !== value) {
-        firstEnter = true;
-      }
-      isActive.value = value;
-    }
-  });
-  const cursorTarget = /* @__PURE__ */ ref();
-  const availableEvents = {
-    onClick: (e) => {
-      e.stopPropagation();
-      activatorEl.value = e.currentTarget || e.target;
-      if (!isActive.value) {
-        cursorTarget.value = [e.clientX, e.clientY];
-      }
-      isActive.value = !isActive.value;
-    },
-    onMouseenter: (e) => {
-      isHovered = true;
-      activatorEl.value = e.currentTarget || e.target;
-      runOpenDelay();
-    },
-    onMouseleave: (e) => {
-      isHovered = false;
-      runCloseDelay();
-    },
-    onFocus: (e) => {
-      if (matchesSelector(e.target, ":focus-visible") === false) return;
-      isFocused = true;
-      e.stopPropagation();
-      activatorEl.value = e.currentTarget || e.target;
-      runOpenDelay();
-    },
-    onBlur: (e) => {
-      isFocused = false;
-      e.stopPropagation();
-      runCloseDelay({
-        minDelay: 1
-      });
-    }
-  };
-  const activatorEvents = computed(() => {
-    const events = {};
-    if (openOnClick.value) {
-      events.onClick = availableEvents.onClick;
-    }
-    if (props.openOnHover) {
-      events.onMouseenter = availableEvents.onMouseenter;
-      events.onMouseleave = availableEvents.onMouseleave;
-    }
-    if (openOnFocus.value) {
-      events.onFocus = availableEvents.onFocus;
-      events.onBlur = availableEvents.onBlur;
-    }
-    return events;
-  });
-  const contentEvents = computed(() => {
-    const events = {};
-    if (props.openOnHover) {
-      events.onMouseenter = () => {
-        isHovered = true;
-        runOpenDelay();
-      };
-      events.onMouseleave = () => {
-        isHovered = false;
-        runCloseDelay();
-      };
-    }
-    if (openOnFocus.value) {
-      events.onFocusin = (e) => {
-        if (!e.target.matches(":focus-visible")) return;
-        isFocused = true;
-        runOpenDelay();
-      };
-      events.onFocusout = () => {
-        isFocused = false;
-        runCloseDelay({
-          minDelay: 1
-        });
-      };
-    }
-    if (props.closeOnContentClick) {
-      const menu = inject$1(VMenuSymbol, null);
-      events.onClick = () => {
-        isActive.value = false;
-        menu?.closeParents();
-      };
-    }
-    return events;
-  });
-  const scrimEvents = computed(() => {
-    const events = {};
-    if (props.openOnHover) {
-      events.onMouseenter = () => {
-        if (firstEnter) {
-          isHovered = true;
-          firstEnter = false;
-          runOpenDelay();
-        }
-      };
-      events.onMouseleave = () => {
-        isHovered = false;
-        runCloseDelay();
-      };
-    }
-    return events;
-  });
-  watch(isTop, (val) => {
-    if (val && (props.openOnHover && !isHovered && (!openOnFocus.value || !isFocused) || openOnFocus.value && !isFocused && (!props.openOnHover || !isHovered)) && !contentEl.value?.contains(document.activeElement)) {
-      isActive.value = false;
-    }
-  });
-  watch(isActive, (val) => {
-    if (!val) {
-      setTimeout(() => {
-        cursorTarget.value = void 0;
-      });
-    }
-  }, {
-    flush: "post"
-  });
-  const activatorRef = templateRef();
-  watchEffect(() => {
-    if (!activatorRef.value) return;
-    nextTick(() => {
-      activatorEl.value = activatorRef.el;
-    });
-  });
-  const targetRef = templateRef();
-  const target = computed(() => {
-    if (props.target === "cursor" && cursorTarget.value) return cursorTarget.value;
-    if (targetRef.value) return targetRef.el;
-    return getTarget(props.target, vm) || activatorEl.value;
-  });
-  const targetEl = computed(() => {
-    return Array.isArray(target.value) ? void 0 : target.value;
-  });
-  let scope;
-  watch(() => !!props.activator, (val) => {
-    if (val && IN_BROWSER) {
-      scope = effectScope();
-      scope.run(() => {
-        _useActivator(props, vm, {
-          activatorEl,
-          activatorEvents
-        });
-      });
-    } else if (scope) {
-      scope.stop();
-    }
-  }, {
-    flush: "post",
-    immediate: true
-  });
-  onScopeDispose(() => {
-    scope?.stop();
-  });
-  return {
-    activatorEl,
-    activatorRef,
-    target,
-    targetEl,
-    targetRef,
-    activatorEvents,
-    contentEvents,
-    scrimEvents
-  };
-}
-function _useActivator(props, vm, _ref2) {
-  let {
-    activatorEl,
-    activatorEvents
-  } = _ref2;
-  watch(() => props.activator, (val, oldVal) => {
-    if (oldVal && val !== oldVal) {
-      const activator = getActivator(oldVal);
-      activator && unbindActivatorProps(activator);
-    }
-    if (val) {
-      nextTick(() => bindActivatorProps());
-    }
-  }, {
-    immediate: true
-  });
-  watch(() => props.activatorProps, () => {
-    bindActivatorProps();
-  });
-  onScopeDispose(() => {
-    unbindActivatorProps();
-  });
-  function bindActivatorProps() {
-    let el = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getActivator();
-    let _props = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : props.activatorProps;
-    if (!el) return;
-    bindProps(el, mergeProps(activatorEvents.value, _props));
-  }
-  function unbindActivatorProps() {
-    let el = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getActivator();
-    let _props = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : props.activatorProps;
-    if (!el) return;
-    unbindProps(el, mergeProps(activatorEvents.value, _props));
-  }
-  function getActivator() {
-    let selector = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : props.activator;
-    const activator = getTarget(selector, vm);
-    activatorEl.value = activator?.nodeType === Node.ELEMENT_NODE ? activator : void 0;
-    return activatorEl.value;
-  }
-}
-function getTarget(selector, vm) {
-  if (!selector) return;
-  let target;
-  if (selector === "parent") {
-    let el = vm?.proxy?.$el?.parentNode;
-    while (el?.hasAttribute("data-no-activator")) {
-      el = el.parentNode;
-    }
-    target = el;
-  } else if (typeof selector === "string") {
-    target = document.querySelector(selector);
-  } else if ("$el" in selector) {
-    target = selector.$el;
-  } else {
-    target = selector;
-  }
-  return target;
-}
-const makeFocusTrapProps = propsFactory({
-  retainFocus: Boolean,
-  captureFocus: Boolean,
-  /** @deprecated */
-  disableInitialFocus: Boolean
-}, "focusTrap");
-const registry = /* @__PURE__ */ new Map();
-let subscribers = 0;
-function onKeydown(e) {
-  const activeElement = document.activeElement;
-  if (e.key !== "Tab" || !activeElement) return;
-  const parentTraps = Array.from(registry.values()).filter((_ref) => {
-    let {
-      isActive,
-      contentEl
-    } = _ref;
-    return isActive.value && contentEl.value?.contains(activeElement);
-  }).map((x) => x.contentEl.value);
-  let closestTrap;
-  let currentParent = activeElement.parentElement;
-  while (currentParent) {
-    if (parentTraps.includes(currentParent)) {
-      closestTrap = currentParent;
-      break;
-    }
-    currentParent = currentParent.parentElement;
-  }
-  if (!closestTrap) return;
-  const focusable = focusableChildren(closestTrap).filter((x) => x.tabIndex >= 0);
-  if (!focusable.length) return;
-  const active = document.activeElement;
-  if (focusable.length === 1 && focusable[0].classList.contains("v-list") && focusable[0].contains(active)) {
-    e.preventDefault();
-    return;
-  }
-  const firstElement = focusable[0];
-  const lastElement = focusable[focusable.length - 1];
-  if (e.shiftKey && (active === firstElement || firstElement.classList.contains("v-list") && firstElement.contains(active))) {
-    e.preventDefault();
-    lastElement.focus();
-  }
-  if (!e.shiftKey && (active === lastElement || lastElement.classList.contains("v-list") && lastElement.contains(active))) {
-    e.preventDefault();
-    firstElement.focus();
-  }
-}
-function useFocusTrap(props, _ref2) {
-  let {
-    isActive,
-    localTop,
-    contentEl
-  } = _ref2;
-  const trapId = Symbol("trap");
-  let focusTrapSuppressed = false;
-  let focusTrapSuppressionTimeout = -1;
-  async function onPointerdown() {
-    focusTrapSuppressed = true;
-    focusTrapSuppressionTimeout = window.setTimeout(() => {
-      focusTrapSuppressed = false;
-    }, 100);
-  }
-  async function captureOnFocus(e) {
-    const before = e.relatedTarget;
-    const after = e.target;
-    document.removeEventListener("pointerdown", onPointerdown);
-    document.removeEventListener("keydown", captureOnKeydown);
-    await nextTick();
-    if (isActive.value && !focusTrapSuppressed && before !== after && contentEl.value && // We're the menu without open submenus or overlays
-    toValue(localTop) && // It isn't the document or the container body
-    ![document, contentEl.value].includes(after) && // It isn't inside the container body
-    !contentEl.value.contains(after)) {
-      const focusable = focusableChildren(contentEl.value);
-      focusable[0]?.focus();
-    }
-  }
-  function captureOnKeydown(e) {
-    if (e.key !== "Tab") return;
-    document.removeEventListener("keydown", captureOnKeydown);
-    if (isActive.value && contentEl.value && e.target && !contentEl.value.contains(e.target)) {
-      const allFocusableElements = focusableChildren(document.documentElement);
-      if (e.shiftKey && e.target === allFocusableElements.at(0) || !e.shiftKey && e.target === allFocusableElements.at(-1)) {
-        const focusable = focusableChildren(contentEl.value);
-        if (focusable.length > 0) {
-          e.preventDefault();
-          focusable[0].focus();
-        }
-      }
-    }
-  }
-  const shouldCapture = /* @__PURE__ */ toRef(() => isActive.value && props.captureFocus && !props.disableInitialFocus);
-  if (IN_BROWSER) {
-    watch(() => props.retainFocus, (val) => {
-      if (val) {
-        registry.set(trapId, {
-          isActive,
-          contentEl
-        });
-      } else {
-        registry.delete(trapId);
-      }
-    }, {
-      immediate: true
-    });
-    watch(shouldCapture, (val) => {
-      if (val) {
-        document.addEventListener("pointerdown", onPointerdown);
-        document.addEventListener("focusin", captureOnFocus, {
-          once: true
-        });
-        document.addEventListener("keydown", captureOnKeydown);
-      } else {
-        document.removeEventListener("pointerdown", onPointerdown);
-        document.removeEventListener("focusin", captureOnFocus);
-        document.removeEventListener("keydown", captureOnKeydown);
-      }
-    }, {
-      immediate: true
-    });
-    if (subscribers++ < 1) {
-      document.addEventListener("keydown", onKeydown);
-    }
-  }
-  onScopeDispose(() => {
-    registry.delete(trapId);
-    clearTimeout(focusTrapSuppressionTimeout);
-    document.removeEventListener("pointerdown", onPointerdown);
-    document.removeEventListener("focusin", captureOnFocus);
-    document.removeEventListener("keydown", captureOnKeydown);
-    if (--subscribers < 1) {
-      document.removeEventListener("keydown", onKeydown);
-    }
-  });
-}
-function useHydration() {
-  if (!IN_BROWSER) return /* @__PURE__ */ shallowRef(false);
-  const {
-    ssr
-  } = useDisplay();
-  if (ssr) {
-    const isMounted = /* @__PURE__ */ shallowRef(false);
-    onMounted(() => {
-      isMounted.value = true;
-    });
-    return isMounted;
-  } else {
-    return /* @__PURE__ */ shallowRef(true);
-  }
-}
-const makeLazyProps = propsFactory({
-  eager: Boolean
-}, "lazy");
-function useLazy(props, active) {
-  const isBooted = /* @__PURE__ */ shallowRef(false);
-  const hasContent = /* @__PURE__ */ toRef(() => isBooted.value || props.eager || active.value);
-  watch(active, () => isBooted.value = true);
-  function onAfterLeave() {
-    if (!props.eager) isBooted.value = false;
-  }
-  return {
-    isBooted,
-    hasContent,
-    onAfterLeave
-  };
-}
-function useScopeId() {
-  const vm = getCurrentInstance("useScopeId");
-  const scopeId = vm.vnode.scopeId;
-  return {
-    scopeId: scopeId ? {
-      [scopeId]: ""
-    } : void 0
-  };
-}
-const StackSymbol = Symbol.for("vuetify:stack");
-const globalStack = /* @__PURE__ */ reactive([]);
-function useStack(isActive, zIndex, disableGlobalStack) {
-  const vm = getCurrentInstance("useStack");
-  const createStackEntry = !disableGlobalStack;
-  const parent = inject$1(StackSymbol, void 0);
-  const stack2 = /* @__PURE__ */ reactive({
-    activeChildren: /* @__PURE__ */ new Set()
-  });
-  provide(StackSymbol, stack2);
-  const _zIndex = /* @__PURE__ */ shallowRef(Number(toValue(zIndex)));
-  useToggleScope(isActive, () => {
-    const lastZIndex = globalStack.at(-1)?.[1];
-    _zIndex.value = lastZIndex ? lastZIndex + 10 : Number(toValue(zIndex));
-    if (createStackEntry) {
-      globalStack.push([vm.uid, _zIndex.value]);
-    }
-    parent?.activeChildren.add(vm.uid);
-    onScopeDispose(() => {
-      if (createStackEntry) {
-        const idx = (/* @__PURE__ */ toRaw(globalStack)).findIndex((v) => v[0] === vm.uid);
-        globalStack.splice(idx, 1);
-      }
-      parent?.activeChildren.delete(vm.uid);
-    });
-  });
-  const globalTop = /* @__PURE__ */ shallowRef(true);
-  if (createStackEntry) {
-    watchEffect(() => {
-      const _isTop = globalStack.at(-1)?.[0] === vm.uid;
-      setTimeout(() => globalTop.value = _isTop);
-    });
-  }
-  const localTop = /* @__PURE__ */ toRef(() => !stack2.activeChildren.size);
-  return {
-    globalTop: /* @__PURE__ */ readonly(globalTop),
-    localTop,
-    stackStyles: /* @__PURE__ */ toRef(() => ({
-      zIndex: _zIndex.value
-    }))
-  };
-}
-function useTeleport(target) {
-  const teleportTarget = computed(() => {
-    const _target = target();
-    if (_target === true || !IN_BROWSER) return void 0;
-    const targetElement = _target === false ? document.body : typeof _target === "string" ? document.querySelector(_target) : _target;
-    if (targetElement == null) {
-      return void 0;
-    }
-    let container = [...targetElement.children].find((el) => el.matches(".v-overlay-container"));
-    if (!container) {
-      container = document.createElement("div");
-      container.className = "v-overlay-container";
-      targetElement.appendChild(container);
-    }
-    return container;
-  });
-  return {
-    teleportTarget
-  };
-}
-function defaultConditional() {
-  return true;
-}
-function checkEvent(e, el, binding) {
-  if (!e || checkIsActive(e, binding) === false) return false;
-  const root = attachedRoot(el);
-  if (typeof ShadowRoot !== "undefined" && root instanceof ShadowRoot && root.host === e.target) return false;
-  const elements = (typeof binding.value === "object" && binding.value.include || (() => []))();
-  elements.push(el);
-  return !elements.some((el2) => el2?.contains(e.target));
-}
-function checkIsActive(e, binding) {
-  const isActive = typeof binding.value === "object" && binding.value.closeConditional || defaultConditional;
-  return isActive(e);
-}
-function directive(e, el, binding) {
-  const handler = typeof binding.value === "function" ? binding.value : binding.value.handler;
-  e.shadowTarget = e.target;
-  el._clickOutside.lastMousedownWasOutside && checkEvent(e, el, binding) && setTimeout(() => {
-    checkIsActive(e, binding) && handler && handler(e);
-  }, 0);
-}
-function handleShadow(el, callback) {
-  const root = attachedRoot(el);
-  callback(document);
-  if (typeof ShadowRoot !== "undefined" && root instanceof ShadowRoot) {
-    callback(root);
-  }
-}
-const ClickOutside = {
-  // [data-app] may not be found
-  // if using bind, inserted makes
-  // sure that the root element is
-  // available, iOS does not support
-  // clicks on body
-  mounted(el, binding) {
-    const onClick = (e) => directive(e, el, binding);
-    const onMousedown = (e) => {
-      el._clickOutside.lastMousedownWasOutside = checkEvent(e, el, binding);
-    };
-    handleShadow(el, (app2) => {
-      app2.addEventListener("click", onClick, true);
-      app2.addEventListener("mousedown", onMousedown, true);
-    });
-    if (!el._clickOutside) {
-      el._clickOutside = {
-        lastMousedownWasOutside: false
-      };
-    }
-    el._clickOutside[binding.instance.$.uid] = {
-      onClick,
-      onMousedown
-    };
-  },
-  beforeUnmount(el, binding) {
-    if (!el._clickOutside) return;
-    handleShadow(el, (app2) => {
-      if (!app2 || !el._clickOutside?.[binding.instance.$.uid]) return;
-      const {
-        onClick,
-        onMousedown
-      } = el._clickOutside[binding.instance.$.uid];
-      app2.removeEventListener("click", onClick, true);
-      app2.removeEventListener("mousedown", onMousedown, true);
-    });
-    delete el._clickOutside[binding.instance.$.uid];
-  }
-};
-function Scrim(props) {
-  const {
-    modelValue,
-    color,
-    ...rest
-  } = props;
-  return createVNode(Transition, {
-    "name": "fade-transition",
-    "appear": true
-  }, {
-    default: () => [props.modelValue && createBaseVNode("div", mergeProps({
-      "class": ["v-overlay__scrim", props.color.backgroundColorClasses.value],
-      "style": props.color.backgroundColorStyles.value
-    }, rest), null)]
-  });
-}
-const makeVOverlayProps = propsFactory({
-  absolute: Boolean,
-  attach: [Boolean, String, Object],
-  closeOnBack: {
-    type: Boolean,
-    default: true
-  },
-  contained: Boolean,
-  contentClass: null,
-  contentProps: null,
-  disabled: Boolean,
-  opacity: [Number, String],
-  noClickAnimation: Boolean,
-  modelValue: Boolean,
-  persistent: Boolean,
-  scrim: {
-    type: [Boolean, String],
-    default: true
-  },
-  zIndex: {
-    type: [Number, String],
-    default: 2e3
-  },
-  ...makeActivatorProps(),
-  ...makeComponentProps(),
-  ...makeDimensionProps(),
-  ...makeLazyProps(),
-  ...makeLocationStrategyProps(),
-  ...makeScrollStrategyProps(),
-  ...makeFocusTrapProps(),
-  ...makeThemeProps(),
-  ...makeTransitionProps()
-}, "VOverlay");
-const VOverlay = genericComponent()({
-  name: "VOverlay",
-  directives: {
-    vClickOutside: ClickOutside
-  },
-  inheritAttrs: false,
-  props: {
-    _disableGlobalStack: Boolean,
-    ...omit(makeVOverlayProps(), ["disableInitialFocus"])
-  },
-  emits: {
-    "click:outside": (e) => true,
-    "update:modelValue": (value) => true,
-    keydown: (e) => true,
-    afterEnter: () => true,
-    afterLeave: () => true
-  },
-  setup(props, _ref) {
-    let {
-      slots,
-      attrs,
-      emit: emit2
-    } = _ref;
-    const vm = getCurrentInstance("VOverlay");
-    const root = /* @__PURE__ */ ref();
-    const scrimEl = /* @__PURE__ */ ref();
-    const contentEl = /* @__PURE__ */ ref();
-    const model = useProxiedModel(props, "modelValue");
-    const isActive = computed({
-      get: () => model.value,
-      set: (v) => {
-        if (!(v && props.disabled)) model.value = v;
-      }
-    });
-    const {
-      themeClasses
-    } = provideTheme(props);
-    const {
-      rtlClasses,
-      isRtl
-    } = useRtl();
-    const {
-      hasContent,
-      onAfterLeave: _onAfterLeave
-    } = useLazy(props, isActive);
-    const scrimColor = useBackgroundColor(() => {
-      return typeof props.scrim === "string" ? props.scrim : null;
-    });
-    const {
-      globalTop,
-      localTop,
-      stackStyles
-    } = useStack(isActive, () => props.zIndex, props._disableGlobalStack);
-    const {
-      activatorEl,
-      activatorRef,
-      target,
-      targetEl,
-      targetRef,
-      activatorEvents,
-      contentEvents,
-      scrimEvents
-    } = useActivator(props, {
-      isActive,
-      isTop: localTop,
-      contentEl
-    });
-    const {
-      teleportTarget
-    } = useTeleport(() => {
-      const target2 = props.attach || props.contained;
-      if (target2) return target2;
-      const rootNode = activatorEl?.value?.getRootNode() || vm.proxy?.$el?.getRootNode();
-      if (rootNode instanceof ShadowRoot) return rootNode;
-      return false;
-    });
-    const {
-      dimensionStyles
-    } = useDimension(props);
-    const isMounted = useHydration();
-    const {
-      scopeId
-    } = useScopeId();
-    watch(() => props.disabled, (v) => {
-      if (v) isActive.value = false;
-    });
-    const {
-      contentStyles,
-      updateLocation
-    } = useLocationStrategies(props, {
-      isRtl,
-      contentEl,
-      target,
-      isActive
-    });
-    useScrollStrategies(props, {
-      root,
-      contentEl,
-      targetEl,
-      target,
-      isActive,
-      updateLocation
-    });
-    function onClickOutside(e) {
-      emit2("click:outside", e);
-      if (!props.persistent) isActive.value = false;
-      else animateClick();
-    }
-    function closeConditional(e) {
-      return isActive.value && localTop.value && // If using scrim, only close if clicking on it rather than anything opened on top
-      (!props.scrim || e.target === scrimEl.value || e instanceof MouseEvent && e.shadowTarget === scrimEl.value);
-    }
-    useFocusTrap(props, {
-      isActive,
-      localTop,
-      contentEl
-    });
-    IN_BROWSER && watch(isActive, (val) => {
-      if (val) {
-        window.addEventListener("keydown", onKeydown2);
-      } else {
-        window.removeEventListener("keydown", onKeydown2);
-      }
-    }, {
-      immediate: true
-    });
-    onBeforeUnmount(() => {
-      if (!IN_BROWSER) return;
-      window.removeEventListener("keydown", onKeydown2);
-    });
-    function onKeydown2(e) {
-      if (e.key === "Escape" && globalTop.value) {
-        if (!contentEl.value?.contains(document.activeElement)) {
-          emit2("keydown", e);
-        }
-        if (!props.persistent) {
-          isActive.value = false;
-          if (contentEl.value?.contains(document.activeElement)) {
-            activatorEl.value?.focus();
-          }
-        } else animateClick();
-      }
-    }
-    function onKeydownSelf(e) {
-      if (e.key === "Escape" && !globalTop.value) return;
-      emit2("keydown", e);
-    }
-    const router2 = useRouter();
-    useToggleScope(() => props.closeOnBack, () => {
-      useBackButton(router2, (next) => {
-        if (globalTop.value && isActive.value) {
-          next(false);
-          if (!props.persistent) isActive.value = false;
-          else animateClick();
-        } else {
-          next();
-        }
-      });
-    });
-    const top = /* @__PURE__ */ ref();
-    watch(() => isActive.value && (props.absolute || props.contained) && teleportTarget.value == null, (val) => {
-      if (val) {
-        const scrollParent = getScrollParent(root.value);
-        if (scrollParent && scrollParent !== document.scrollingElement) {
-          top.value = scrollParent.scrollTop;
-        }
-      }
-    });
-    function animateClick() {
-      if (props.noClickAnimation) return;
-      contentEl.value && animate(contentEl.value, [{
-        transformOrigin: "center"
-      }, {
-        transform: "scale(1.03)"
-      }, {
-        transformOrigin: "center"
-      }], {
-        duration: 150,
-        easing: standardEasing
-      });
-    }
-    function onAfterEnter() {
-      emit2("afterEnter");
-    }
-    function onAfterLeave() {
-      _onAfterLeave();
-      emit2("afterLeave");
-    }
-    useRender(() => createBaseVNode(Fragment, null, [slots.activator?.({
-      isActive: isActive.value,
-      targetRef,
-      props: mergeProps({
-        ref: activatorRef
-      }, activatorEvents.value, props.activatorProps)
-    }), isMounted.value && hasContent.value && createVNode(Teleport, {
-      "disabled": !teleportTarget.value,
-      "to": teleportTarget.value
-    }, {
-      default: () => [createBaseVNode("div", mergeProps({
-        "class": ["v-overlay", {
-          "v-overlay--absolute": props.absolute || props.contained,
-          "v-overlay--active": isActive.value,
-          "v-overlay--contained": props.contained
-        }, themeClasses.value, rtlClasses.value, props.class],
-        "style": [stackStyles.value, {
-          "--v-overlay-opacity": props.opacity,
-          top: convertToUnit(top.value)
-        }, props.style],
-        "ref": root,
-        "onKeydown": onKeydownSelf
-      }, scopeId, attrs), [createVNode(Scrim, mergeProps({
-        "color": scrimColor,
-        "modelValue": isActive.value && !!props.scrim,
-        "ref": scrimEl
-      }, scrimEvents.value), null), createVNode(MaybeTransition, {
-        "appear": true,
-        "persisted": true,
-        "transition": props.transition,
-        "target": target.value,
-        "onAfterEnter": onAfterEnter,
-        "onAfterLeave": onAfterLeave
-      }, {
-        default: () => [withDirectives(createBaseVNode("div", mergeProps({
-          "ref": contentEl,
-          "class": ["v-overlay__content", props.contentClass],
-          "style": [dimensionStyles.value, contentStyles.value]
-        }, contentEvents.value, props.contentProps), [slots.default?.({
-          isActive
-        })]), [[vShow, isActive.value], [ClickOutside, {
-          handler: onClickOutside,
-          closeConditional,
-          include: () => [activatorEl.value]
-        }]])]
-      })])]
-    })]));
-    return {
-      activatorEl,
-      scrimEl,
-      target,
-      animateClick,
-      contentEl,
-      rootEl: root,
-      globalTop,
-      localTop,
-      updateLocation
-    };
-  }
-});
 const makeVMenuProps = propsFactory({
   // TODO
   // disableKeys: Boolean,
@@ -21950,7 +22000,7 @@ const makeVCounterProps = propsFactory({
     default: 0
   },
   ...makeComponentProps(),
-  ...makeTransitionProps({
+  ...makeTransitionProps$1({
     transition: {
       component: VSlideYTransition
     }
@@ -23055,7 +23105,7 @@ const makeVSelectProps = propsFactory({
     modelValue: null,
     role: "combobox"
   }), ["validationValue", "dirty"]),
-  ...makeTransitionProps({
+  ...makeTransitionProps$1({
     transition: {
       component: VDialogTransition
     }
@@ -23797,40 +23847,162 @@ const VTimeline = genericComponent()({
     return {};
   }
 });
-const _hoisted_1 = { class: "flex items-center justify-between gap-4 flex-wrap" };
-const _hoisted_2 = { class: "text-h6" };
-const _hoisted_3 = { class: "text-body-2 text-medium-emphasis" };
-const _hoisted_4 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_5 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_6 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_7 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_8 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_9 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_10 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_11 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_12 = { class: "text-body-2 font-weight-medium text-truncate" };
-const _hoisted_13 = { class: "text-body-1 font-weight-medium" };
-const _hoisted_14 = { class: "text-body-2 font-weight-medium" };
-const _hoisted_15 = { class: "text-body-2 text-medium-emphasis" };
-const _hoisted_16 = { class: "text-body-2 font-weight-medium" };
-const _hoisted_17 = { class: "text-body-2 text-medium-emphasis" };
-const _hoisted_18 = { class: "text-body-2 font-weight-medium" };
-const _hoisted_19 = { class: "text-body-1 font-weight-medium mt-1" };
-const _hoisted_20 = { class: "text-body-2 text-medium-emphasis mt-1" };
-const _hoisted_21 = { class: "mt-4 flex items-center justify-between gap-3 flex-wrap" };
-const _hoisted_22 = { class: "flex items-center justify-between gap-3" };
-const _hoisted_23 = { class: "text-body-2 font-weight-medium" };
-const _hoisted_24 = { class: "text-body-2 text-medium-emphasis" };
-const _hoisted_25 = { class: "text-caption text-disabled" };
-const _hoisted_26 = { class: "overflow-auto max-h-[87vh]" };
+const _hoisted_1$1 = {
+  key: 0,
+  class: "startup-screen"
+};
+const _hoisted_2$1 = { class: "startup-screen__content" };
+const _hoisted_3$1 = { class: "startup-screen__title" };
+const _hoisted_4$1 = { class: "startup-screen__subtitle" };
+const _hoisted_5$1 = { class: "startup-screen__chips" };
+const _hoisted_6$1 = { class: "startup-screen__stats" };
+const _hoisted_7$1 = { class: "startup-metric-card" };
+const _hoisted_8$1 = { class: "startup-metric-card__value" };
+const _hoisted_9$1 = { class: "startup-metric-card" };
+const _hoisted_10 = { class: "startup-metric-card__value" };
+const _hoisted_11 = { class: "startup-metric-card" };
+const _hoisted_12 = { class: "startup-metric-card__value startup-metric-card__value--small" };
+const _hoisted_13 = { class: "startup-metric-card" };
+const _hoisted_14 = { class: "startup-metric-card__value" };
+const _hoisted_15 = { class: "startup-metric-card" };
+const _hoisted_16 = { class: "startup-metric-card__value" };
+const _hoisted_17 = { class: "stage-card__header" };
+const _hoisted_18 = { class: "stage-card__title" };
+const _hoisted_19 = { class: "stage-card__percent" };
+const _hoisted_20 = { class: "stage-card__message" };
+const _hoisted_21 = { class: "stage-card__meta" };
+const _hoisted_22 = { class: "stage-card__eta" };
+const _hoisted_23 = {
+  key: 0,
+  class: "startup-screen__highlights"
+};
+const _hoisted_24 = { class: "highlight-card__header" };
+const _hoisted_25 = { class: "highlight-card__actions" };
+const _hoisted_26 = { class: "highlight-card__header" };
+const _hoisted_27 = { class: "highlight-card__actions" };
+const _hoisted_28 = {
+  key: 1,
+  class: "startup-screen__distribution"
+};
+const _hoisted_29 = { class: "mini-chart" };
+const _hoisted_30 = { class: "mini-chart__label" };
+const _hoisted_31 = { class: "mini-chart__bar-wrap" };
+const _hoisted_32 = { class: "mini-chart__value" };
+const _hoisted_33 = { class: "mini-chart" };
+const _hoisted_34 = { class: "mini-chart__label" };
+const _hoisted_35 = { class: "mini-chart__bar-wrap" };
+const _hoisted_36 = { class: "mini-chart__value" };
+const _hoisted_37 = { class: "flex items-center justify-between gap-4 flex-wrap" };
+const _hoisted_38 = { class: "text-h6" };
+const _hoisted_39 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_40 = { class: "stage-card-grid mt-4" };
+const _hoisted_41 = { class: "stage-card__header" };
+const _hoisted_42 = { class: "stage-card__title" };
+const _hoisted_43 = { class: "stage-card__percent" };
+const _hoisted_44 = { class: "stage-card__message" };
+const _hoisted_45 = { class: "stage-card__meta" };
+const _hoisted_46 = { class: "stage-card__eta" };
+const _hoisted_47 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_48 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_49 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_50 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_51 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_52 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_53 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_54 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_55 = { class: "text-body-2 font-weight-medium text-truncate" };
+const _hoisted_56 = { class: "text-body-1 font-weight-medium" };
+const _hoisted_57 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_58 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_59 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_60 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_61 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_62 = { class: "text-body-1 font-weight-medium mt-1" };
+const _hoisted_63 = { class: "text-body-2 text-medium-emphasis mt-1" };
+const _hoisted_64 = { class: "text-body-2 text-medium-emphasis mt-1" };
+const _hoisted_65 = {
+  key: 0,
+  class: "highlight-grid mt-4"
+};
+const _hoisted_66 = { class: "highlight-card__actions" };
+const _hoisted_67 = { class: "highlight-card__actions" };
+const _hoisted_68 = {
+  key: 1,
+  class: "highlight-grid mt-4"
+};
+const _hoisted_69 = { class: "highlight-card__header" };
+const _hoisted_70 = { class: "distribution-card__controls" };
+const _hoisted_71 = { class: "text-caption text-medium-emphasis" };
+const _hoisted_72 = { class: "mini-chart" };
+const _hoisted_73 = ["onClick"];
+const _hoisted_74 = { class: "mini-chart__label" };
+const _hoisted_75 = { class: "mini-chart__bar-wrap" };
+const _hoisted_76 = { class: "mini-chart__value" };
+const _hoisted_77 = { class: "highlight-card__header" };
+const _hoisted_78 = { class: "distribution-card__controls" };
+const _hoisted_79 = { class: "text-caption text-medium-emphasis" };
+const _hoisted_80 = { class: "mini-chart" };
+const _hoisted_81 = ["onClick"];
+const _hoisted_82 = { class: "mini-chart__label" };
+const _hoisted_83 = { class: "mini-chart__bar-wrap" };
+const _hoisted_84 = { class: "mini-chart__value" };
+const _hoisted_85 = { class: "mt-4 flex items-center justify-between gap-3 flex-wrap" };
+const _hoisted_86 = { class: "flex items-center justify-between gap-3" };
+const _hoisted_87 = { class: "text-body-2 font-weight-medium" };
+const _hoisted_88 = { class: "text-body-2 text-medium-emphasis" };
+const _hoisted_89 = { class: "text-caption text-disabled" };
+const _hoisted_90 = { class: "explorer-shell" };
+const _hoisted_91 = { class: "explorer-toolbar" };
+const _hoisted_92 = { class: "explorer-breadcrumb" };
+const _hoisted_93 = ["onClick"];
+const _hoisted_94 = { class: "explorer-toolbar__actions" };
+const _hoisted_95 = {
+  key: 0,
+  class: "explorer-loading explorer-content"
+};
+const _hoisted_96 = {
+  key: 1,
+  class: "explorer-content explorer-content--table"
+};
+const _hoisted_97 = { class: "explorer-table" };
+const _hoisted_98 = {
+  key: 2,
+  class: "explorer-content"
+};
+const _hoisted_99 = { class: "explorer-grid" };
+const _hoisted_100 = {
+  key: 3,
+  class: "explorer-empty explorer-content"
+};
+const _hoisted_101 = { class: "text-truncate" };
+const _hoisted_102 = {
+  key: 1,
+  class: "preview-image-wrap"
+};
+const _hoisted_103 = ["src"];
+const _hoisted_104 = {
+  key: 2,
+  class: "preview-text"
+};
+const _hoisted_105 = {
+  key: 3,
+  class: "text-body-2 text-medium-emphasis"
+};
+const _hoisted_106 = {
+  key: 4,
+  class: "text-caption text-medium-emphasis mt-3"
+};
+const _hoisted_107 = { class: "text-body-2" };
 const DASHBOARD_GRACE_MS = 6e3;
+const SCAN_DEPTH = 1;
 const _sfc_main$1 = {
   __name: "DiskTree",
-  setup(__props) {
+  emits: ["disk-usage-change"],
+  setup(__props, { emit: __emit }) {
+    const emit2 = __emit;
     const folders = /* @__PURE__ */ ref([]);
     const loading = /* @__PURE__ */ ref(false);
     const error = /* @__PURE__ */ ref(null);
-    const expandedIds = /* @__PURE__ */ ref(/* @__PURE__ */ new Set());
     const progressEvents = /* @__PURE__ */ ref([]);
     const scanInfo = /* @__PURE__ */ ref(null);
     const selectedDrive = /* @__PURE__ */ ref("C");
@@ -23838,9 +24010,31 @@ const _sfc_main$1 = {
     const scanStartedAt = /* @__PURE__ */ ref(null);
     const scanFinishedAt = /* @__PURE__ */ ref(null);
     const dashboardVisible = /* @__PURE__ */ ref(false);
+    const initialLoadPending = /* @__PURE__ */ ref(true);
+    const highlights = /* @__PURE__ */ ref({ folders: [], files: [], generatedAt: null });
+    const distribution = /* @__PURE__ */ ref({ rootFolders: [], fileTypes: [], generatedAt: null });
+    const viewMode = /* @__PURE__ */ ref("list");
+    const activeTypeFilter = /* @__PURE__ */ ref(null);
+    const activeSizeFilter = /* @__PURE__ */ ref("all");
+    const currentPathSegments = /* @__PURE__ */ ref([]);
+    const selectedItem = /* @__PURE__ */ ref(null);
+    const explorerBusy = /* @__PURE__ */ ref(false);
+    const sortKey = /* @__PURE__ */ ref("name");
+    const sortDir = /* @__PURE__ */ ref("asc");
+    const previewDialog = /* @__PURE__ */ ref({ open: false, kind: null, path: "", name: "", content: "", mime: "", message: "", truncated: false });
+    const deleteDialog = /* @__PURE__ */ ref({ open: false, loading: false, path: "", item: null });
+    const contextMenu = /* @__PURE__ */ ref({ open: false, x: 0, y: 0, item: null });
     let dashboardHideTimer = null;
     let removeProgressListener = null;
     let removeCacheUpdatedListener = null;
+    const stageOrder = ["start", "elevation", "open", "cache", "delta", "usn-enum", "mft-read", "fallback", "done"];
+    const sizeFilterOptions = [
+      { title: "Toutes tailles", value: "all" },
+      { title: "Fichiers vides", value: "empty" },
+      { title: "Moins de 100 Mo", value: "lt-100mb" },
+      { title: "100 Mo a 1 Go", value: "100mb-1gb" },
+      { title: "Plus de 1 Go", value: "gt-1gb" }
+    ];
     function clearDashboardHideTimer() {
       if (dashboardHideTimer) {
         clearTimeout(dashboardHideTimer);
@@ -23854,58 +24048,107 @@ const _sfc_main$1 = {
       }, DASHBOARD_GRACE_MS);
     }
     async function startScan() {
+      await runScan(selectedDrive.value, { preserveFolders: false, startup: false });
+    }
+    async function runScan(drive, { preserveFolders = false, startup = false } = {}) {
+      const normalizedDrive = String(drive || selectedDrive.value || "C").trim().replace(/[:\\/]+$/g, "").charAt(0).toUpperCase();
+      if (!normalizedDrive) return;
       clearDashboardHideTimer();
       dashboardVisible.value = true;
       loading.value = true;
       error.value = null;
-      folders.value = [];
-      expandedIds.value = /* @__PURE__ */ new Set();
+      if (!preserveFolders) {
+        folders.value = [];
+      }
+      currentPathSegments.value = [];
       scanInfo.value = null;
       progressEvents.value = [];
       scanStartedAt.value = Date.now();
       scanFinishedAt.value = null;
+      if (startup) {
+        initialLoadPending.value = true;
+      }
       try {
-        const result = await window.mftAPI.scan(selectedDrive.value, 1);
+        const result = await window.mftAPI.scan(normalizedDrive, SCAN_DEPTH);
         folders.value = result?.summary ?? [];
         scanInfo.value = result?.scanInfo ?? null;
+        await refreshHighlights(normalizedDrive);
+        await refreshDistribution(normalizedDrive);
       } catch (e) {
         error.value = e.message;
       } finally {
         loading.value = false;
         scanFinishedAt.value = Date.now();
+        if (startup) {
+          initialLoadPending.value = false;
+        }
         scheduleDashboardHide();
       }
     }
-    async function loadDriveSummary(drive, { forceScan = false, keepDashboard = false } = {}) {
+    async function loadDriveSummary(drive, { forceScan = false, startup = false } = {}) {
       const normalizedDrive = String(drive || selectedDrive.value || "C").trim().replace(/[:\\/]+$/g, "").charAt(0).toUpperCase();
       if (!normalizedDrive) return;
+      await refreshDriveUsage(normalizedDrive);
+      if (startup) {
+        initialLoadPending.value = true;
+      }
       if (!forceScan) {
         try {
-          const cached = await window.mftAPI.getSummary(normalizedDrive);
+          const cached = await window.mftAPI.getSummary(normalizedDrive, { typeFilter: activeTypeFilter.value });
           if (cached?.cached) {
             folders.value = cached.summary ?? [];
             scanInfo.value = cached.scanInfo ?? null;
             error.value = null;
+            await refreshHighlights(normalizedDrive);
+            await refreshDistribution(normalizedDrive);
+            if (startup) {
+              initialLoadPending.value = false;
+            }
             return;
           }
         } catch {
         }
       }
-      if (keepDashboard) {
-        await startScan();
-        return;
-      }
-      loading.value = true;
-      error.value = null;
+      await runScan(normalizedDrive, { preserveFolders: false, startup });
+    }
+    async function refreshHighlights(drive) {
       try {
-        const result = await window.mftAPI.scan(normalizedDrive, 1);
-        folders.value = result?.summary ?? [];
-        scanInfo.value = result?.scanInfo ?? null;
-      } catch (e) {
-        error.value = e.message;
-      } finally {
-        loading.value = false;
+        const nextHighlights = await window.mftAPI.getHighlights(drive, { limit: 5 });
+        highlights.value = {
+          folders: Array.isArray(nextHighlights?.folders) ? nextHighlights.folders : [],
+          files: Array.isArray(nextHighlights?.files) ? nextHighlights.files : [],
+          generatedAt: nextHighlights?.generatedAt ?? null
+        };
+      } catch {
+        highlights.value = { folders: [], files: [], generatedAt: null };
       }
+    }
+    async function refreshDistribution(drive) {
+      try {
+        const nextDistribution = await window.mftAPI.getDistribution(drive, { limit: 6 });
+        distribution.value = {
+          rootFolders: Array.isArray(nextDistribution?.rootFolders) ? nextDistribution.rootFolders : [],
+          fileTypes: Array.isArray(nextDistribution?.fileTypes) ? nextDistribution.fileTypes : [],
+          generatedAt: nextDistribution?.generatedAt ?? null
+        };
+      } catch {
+        distribution.value = { rootFolders: [], fileTypes: [], generatedAt: null };
+      }
+    }
+    async function refreshDriveUsage(drive) {
+      try {
+        const usage = await window.mftAPI.getDriveUsage(drive);
+        emit2("disk-usage-change", usage);
+      } catch {
+        emit2("disk-usage-change", null);
+      }
+    }
+    function clearFilters() {
+      activeTypeFilter.value = null;
+      activeSizeFilter.value = "all";
+    }
+    function toggleTypeFilter(typeKey) {
+      activeTypeFilter.value = activeTypeFilter.value === typeKey ? null : typeKey;
     }
     const scanInfoLabelMap = {
       cache: "Resultat depuis cache",
@@ -23925,26 +24168,131 @@ const _sfc_main$1 = {
       const source = scanInfo.value?.source;
       return scanInfoColorMap[source] ?? "secondary";
     });
-    const totalScannedSize = computed(() => {
-      return folders.value.reduce((sum, folder) => sum + (folder.size_bytes || 0), 0);
-    });
-    function toggleFolder(id) {
-      const next = new Set(expandedIds.value);
-      next.has(id) ? next.delete(id) : next.add(id);
-      expandedIds.value = next;
+    const hasActiveFilters = computed(() => Boolean(activeTypeFilter.value) || activeSizeFilter.value !== "all");
+    function matchesSizeFilter(item) {
+      const size = Number(item?.size_bytes ?? 0);
+      if (activeSizeFilter.value === "empty") return size === 0;
+      if (activeSizeFilter.value === "lt-100mb") return size > 0 && size < 100 * 1024 * 1024;
+      if (activeSizeFilter.value === "100mb-1gb") return size >= 100 * 1024 * 1024 && size <= 1024 * 1024 * 1024;
+      if (activeSizeFilter.value === "gt-1gb") return size > 1024 * 1024 * 1024;
+      return true;
     }
-    function getAllIds(items, ids = []) {
-      for (const item of items) {
-        ids.push(item.record_number);
-        if (item.child?.length) getAllIds(item.child, ids);
+    function withPath(item, parentPath) {
+      return { ...item, path: item.path || `${parentPath}\\${item.name}` };
+    }
+    function withPaths(items, parentPath) {
+      return (Array.isArray(items) ? items : []).map((item) => withPath(item, parentPath));
+    }
+    const currentFolders = computed(() => {
+      if (currentPathSegments.value.length === 0) {
+        return folders.value.map((folder) => withPath(folder, `${selectedDrive.value}:`));
       }
-      return ids;
+      return currentPathSegments.value.at(-1).children;
+    });
+    const currentFiles = computed(() => {
+      if (currentPathSegments.value.length === 0) return [];
+      return currentPathSegments.value.at(-1).files;
+    });
+    const filteredFolders = computed(() => currentFolders.value.filter(matchesSizeFilter));
+    const filteredFiles = computed(() => currentFiles.value.filter(matchesSizeFilter));
+    const sizeFilterLabel = computed(() => {
+      return sizeFilterOptions.find((option) => option.value === activeSizeFilter.value)?.title ?? "Toutes tailles";
+    });
+    const currentLevelSummaryLabel = computed(() => {
+      const folderCount = filteredFolders.value.length;
+      const fileCount = filteredFiles.value.length;
+      if (currentPathSegments.value.length === 0) return `${folderCount} dossiers racine`;
+      return `${folderCount} dossiers · ${fileCount} fichiers`;
+    });
+    function typeLabelOf(item) {
+      if (item.is_dir !== false) return "Dossier de fichiers";
+      const ext = String(item.ext || "").trim().toLowerCase();
+      return ext ? `Fichier ${ext.toUpperCase()}` : "Fichier";
     }
-    function expandAll() {
-      expandedIds.value = new Set(getAllIds(folders.value));
+    function compareRows(key, dir) {
+      const mul = dir === "asc" ? 1 : -1;
+      return (a, b) => {
+        if (key === "size") return mul * ((a.size_bytes ?? 0) - (b.size_bytes ?? 0));
+        if (key === "type") return mul * typeLabelOf(a).localeCompare(typeLabelOf(b), "fr", { sensitivity: "base" });
+        return mul * String(a.name).localeCompare(String(b.name), "fr", { numeric: true, sensitivity: "base" });
+      };
     }
-    function collapseAll() {
-      expandedIds.value = /* @__PURE__ */ new Set();
+    const sortedRows = computed(() => {
+      const folderRows = [...filteredFolders.value].sort(compareRows(sortKey.value, sortDir.value));
+      const fileRows = [...filteredFiles.value].sort(compareRows(sortKey.value, sortDir.value));
+      return [...folderRows, ...fileRows];
+    });
+    function setSort(key) {
+      if (sortKey.value === key) {
+        sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+      } else {
+        sortKey.value = key;
+        sortDir.value = "asc";
+      }
+    }
+    async function enterFolder(item) {
+      if (!item || item.is_dir === false) return;
+      const path = item.path || `${currentFolderPath.value}\\${item.name}`;
+      explorerBusy.value = true;
+      try {
+        const [children, files] = await Promise.all([
+          item.child?.length ? Promise.resolve(withPaths(item.child, path)) : window.mftAPI.getChildren(selectedDrive.value, item.record_number, { typeFilter: activeTypeFilter.value }).then((result) => withPaths(result, path)),
+          window.mftAPI.getFiles(selectedDrive.value, item.record_number, { typeFilter: activeTypeFilter.value }).then((result) => withPaths(result, path))
+        ]);
+        currentPathSegments.value = [...currentPathSegments.value, {
+          name: item.name,
+          record_number: item.record_number,
+          path,
+          children,
+          files
+        }];
+        selectedItem.value = null;
+      } catch (e) {
+        error.value = e?.message ?? "Impossible d ouvrir ce dossier.";
+      } finally {
+        explorerBusy.value = false;
+      }
+    }
+    const currentFolderPath = computed(() => {
+      return currentPathSegments.value.at(-1)?.path ?? `${selectedDrive.value}:`;
+    });
+    function goToSegment(index) {
+      if (index < 0) {
+        currentPathSegments.value = [];
+      } else {
+        currentPathSegments.value = currentPathSegments.value.slice(0, index + 1);
+      }
+      selectedItem.value = null;
+    }
+    function goUp() {
+      goToSegment(currentPathSegments.value.length - 2);
+    }
+    async function refreshCurrentLevel() {
+      if (currentPathSegments.value.length === 0) {
+        await loadDriveSummary(selectedDrive.value, { forceScan: false, startup: false });
+        return;
+      }
+      const segment = currentPathSegments.value.at(-1);
+      explorerBusy.value = true;
+      try {
+        const [children, files] = await Promise.all([
+          window.mftAPI.getChildren(selectedDrive.value, segment.record_number, { typeFilter: activeTypeFilter.value }).then((result) => withPaths(result, segment.path)),
+          window.mftAPI.getFiles(selectedDrive.value, segment.record_number, { typeFilter: activeTypeFilter.value }).then((result) => withPaths(result, segment.path))
+        ]);
+        const updated2 = [...currentPathSegments.value];
+        updated2[updated2.length - 1] = { ...segment, children, files };
+        currentPathSegments.value = updated2;
+      } catch (e) {
+        error.value = e?.message ?? "Impossible de rafraichir ce dossier.";
+      } finally {
+        explorerBusy.value = false;
+      }
+    }
+    async function openDistributionFolder(entry) {
+      const match = folders.value.find((folder) => String(folder.record_number) === String(entry.key));
+      const target = match ? withPath(match, `${selectedDrive.value}:`) : { record_number: Number(entry.key), name: entry.label, path: entry.path };
+      currentPathSegments.value = [];
+      await enterFolder(target);
     }
     const progressStageLabelMap = {
       start: "Preparation",
@@ -23967,6 +24315,7 @@ const _sfc_main$1 = {
       return progressStageLabel(progressEvents.value.at(-1)?.stage);
     });
     const isDashboardVisible = computed(() => loading.value || dashboardVisible.value);
+    const showStartupScreen = computed(() => initialLoadPending.value && !error.value && folders.value.length === 0);
     const latestProgressByStage = computed(() => {
       const map = {};
       for (const entry of progressEvents.value) {
@@ -24027,6 +24376,76 @@ const _sfc_main$1 = {
       const speed = lastCount / elapsedSeconds;
       return `${speed >= 10 ? speed.toFixed(0) : speed.toFixed(1)} fichier/s`;
     });
+    const remainingTimeSeconds = computed(() => {
+      const total = latestAnalysisEvent.value?.totalCount ?? latestAnalysisEvent.value?.totalFiles;
+      const processed = latestAnalysisEvent.value?.processedCount;
+      if (!loading.value || !Number.isFinite(total) || !Number.isFinite(processed) || total <= 0 || processed <= 0 || processed >= total) {
+        return 0;
+      }
+      const elapsedSeconds = Math.max(1, (Date.now() - (scanStartedAt.value ?? Date.now())) / 1e3);
+      const speed = processed / elapsedSeconds;
+      if (!Number.isFinite(speed) || speed <= 0) return null;
+      return Math.max(0, Math.round((total - processed) / speed));
+    });
+    function formatDuration(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) return "Calcul...";
+      if (seconds < 60) return `${seconds} s`;
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      if (minutes < 60) return `${minutes} min ${remainingSeconds.toString().padStart(2, "0")} s`;
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours} h ${remainingMinutes.toString().padStart(2, "0")} min`;
+    }
+    function formatStageEta(entry) {
+      const seconds = getStageRemainingSeconds(entry);
+      if (seconds === null) return "ETA: calcul en cours";
+      return `ETA: ${formatDuration(seconds)}`;
+    }
+    function getStageRemainingSeconds(entry) {
+      const processed = entry?.processedCount;
+      const total = entry?.totalCount ?? entry?.totalFiles;
+      if (!loading.value || !Number.isFinite(processed) || !Number.isFinite(total) || total <= 0 || processed <= 0 || processed >= total) {
+        return 0;
+      }
+      const stageEvents = progressEvents.value.filter((candidate) => candidate?.type === "progress" && candidate.stage === entry.stage);
+      if (stageEvents.length < 2) return null;
+      const first = stageEvents[0];
+      const last = stageEvents.at(-1);
+      const firstTimestamp = first?.timestamp ? Date.parse(first.timestamp) : NaN;
+      const lastTimestamp = last?.timestamp ? Date.parse(last.timestamp) : NaN;
+      if (!Number.isFinite(firstTimestamp) || !Number.isFinite(lastTimestamp) || lastTimestamp <= firstTimestamp) {
+        return null;
+      }
+      const deltaProcessed = (last?.processedCount ?? 0) - (first?.processedCount ?? 0);
+      const elapsedSeconds = Math.max(1, (lastTimestamp - firstTimestamp) / 1e3);
+      const speed = deltaProcessed / elapsedSeconds;
+      if (!Number.isFinite(speed) || speed <= 0) return null;
+      return Math.max(0, Math.round((total - processed) / speed));
+    }
+    const remainingTimeLabel = computed(() => {
+      if (!loading.value && estimatedProgress.value >= 100) return "0 s";
+      if (remainingTimeSeconds.value === null) return "Calcul...";
+      return formatDuration(remainingTimeSeconds.value);
+    });
+    const topFolders = computed(() => highlights.value.folders ?? []);
+    const topFiles = computed(() => highlights.value.files ?? []);
+    const showHighlights = computed(() => !loading.value && !showStartupScreen.value && (topFolders.value.length > 0 || topFiles.value.length > 0));
+    const rootDistribution = computed(() => {
+      const total = distribution.value.rootFolders.reduce((sum, entry) => sum + (entry.size_bytes || 0), 0);
+      return distribution.value.rootFolders.map((entry) => ({
+        ...entry,
+        percent: total > 0 ? Math.max(6, Math.round(entry.size_bytes / total * 100)) : 0
+      }));
+    });
+    const fileTypeDistribution = computed(() => {
+      const total = distribution.value.fileTypes.reduce((sum, entry) => sum + (entry.size_bytes || 0), 0);
+      return distribution.value.fileTypes.map((entry) => ({
+        ...entry,
+        percent: total > 0 ? Math.max(6, Math.round(entry.size_bytes / total * 100)) : 0
+      }));
+    });
+    const showDistribution = computed(() => !loading.value && !showStartupScreen.value && (rootDistribution.value.length > 0 || fileTypeDistribution.value.length > 0));
     const displayProgressEvents = computed(() => {
       return [...progressEvents.value].reverse();
     });
@@ -24070,6 +24489,179 @@ const _sfc_main$1 = {
       const seconds = Math.max(0, Math.round((end - scanStartedAt.value) / 1e3));
       return `${seconds} s`;
     });
+    function resolveStagePercent(stage, entry) {
+      const processed = entry?.processedCount;
+      const total = entry?.totalCount ?? entry?.totalFiles;
+      if (Number.isFinite(processed) && Number.isFinite(total) && total > 0) {
+        return Math.max(0, Math.min(100, Math.round(processed / total * 100)));
+      }
+      return entry ? progressPercentByStage[stage] ?? 0 : 0;
+    }
+    function resolveStageMeta(stage, entry) {
+      if (!entry) return "En attente";
+      if (stage === "usn-enum") {
+        return `${formatInteger(entry.totalFiles)} fichiers · ${formatInteger(entry.totalDirs)} dossiers`;
+      }
+      if (stage === "mft-read") {
+        return `${formatInteger(entry.processedCount)} / ${formatInteger(entry.totalFiles, "...")} fichiers · ${formatInteger(entry.filesWithSize)} tailles`;
+      }
+      if (stage === "fallback") {
+        return `${formatInteger(entry.processedCount)} / ${formatInteger(entry.totalCount, "...")} fallback · ${formatInteger(entry.filesRecovered)} recuperes`;
+      }
+      if (stage === "cache" || stage === "delta") {
+        return "Resultat incremental disponible";
+      }
+      if (stage === "done") {
+        return scanInfoLabel.value;
+      }
+      return "Analyse en cours";
+    }
+    const stageCards = computed(() => {
+      const activeStage = progressEvents.value.at(-1)?.stage;
+      return stageOrder.map((stage) => {
+        const entry = latestProgressByStage.value[stage] ?? null;
+        let status = "pending";
+        if (entry) {
+          status = loading.value && activeStage === stage ? "active" : "done";
+        } else if (loading.value && activeStage === stage) {
+          status = "active";
+        }
+        return {
+          key: stage,
+          label: progressStageLabel(stage),
+          percent: status === "done" ? 100 : resolveStagePercent(stage, entry),
+          message: entry?.message ?? (status === "active" ? currentProgressMessage.value : "En attente"),
+          meta: resolveStageMeta(stage, entry),
+          eta: entry ? formatStageEta(entry) : "ETA: en attente",
+          status,
+          color: status === "done" ? "success" : status === "active" ? "primary" : "grey"
+        };
+      });
+    });
+    async function openInExplorer(path, kind) {
+      try {
+        if (kind === "file") {
+          await window.mftAPI.revealPath(path);
+          return;
+        }
+        await window.mftAPI.openPath(path);
+      } catch (e) {
+        error.value = e?.message ?? "Impossible d ouvrir le chemin dans l explorateur.";
+      }
+    }
+    async function copyPath(path) {
+      if (!path) return;
+      try {
+        await window.mftAPI.copyText(path);
+      } catch (e) {
+        error.value = e?.message ?? "Impossible de copier le chemin.";
+      }
+    }
+    async function openPath(path, kind = "folder") {
+      await openInExplorer(path, kind);
+    }
+    async function previewPath(path) {
+      try {
+        const result = await window.mftAPI.previewPath(path);
+        previewDialog.value = {
+          open: true,
+          kind: result?.kind ?? null,
+          path: result?.path ?? path,
+          name: result?.name ?? "",
+          content: result?.content ?? "",
+          mime: result?.mime ?? "",
+          message: result?.message ?? "",
+          truncated: Boolean(result?.truncated)
+        };
+      } catch (e) {
+        error.value = e?.message ?? "Impossible d ouvrir l apercu.";
+      }
+    }
+    function closePreview() {
+      previewDialog.value = { open: false, kind: null, path: "", name: "", content: "", mime: "", message: "", truncated: false };
+    }
+    function requestDelete(item) {
+      deleteDialog.value = {
+        open: true,
+        loading: false,
+        path: item?.path ?? "",
+        item
+      };
+    }
+    function closeDeleteDialog() {
+      deleteDialog.value = { open: false, loading: false, path: "", item: null };
+    }
+    function removeItemByPath(items, targetPath) {
+      return items.filter((item) => item?.path !== targetPath);
+    }
+    function removeItemEverywhere(targetPath) {
+      folders.value = folders.value.filter((folder) => (folder.path || `${selectedDrive.value}:\\${folder.name}`) !== targetPath);
+      currentPathSegments.value = currentPathSegments.value.map((segment) => ({
+        ...segment,
+        children: removeItemByPath(segment.children, targetPath),
+        files: removeItemByPath(segment.files, targetPath)
+      }));
+    }
+    async function confirmDelete() {
+      if (!deleteDialog.value.path) return;
+      deleteDialog.value = { ...deleteDialog.value, loading: true };
+      try {
+        await window.mftAPI.trashPath(deleteDialog.value.path);
+        removeItemEverywhere(deleteDialog.value.path);
+        await loadDriveSummary(selectedDrive.value, { forceScan: true, startup: false });
+        closeDeleteDialog();
+      } catch (e) {
+        deleteDialog.value = { ...deleteDialog.value, loading: false };
+        error.value = e?.message ?? "Suppression impossible.";
+      }
+    }
+    async function handleNodeAction(payload) {
+      closeContextMenu();
+      const { action, item } = payload ?? {};
+      if (!item?.path) return;
+      if (action === "copy") {
+        await copyPath(item.path);
+        return;
+      }
+      if (action === "open") {
+        await openPath(item.path, item.is_dir === false ? "file" : "folder");
+        return;
+      }
+      if (action === "reveal") {
+        await openInExplorer(item.path, "file");
+        return;
+      }
+      if (action === "preview") {
+        await previewPath(item.path);
+        return;
+      }
+      if (action === "delete") {
+        requestDelete(item);
+      }
+    }
+    function openContextMenu(payload) {
+      const nativeEvent = payload?.event;
+      const item = payload?.item ?? null;
+      if (!nativeEvent || !item?.path) return;
+      contextMenu.value = {
+        open: true,
+        x: nativeEvent.clientX,
+        y: nativeEvent.clientY,
+        item
+      };
+    }
+    function closeContextMenu() {
+      contextMenu.value = { open: false, x: 0, y: 0, item: null };
+    }
+    async function triggerContextAction(action) {
+      const item = contextMenu.value.item;
+      closeContextMenu();
+      await handleNodeAction({ action, item });
+    }
+    const previewImageSrc = computed(() => {
+      if (previewDialog.value.kind !== "image" || !previewDialog.value.content || !previewDialog.value.mime) return "";
+      return `data:${previewDialog.value.mime};base64,${previewDialog.value.content}`;
+    });
     function progressStageLabel(stage) {
       return progressStageLabelMap[stage] ?? "Analyse";
     }
@@ -24089,15 +24681,8 @@ const _sfc_main$1 = {
       scanFinishedAt.value = null;
     }
     onMounted(() => {
-      window.mftAPI.getDrives().then(async (availableDrives) => {
-        if (!Array.isArray(availableDrives) || availableDrives.length === 0) return;
-        drives.value = availableDrives;
-        if (!availableDrives.includes(selectedDrive.value)) {
-          selectedDrive.value = availableDrives[0];
-        }
-        await loadDriveSummary(selectedDrive.value, { forceScan: false, keepDashboard: false });
-      }).catch(() => {
-      });
+      window.addEventListener("click", closeContextMenu);
+      window.addEventListener("blur", closeContextMenu);
       removeProgressListener = window.mftAPI.onScanProgress((payload) => {
         progressEvents.value = [...progressEvents.value, payload];
         if (!scanStartedAt.value) scanStartedAt.value = Date.now();
@@ -24110,60 +24695,448 @@ const _sfc_main$1 = {
         if (!payload || payload.drive !== selectedDrive.value || loading.value) return;
         folders.value = payload.summary ?? [];
         scanInfo.value = payload.scanInfo ?? null;
+        refreshHighlights(payload.drive);
+        refreshDistribution(payload.drive);
       });
+      window.mftAPI.getDrives().then(async (availableDrives) => {
+        if (!Array.isArray(availableDrives) || availableDrives.length === 0) return;
+        drives.value = availableDrives;
+        if (!availableDrives.includes(selectedDrive.value)) {
+          selectedDrive.value = availableDrives[0];
+        }
+        await loadDriveSummary(selectedDrive.value, { forceScan: false, startup: true });
+      }).catch((e) => {
+        error.value = e?.message ?? "Impossible de charger la liste des lecteurs.";
+      }).finally(() => {
+        if (!loading.value) {
+          initialLoadPending.value = false;
+        }
+      });
+    });
+    watch(activeTypeFilter, async () => {
+      await refreshCurrentLevel();
     });
     watch(selectedDrive, async (nextDrive, previousDrive) => {
       if (!nextDrive || nextDrive === previousDrive) return;
-      expandedIds.value = /* @__PURE__ */ new Set();
-      await loadDriveSummary(nextDrive, { forceScan: false, keepDashboard: false });
+      currentPathSegments.value = [];
+      clearFilters();
+      await loadDriveSummary(nextDrive, { forceScan: false, startup: false });
     });
     onBeforeUnmount(() => {
       clearDashboardHideTimer();
+      window.removeEventListener("click", closeContextMenu);
+      window.removeEventListener("blur", closeContextMenu);
       removeProgressListener?.();
       removeProgressListener = null;
       removeCacheUpdatedListener?.();
       removeCacheUpdatedListener = null;
     });
     return (_ctx, _cache) => {
-      return openBlock(), createBlock(VContainer, { fluid: "" }, {
+      return openBlock(), createBlock(VContainer, {
+        fluid: "",
+        class: "disk-tree-shell"
+      }, {
         default: withCtx(() => [
-          createVNode(VRow, {
+          showStartupScreen.value ? (openBlock(), createElementBlock("section", _hoisted_1$1, [
+            _cache[34] || (_cache[34] = createBaseVNode("div", { class: "startup-screen__halo startup-screen__halo--left" }, null, -1)),
+            _cache[35] || (_cache[35] = createBaseVNode("div", { class: "startup-screen__halo startup-screen__halo--right" }, null, -1)),
+            createBaseVNode("div", _hoisted_2$1, [
+              _cache[33] || (_cache[33] = createBaseVNode("div", { class: "startup-screen__eyebrow" }, "StorageAnalyse", -1)),
+              createBaseVNode("h1", _hoisted_3$1, "Chargement de l'analyse du lecteur " + toDisplayString(selectedDrive.value) + ":", 1),
+              createBaseVNode("p", _hoisted_4$1, toDisplayString(currentProgressMessage.value), 1),
+              createBaseVNode("div", _hoisted_5$1, [
+                createVNode(VChip, {
+                  color: "primary",
+                  variant: "flat",
+                  size: "small"
+                }, {
+                  default: withCtx(() => [
+                    createTextVNode(toDisplayString(currentStageLabel.value), 1)
+                  ]),
+                  _: 1
+                }),
+                createVNode(VChip, {
+                  color: "white",
+                  variant: "outlined",
+                  size: "small"
+                }, {
+                  default: withCtx(() => [
+                    createTextVNode(toDisplayString(estimatedProgress.value) + "%", 1)
+                  ]),
+                  _: 1
+                }),
+                createVNode(VChip, {
+                  color: "white",
+                  variant: "outlined",
+                  size: "small"
+                }, {
+                  default: withCtx(() => [
+                    createTextVNode(toDisplayString(elapsedLabel.value), 1)
+                  ]),
+                  _: 1
+                }),
+                remainingTimeLabel.value !== "Calcul..." ? (openBlock(), createBlock(VChip, {
+                  key: 0,
+                  color: "white",
+                  variant: "outlined",
+                  size: "small"
+                }, {
+                  default: withCtx(() => [
+                    createTextVNode("Reste " + toDisplayString(remainingTimeLabel.value), 1)
+                  ]),
+                  _: 1
+                })) : createCommentVNode("", true)
+              ]),
+              createVNode(VProgressLinear, {
+                class: "startup-screen__bar",
+                "model-value": estimatedProgress.value,
+                color: progressColor(lastProgressType.value),
+                indeterminate: loading.value && estimatedProgress.value < 5,
+                rounded: "",
+                height: "12"
+              }, null, 8, ["model-value", "color", "indeterminate"]),
+              createBaseVNode("div", _hoisted_6$1, [
+                createBaseVNode("div", _hoisted_7$1, [
+                  _cache[20] || (_cache[20] = createBaseVNode("span", { class: "startup-metric-card__label" }, "Fichiers analyses", -1)),
+                  createBaseVNode("strong", _hoisted_8$1, toDisplayString(processedFilesLabel.value), 1)
+                ]),
+                createBaseVNode("div", _hoisted_9$1, [
+                  _cache[21] || (_cache[21] = createBaseVNode("span", { class: "startup-metric-card__label" }, "Volume total", -1)),
+                  createBaseVNode("strong", _hoisted_10, toDisplayString(totalFilesLabel.value), 1)
+                ]),
+                createBaseVNode("div", _hoisted_11, [
+                  _cache[22] || (_cache[22] = createBaseVNode("span", { class: "startup-metric-card__label" }, "Fichier en cours", -1)),
+                  createBaseVNode("strong", _hoisted_12, toDisplayString(currentAnalyzedFile.value), 1)
+                ]),
+                createBaseVNode("div", _hoisted_13, [
+                  _cache[23] || (_cache[23] = createBaseVNode("span", { class: "startup-metric-card__label" }, "Vitesse", -1)),
+                  createBaseVNode("strong", _hoisted_14, toDisplayString(analysisSpeedLabel.value), 1)
+                ]),
+                createBaseVNode("div", _hoisted_15, [
+                  _cache[24] || (_cache[24] = createBaseVNode("span", { class: "startup-metric-card__label" }, "Temps restant", -1)),
+                  createBaseVNode("strong", _hoisted_16, toDisplayString(remainingTimeLabel.value), 1)
+                ])
+              ]),
+              createVNode(TransitionGroup, {
+                name: "stage-card",
+                tag: "div",
+                class: "startup-screen__stages"
+              }, {
+                default: withCtx(() => [
+                  (openBlock(true), createElementBlock(Fragment, null, renderList(stageCards.value, (stage) => {
+                    return openBlock(), createElementBlock("div", {
+                      key: stage.key,
+                      class: normalizeClass(["stage-card", [`stage-card--${stage.status}`]])
+                    }, [
+                      createBaseVNode("div", _hoisted_17, [
+                        createBaseVNode("span", _hoisted_18, toDisplayString(stage.label), 1),
+                        createBaseVNode("span", _hoisted_19, toDisplayString(stage.percent) + "%", 1)
+                      ]),
+                      createVNode(VProgressLinear, {
+                        "model-value": stage.percent,
+                        color: stage.color,
+                        rounded: "",
+                        height: "7"
+                      }, null, 8, ["model-value", "color"]),
+                      createBaseVNode("div", _hoisted_20, toDisplayString(stage.message), 1),
+                      createBaseVNode("div", _hoisted_21, toDisplayString(stage.meta), 1),
+                      createBaseVNode("div", _hoisted_22, toDisplayString(stage.eta), 1)
+                    ], 2);
+                  }), 128))
+                ]),
+                _: 1
+              }),
+              createVNode(VCard, {
+                variant: "outlined",
+                class: "startup-screen__journal pa-3"
+              }, {
+                default: withCtx(() => [
+                  _cache[26] || (_cache[26] = createBaseVNode("div", { class: "text-subtitle-2 mb-2" }, "Dernieres remontees d'analyse", -1)),
+                  createVNode(VList, {
+                    density: "compact",
+                    class: "recent-files-list recent-files-list--startup"
+                  }, {
+                    default: withCtx(() => [
+                      (openBlock(true), createElementBlock(Fragment, null, renderList(recentAnalyzedFiles.value.slice(0, 8), (file, index) => {
+                        return openBlock(), createBlock(VListItem, {
+                          key: `${file}-${index}`,
+                          "min-height": "34"
+                        }, {
+                          default: withCtx(() => [
+                            createVNode(VListItemTitle, { class: "text-body-2 text-truncate" }, {
+                              default: withCtx(() => [
+                                createTextVNode(toDisplayString(file), 1)
+                              ]),
+                              _: 2
+                            }, 1024)
+                          ]),
+                          _: 2
+                        }, 1024);
+                      }), 128)),
+                      recentAnalyzedFiles.value.length === 0 ? (openBlock(), createBlock(VListItem, {
+                        key: 0,
+                        "min-height": "34"
+                      }, {
+                        default: withCtx(() => [
+                          createVNode(VListItemTitle, { class: "text-body-2 text-medium-emphasis" }, {
+                            default: withCtx(() => [..._cache[25] || (_cache[25] = [
+                              createTextVNode("Preparation des premieres donnees...", -1)
+                            ])]),
+                            _: 1
+                          })
+                        ]),
+                        _: 1
+                      })) : createCommentVNode("", true)
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              }),
+              showHighlights.value ? (openBlock(), createElementBlock("div", _hoisted_23, [
+                createVNode(VCard, {
+                  variant: "outlined",
+                  class: "highlight-card pa-3"
+                }, {
+                  default: withCtx(() => [
+                    createBaseVNode("div", _hoisted_24, [
+                      _cache[27] || (_cache[27] = createBaseVNode("div", null, [
+                        createBaseVNode("div", { class: "text-overline text-medium-emphasis" }, "Apres scan"),
+                        createBaseVNode("div", { class: "text-subtitle-1" }, "Dossiers les plus lourds")
+                      ], -1)),
+                      createVNode(VChip, {
+                        color: "success",
+                        variant: "tonal",
+                        size: "small"
+                      }, {
+                        default: withCtx(() => [
+                          createTextVNode("Top " + toDisplayString(topFolders.value.length), 1)
+                        ]),
+                        _: 1
+                      })
+                    ]),
+                    createVNode(VList, {
+                      density: "compact",
+                      class: "highlight-list"
+                    }, {
+                      default: withCtx(() => [
+                        (openBlock(true), createElementBlock(Fragment, null, renderList(topFolders.value, (folder) => {
+                          return openBlock(), createBlock(VListItem, {
+                            key: `folder-${folder.record_number}`,
+                            "min-height": "42"
+                          }, {
+                            prepend: withCtx(() => [
+                              createVNode(VIcon, {
+                                color: "warning",
+                                size: "18"
+                              }, {
+                                default: withCtx(() => [..._cache[28] || (_cache[28] = [
+                                  createTextVNode("mdi-folder-star", -1)
+                                ])]),
+                                _: 1
+                              })
+                            ]),
+                            append: withCtx(() => [
+                              createBaseVNode("div", _hoisted_25, [
+                                createVNode(VBtn, {
+                                  icon: "mdi-folder-open-outline",
+                                  size: "x-small",
+                                  variant: "text",
+                                  onClick: withModifiers(($event) => openInExplorer(folder.path, "folder"), ["stop"])
+                                }, null, 8, ["onClick"]),
+                                createVNode(VChip, {
+                                  color: "warning",
+                                  variant: "tonal",
+                                  size: "small"
+                                }, {
+                                  default: withCtx(() => [
+                                    createTextVNode(toDisplayString(folder.size_display), 1)
+                                  ]),
+                                  _: 2
+                                }, 1024)
+                              ])
+                            ]),
+                            default: withCtx(() => [
+                              createVNode(VListItemTitle, { class: "text-body-2 font-weight-medium text-truncate" }, {
+                                default: withCtx(() => [
+                                  createTextVNode(toDisplayString(folder.path), 1)
+                                ]),
+                                _: 2
+                              }, 1024),
+                              createVNode(VListItemSubtitle, { class: "text-caption text-medium-emphasis" }, {
+                                default: withCtx(() => [
+                                  createTextVNode(toDisplayString(folder.file_count) + " fichiers · " + toDisplayString(folder.child_count) + " sous-dossiers", 1)
+                                ]),
+                                _: 2
+                              }, 1024)
+                            ]),
+                            _: 2
+                          }, 1024);
+                        }), 128))
+                      ]),
+                      _: 1
+                    })
+                  ]),
+                  _: 1
+                }),
+                createVNode(VCard, {
+                  variant: "outlined",
+                  class: "highlight-card pa-3"
+                }, {
+                  default: withCtx(() => [
+                    createBaseVNode("div", _hoisted_26, [
+                      _cache[29] || (_cache[29] = createBaseVNode("div", null, [
+                        createBaseVNode("div", { class: "text-overline text-medium-emphasis" }, "Apres scan"),
+                        createBaseVNode("div", { class: "text-subtitle-1" }, "Fichiers les plus lourds")
+                      ], -1)),
+                      createVNode(VChip, {
+                        color: "info",
+                        variant: "tonal",
+                        size: "small"
+                      }, {
+                        default: withCtx(() => [
+                          createTextVNode("Top " + toDisplayString(topFiles.value.length), 1)
+                        ]),
+                        _: 1
+                      })
+                    ]),
+                    createVNode(VList, {
+                      density: "compact",
+                      class: "highlight-list"
+                    }, {
+                      default: withCtx(() => [
+                        (openBlock(true), createElementBlock(Fragment, null, renderList(topFiles.value, (file) => {
+                          return openBlock(), createBlock(VListItem, {
+                            key: `file-${file.record_number}`,
+                            "min-height": "42"
+                          }, {
+                            prepend: withCtx(() => [
+                              createVNode(VIcon, {
+                                color: "info",
+                                size: "18"
+                              }, {
+                                default: withCtx(() => [..._cache[30] || (_cache[30] = [
+                                  createTextVNode("mdi-file-chart", -1)
+                                ])]),
+                                _: 1
+                              })
+                            ]),
+                            append: withCtx(() => [
+                              createBaseVNode("div", _hoisted_27, [
+                                createVNode(VBtn, {
+                                  icon: "mdi-folder-search-outline",
+                                  size: "x-small",
+                                  variant: "text",
+                                  onClick: withModifiers(($event) => openInExplorer(file.path, "file"), ["stop"])
+                                }, null, 8, ["onClick"]),
+                                createVNode(VChip, {
+                                  color: "info",
+                                  variant: "tonal",
+                                  size: "small"
+                                }, {
+                                  default: withCtx(() => [
+                                    createTextVNode(toDisplayString(file.size_display), 1)
+                                  ]),
+                                  _: 2
+                                }, 1024)
+                              ])
+                            ]),
+                            default: withCtx(() => [
+                              createVNode(VListItemTitle, { class: "text-body-2 font-weight-medium text-truncate" }, {
+                                default: withCtx(() => [
+                                  createTextVNode(toDisplayString(file.path), 1)
+                                ]),
+                                _: 2
+                              }, 1024),
+                              createVNode(VListItemSubtitle, { class: "text-caption text-medium-emphasis" }, {
+                                default: withCtx(() => [
+                                  createTextVNode(toDisplayString(file.ext || "sans extension"), 1)
+                                ]),
+                                _: 2
+                              }, 1024)
+                            ]),
+                            _: 2
+                          }, 1024);
+                        }), 128))
+                      ]),
+                      _: 1
+                    })
+                  ]),
+                  _: 1
+                })
+              ])) : createCommentVNode("", true),
+              showDistribution.value ? (openBlock(), createElementBlock("div", _hoisted_28, [
+                createVNode(VCard, {
+                  variant: "outlined",
+                  class: "distribution-card pa-3"
+                }, {
+                  default: withCtx(() => [
+                    _cache[31] || (_cache[31] = createBaseVNode("div", { class: "highlight-card__header" }, [
+                      createBaseVNode("div", null, [
+                        createBaseVNode("div", { class: "text-overline text-medium-emphasis" }, "Vue synthese"),
+                        createBaseVNode("div", { class: "text-subtitle-1" }, "Poids par dossier racine")
+                      ])
+                    ], -1)),
+                    createBaseVNode("div", _hoisted_29, [
+                      (openBlock(true), createElementBlock(Fragment, null, renderList(rootDistribution.value, (entry) => {
+                        return openBlock(), createElementBlock("div", {
+                          key: `root-${entry.key}`,
+                          class: "mini-chart__row"
+                        }, [
+                          createBaseVNode("div", _hoisted_30, toDisplayString(entry.label), 1),
+                          createBaseVNode("div", _hoisted_31, [
+                            createBaseVNode("div", {
+                              class: "mini-chart__bar mini-chart__bar--folder",
+                              style: normalizeStyle({ width: `${entry.percent}%` })
+                            }, null, 4)
+                          ]),
+                          createBaseVNode("div", _hoisted_32, toDisplayString(entry.size_display), 1)
+                        ]);
+                      }), 128))
+                    ])
+                  ]),
+                  _: 1
+                }),
+                createVNode(VCard, {
+                  variant: "outlined",
+                  class: "distribution-card pa-3"
+                }, {
+                  default: withCtx(() => [
+                    _cache[32] || (_cache[32] = createBaseVNode("div", { class: "highlight-card__header" }, [
+                      createBaseVNode("div", null, [
+                        createBaseVNode("div", { class: "text-overline text-medium-emphasis" }, "Vue synthese"),
+                        createBaseVNode("div", { class: "text-subtitle-1" }, "Poids par type de fichier")
+                      ])
+                    ], -1)),
+                    createBaseVNode("div", _hoisted_33, [
+                      (openBlock(true), createElementBlock(Fragment, null, renderList(fileTypeDistribution.value, (entry) => {
+                        return openBlock(), createElementBlock("div", {
+                          key: `type-${entry.key}`,
+                          class: "mini-chart__row"
+                        }, [
+                          createBaseVNode("div", _hoisted_34, toDisplayString(entry.label), 1),
+                          createBaseVNode("div", _hoisted_35, [
+                            createBaseVNode("div", {
+                              class: "mini-chart__bar mini-chart__bar--type",
+                              style: normalizeStyle({ width: `${entry.percent}%` })
+                            }, null, 4)
+                          ]),
+                          createBaseVNode("div", _hoisted_36, toDisplayString(entry.size_display), 1)
+                        ]);
+                      }), 128))
+                    ])
+                  ]),
+                  _: 1
+                })
+              ])) : createCommentVNode("", true)
+            ])
+          ])) : createCommentVNode("", true),
+          folders.value.length || scanInfo.value ? (openBlock(), createBlock(VRow, {
+            key: 1,
             align: "center",
             class: "mb-4"
           }, {
             default: withCtx(() => [
-              createVNode(VCol, { cols: "auto" }, {
-                default: withCtx(() => [
-                  createVNode(VSelect, {
-                    modelValue: selectedDrive.value,
-                    "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => selectedDrive.value = $event),
-                    items: drives.value,
-                    label: "Lecteur",
-                    density: "compact",
-                    variant: "outlined",
-                    "hide-details": "",
-                    style: { "width": "120px" }
-                  }, null, 8, ["modelValue", "items"])
-                ]),
-                _: 1
-              }),
-              createVNode(VCol, { cols: "auto" }, {
-                default: withCtx(() => [
-                  createVNode(VBtn, {
-                    color: "primary",
-                    loading: loading.value,
-                    disabled: loading.value,
-                    "prepend-icon": "mdi-magnify-scan",
-                    onClick: startScan
-                  }, {
-                    default: withCtx(() => [
-                      createTextVNode(" Scanner " + toDisplayString(selectedDrive.value) + ":\\ ", 1)
-                    ]),
-                    _: 1
-                  }, 8, ["loading", "disabled"])
-                ]),
-                _: 1
-              }),
               folders.value.length ? (openBlock(), createBlock(VCol, {
                 key: 0,
                 cols: "auto"
@@ -24175,7 +25148,7 @@ const _sfc_main$1 = {
                     size: "small"
                   }, {
                     default: withCtx(() => [
-                      createTextVNode(toDisplayString(folders.value.length) + " dossiers racine ", 1)
+                      createTextVNode(toDisplayString(currentLevelSummaryLabel.value), 1)
                     ]),
                     _: 1
                   })
@@ -24200,47 +25173,17 @@ const _sfc_main$1 = {
                 ]),
                 _: 1
               })) : createCommentVNode("", true),
-              createVNode(VSpacer),
-              folders.value.length ? (openBlock(), createBlock(VCol, {
-                key: 2,
-                cols: "auto"
-              }, {
-                default: withCtx(() => [
-                  createVNode(VBtn, {
-                    variant: "text",
-                    size: "small",
-                    "prepend-icon": "mdi-expand-all",
-                    onClick: expandAll
-                  }, {
-                    default: withCtx(() => [..._cache[2] || (_cache[2] = [
-                      createTextVNode(" Tout ouvrir ", -1)
-                    ])]),
-                    _: 1
-                  }),
-                  createVNode(VBtn, {
-                    variant: "text",
-                    size: "small",
-                    "prepend-icon": "mdi-collapse-all",
-                    onClick: collapseAll
-                  }, {
-                    default: withCtx(() => [..._cache[3] || (_cache[3] = [
-                      createTextVNode(" Tout fermer ", -1)
-                    ])]),
-                    _: 1
-                  })
-                ]),
-                _: 1
-              })) : createCommentVNode("", true)
+              createVNode(VSpacer)
             ]),
             _: 1
-          }),
+          })) : createCommentVNode("", true),
           error.value ? (openBlock(), createBlock(VAlert, {
-            key: 0,
+            key: 2,
             type: "error",
             variant: "tonal",
             class: "mb-4",
             closable: "",
-            "onClick:close": _cache[1] || (_cache[1] = ($event) => error.value = null)
+            "onClick:close": _cache[0] || (_cache[0] = ($event) => error.value = null)
           }, {
             default: withCtx(() => [
               createTextVNode(toDisplayString(error.value), 1)
@@ -24248,7 +25191,7 @@ const _sfc_main$1 = {
             _: 1
           })) : createCommentVNode("", true),
           isDashboardVisible.value ? (openBlock(), createBlock(VRow, {
-            key: 1,
+            key: 3,
             justify: "center",
             class: "my-8"
           }, {
@@ -24264,11 +25207,11 @@ const _sfc_main$1 = {
                     class: "pa-4"
                   }, {
                     default: withCtx(() => [
-                      createBaseVNode("div", _hoisted_1, [
+                      createBaseVNode("div", _hoisted_37, [
                         createBaseVNode("div", null, [
-                          _cache[4] || (_cache[4] = createBaseVNode("div", { class: "text-overline text-medium-emphasis" }, "Dashboard d analyse", -1)),
-                          createBaseVNode("div", _hoisted_2, toDisplayString(loading.value ? "Lecture du MFT en cours" : "Dernier chargement termine"), 1),
-                          createBaseVNode("div", _hoisted_3, toDisplayString(currentProgressMessage.value), 1)
+                          _cache[36] || (_cache[36] = createBaseVNode("div", { class: "text-overline text-medium-emphasis" }, "Dashboard d analyse", -1)),
+                          createBaseVNode("div", _hoisted_38, toDisplayString(loading.value ? "Lecture du MFT en cours" : "Dernier chargement termine"), 1),
+                          createBaseVNode("div", _hoisted_39, toDisplayString(currentProgressMessage.value), 1)
                         ]),
                         loading.value ? (openBlock(), createBlock(VProgressCircular, {
                           key: 0,
@@ -24294,6 +25237,28 @@ const _sfc_main$1 = {
                         rounded: "",
                         height: "10"
                       }, null, 8, ["model-value", "color", "indeterminate"]),
+                      createBaseVNode("div", _hoisted_40, [
+                        (openBlock(true), createElementBlock(Fragment, null, renderList(stageCards.value, (stage) => {
+                          return openBlock(), createElementBlock("div", {
+                            key: `dashboard-${stage.key}`,
+                            class: normalizeClass(["stage-card", [`stage-card--${stage.status}`]])
+                          }, [
+                            createBaseVNode("div", _hoisted_41, [
+                              createBaseVNode("span", _hoisted_42, toDisplayString(stage.label), 1),
+                              createBaseVNode("span", _hoisted_43, toDisplayString(stage.percent) + "%", 1)
+                            ]),
+                            createVNode(VProgressLinear, {
+                              "model-value": stage.percent,
+                              color: stage.color,
+                              rounded: "",
+                              height: "7"
+                            }, null, 8, ["model-value", "color"]),
+                            createBaseVNode("div", _hoisted_44, toDisplayString(stage.message), 1),
+                            createBaseVNode("div", _hoisted_45, toDisplayString(stage.meta), 1),
+                            createBaseVNode("div", _hoisted_46, toDisplayString(stage.eta), 1)
+                          ], 2);
+                        }), 128))
+                      ]),
                       createVNode(VRow, {
                         class: "mt-4",
                         dense: ""
@@ -24310,8 +25275,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[5] || (_cache[5] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Etape", -1)),
-                                  createBaseVNode("div", _hoisted_4, toDisplayString(currentStageLabel.value), 1)
+                                  _cache[37] || (_cache[37] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Etape", -1)),
+                                  createBaseVNode("div", _hoisted_47, toDisplayString(currentStageLabel.value), 1)
                                 ]),
                                 _: 1
                               })
@@ -24329,8 +25294,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[6] || (_cache[6] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Evenements", -1)),
-                                  createBaseVNode("div", _hoisted_5, toDisplayString(progressEvents.value.length), 1)
+                                  _cache[38] || (_cache[38] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Evenements", -1)),
+                                  createBaseVNode("div", _hoisted_48, toDisplayString(progressEvents.value.length), 1)
                                 ]),
                                 _: 1
                               })
@@ -24348,8 +25313,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[7] || (_cache[7] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Derniere source", -1)),
-                                  createBaseVNode("div", _hoisted_6, toDisplayString(scanInfoLabel.value), 1)
+                                  _cache[39] || (_cache[39] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Derniere source", -1)),
+                                  createBaseVNode("div", _hoisted_49, toDisplayString(scanInfoLabel.value), 1)
                                 ]),
                                 _: 1
                               })
@@ -24367,8 +25332,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[8] || (_cache[8] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Progression estimee", -1)),
-                                  createBaseVNode("div", _hoisted_7, toDisplayString(estimatedProgress.value) + "%", 1)
+                                  _cache[40] || (_cache[40] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Progression estimee", -1)),
+                                  createBaseVNode("div", _hoisted_50, toDisplayString(estimatedProgress.value) + "%", 1)
                                 ]),
                                 _: 1
                               })
@@ -24386,8 +25351,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[9] || (_cache[9] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Duree", -1)),
-                                  createBaseVNode("div", _hoisted_8, toDisplayString(elapsedLabel.value), 1)
+                                  _cache[41] || (_cache[41] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Duree", -1)),
+                                  createBaseVNode("div", _hoisted_51, toDisplayString(elapsedLabel.value), 1)
                                 ]),
                                 _: 1
                               })
@@ -24405,8 +25370,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[10] || (_cache[10] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Lecteur", -1)),
-                                  createBaseVNode("div", _hoisted_9, toDisplayString(selectedDrive.value) + ":", 1)
+                                  _cache[42] || (_cache[42] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Lecteur", -1)),
+                                  createBaseVNode("div", _hoisted_52, toDisplayString(selectedDrive.value) + ":", 1)
                                 ]),
                                 _: 1
                               })
@@ -24424,8 +25389,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[11] || (_cache[11] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichiers a analyser", -1)),
-                                  createBaseVNode("div", _hoisted_10, toDisplayString(totalFilesLabel.value), 1)
+                                  _cache[43] || (_cache[43] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichiers a analyser", -1)),
+                                  createBaseVNode("div", _hoisted_53, toDisplayString(totalFilesLabel.value), 1)
                                 ]),
                                 _: 1
                               })
@@ -24443,8 +25408,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[12] || (_cache[12] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichiers analyses", -1)),
-                                  createBaseVNode("div", _hoisted_11, toDisplayString(processedFilesLabel.value), 1)
+                                  _cache[44] || (_cache[44] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichiers analyses", -1)),
+                                  createBaseVNode("div", _hoisted_54, toDisplayString(processedFilesLabel.value), 1)
                                 ]),
                                 _: 1
                               })
@@ -24462,8 +25427,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[13] || (_cache[13] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichier en cours", -1)),
-                                  createBaseVNode("div", _hoisted_12, toDisplayString(currentAnalyzedFile.value), 1)
+                                  _cache[45] || (_cache[45] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Fichier en cours", -1)),
+                                  createBaseVNode("div", _hoisted_55, toDisplayString(currentAnalyzedFile.value), 1)
                                 ]),
                                 _: 1
                               })
@@ -24481,8 +25446,8 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[14] || (_cache[14] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Vitesse analyse", -1)),
-                                  createBaseVNode("div", _hoisted_13, toDisplayString(analysisSpeedLabel.value), 1)
+                                  _cache[46] || (_cache[46] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Vitesse analyse", -1)),
+                                  createBaseVNode("div", _hoisted_56, toDisplayString(analysisSpeedLabel.value), 1)
                                 ]),
                                 _: 1
                               })
@@ -24500,9 +25465,9 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[15] || (_cache[15] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 1", -1)),
-                                  createBaseVNode("div", _hoisted_14, toDisplayString(passOneFilesLabel.value) + " fichiers", 1),
-                                  createBaseVNode("div", _hoisted_15, toDisplayString(passOneDirsLabel.value) + " dossiers", 1)
+                                  _cache[47] || (_cache[47] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 1", -1)),
+                                  createBaseVNode("div", _hoisted_57, toDisplayString(passOneFilesLabel.value) + " fichiers", 1),
+                                  createBaseVNode("div", _hoisted_58, toDisplayString(passOneDirsLabel.value) + " dossiers", 1)
                                 ]),
                                 _: 1
                               })
@@ -24520,9 +25485,9 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[16] || (_cache[16] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 2", -1)),
-                                  createBaseVNode("div", _hoisted_16, toDisplayString(passTwoSizedFilesLabel.value) + " tailles trouvees", 1),
-                                  createBaseVNode("div", _hoisted_17, "sur " + toDisplayString(totalFilesLabel.value) + " fichiers", 1)
+                                  _cache[48] || (_cache[48] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 2", -1)),
+                                  createBaseVNode("div", _hoisted_59, toDisplayString(passTwoSizedFilesLabel.value) + " tailles trouvees", 1),
+                                  createBaseVNode("div", _hoisted_60, "sur " + toDisplayString(totalFilesLabel.value) + " fichiers", 1)
                                 ]),
                                 _: 1
                               })
@@ -24540,9 +25505,9 @@ const _sfc_main$1 = {
                                 class: "pa-3"
                               }, {
                                 default: withCtx(() => [
-                                  _cache[17] || (_cache[17] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 3", -1)),
-                                  createBaseVNode("div", _hoisted_18, toDisplayString(passThreeRecoveredLabel.value) + " tailles recuperees", 1),
-                                  _cache[18] || (_cache[18] = createBaseVNode("div", { class: "text-body-2 text-medium-emphasis" }, "fallback fichiers verrouilles", -1))
+                                  _cache[49] || (_cache[49] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Passe 3", -1)),
+                                  createBaseVNode("div", _hoisted_61, toDisplayString(passThreeRecoveredLabel.value) + " tailles recuperees", 1),
+                                  _cache[50] || (_cache[50] = createBaseVNode("div", { class: "text-body-2 text-medium-emphasis" }, "fallback fichiers verrouilles", -1))
                                 ]),
                                 _: 1
                               })
@@ -24558,18 +25523,224 @@ const _sfc_main$1 = {
                         class: "mt-4 pa-3"
                       }, {
                         default: withCtx(() => [
-                          _cache[19] || (_cache[19] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Avancement detaille", -1)),
-                          createBaseVNode("div", _hoisted_19, toDisplayString(processedFilesLabel.value) + " / " + toDisplayString(totalFilesLabel.value), 1),
-                          createBaseVNode("div", _hoisted_20, toDisplayString(currentProgressMessage.value), 1)
+                          _cache[51] || (_cache[51] = createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Avancement detaille", -1)),
+                          createBaseVNode("div", _hoisted_62, toDisplayString(processedFilesLabel.value) + " / " + toDisplayString(totalFilesLabel.value), 1),
+                          createBaseVNode("div", _hoisted_63, toDisplayString(currentProgressMessage.value), 1),
+                          createBaseVNode("div", _hoisted_64, "Temps restant estime: " + toDisplayString(remainingTimeLabel.value), 1)
                         ]),
                         _: 1
                       }),
+                      showHighlights.value ? (openBlock(), createElementBlock("div", _hoisted_65, [
+                        createVNode(VCard, {
+                          variant: "outlined",
+                          class: "highlight-card pa-3"
+                        }, {
+                          default: withCtx(() => [
+                            _cache[52] || (_cache[52] = createBaseVNode("div", { class: "highlight-card__header" }, [
+                              createBaseVNode("div", { class: "text-subtitle-2" }, "Dossiers les plus lourds"),
+                              createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Dernier snapshot")
+                            ], -1)),
+                            createVNode(VList, {
+                              density: "compact",
+                              class: "highlight-list"
+                            }, {
+                              default: withCtx(() => [
+                                (openBlock(true), createElementBlock(Fragment, null, renderList(topFolders.value, (folder) => {
+                                  return openBlock(), createBlock(VListItem, {
+                                    key: `dash-folder-${folder.record_number}`,
+                                    "min-height": "40"
+                                  }, {
+                                    append: withCtx(() => [
+                                      createBaseVNode("div", _hoisted_66, [
+                                        createVNode(VBtn, {
+                                          icon: "mdi-folder-open-outline",
+                                          size: "x-small",
+                                          variant: "text",
+                                          onClick: withModifiers(($event) => openInExplorer(folder.path, "folder"), ["stop"])
+                                        }, null, 8, ["onClick"]),
+                                        createVNode(VChip, {
+                                          color: "warning",
+                                          variant: "tonal",
+                                          size: "small"
+                                        }, {
+                                          default: withCtx(() => [
+                                            createTextVNode(toDisplayString(folder.size_display), 1)
+                                          ]),
+                                          _: 2
+                                        }, 1024)
+                                      ])
+                                    ]),
+                                    default: withCtx(() => [
+                                      createVNode(VListItemTitle, { class: "text-body-2 font-weight-medium text-truncate" }, {
+                                        default: withCtx(() => [
+                                          createTextVNode(toDisplayString(folder.path), 1)
+                                        ]),
+                                        _: 2
+                                      }, 1024),
+                                      createVNode(VListItemSubtitle, { class: "text-caption text-medium-emphasis" }, {
+                                        default: withCtx(() => [
+                                          createTextVNode(toDisplayString(folder.file_count) + " fichiers · " + toDisplayString(folder.child_count) + " sous-dossiers", 1)
+                                        ]),
+                                        _: 2
+                                      }, 1024)
+                                    ]),
+                                    _: 2
+                                  }, 1024);
+                                }), 128))
+                              ]),
+                              _: 1
+                            })
+                          ]),
+                          _: 1
+                        }),
+                        createVNode(VCard, {
+                          variant: "outlined",
+                          class: "highlight-card pa-3"
+                        }, {
+                          default: withCtx(() => [
+                            _cache[53] || (_cache[53] = createBaseVNode("div", { class: "highlight-card__header" }, [
+                              createBaseVNode("div", { class: "text-subtitle-2" }, "Fichiers les plus lourds"),
+                              createBaseVNode("div", { class: "text-caption text-medium-emphasis" }, "Depuis le cache MFT")
+                            ], -1)),
+                            createVNode(VList, {
+                              density: "compact",
+                              class: "highlight-list"
+                            }, {
+                              default: withCtx(() => [
+                                (openBlock(true), createElementBlock(Fragment, null, renderList(topFiles.value, (file) => {
+                                  return openBlock(), createBlock(VListItem, {
+                                    key: `dash-file-${file.record_number}`,
+                                    "min-height": "40"
+                                  }, {
+                                    append: withCtx(() => [
+                                      createBaseVNode("div", _hoisted_67, [
+                                        createVNode(VBtn, {
+                                          icon: "mdi-folder-search-outline",
+                                          size: "x-small",
+                                          variant: "text",
+                                          onClick: withModifiers(($event) => openInExplorer(file.path, "file"), ["stop"])
+                                        }, null, 8, ["onClick"]),
+                                        createVNode(VChip, {
+                                          color: "info",
+                                          variant: "tonal",
+                                          size: "small"
+                                        }, {
+                                          default: withCtx(() => [
+                                            createTextVNode(toDisplayString(file.size_display), 1)
+                                          ]),
+                                          _: 2
+                                        }, 1024)
+                                      ])
+                                    ]),
+                                    default: withCtx(() => [
+                                      createVNode(VListItemTitle, { class: "text-body-2 font-weight-medium text-truncate" }, {
+                                        default: withCtx(() => [
+                                          createTextVNode(toDisplayString(file.path), 1)
+                                        ]),
+                                        _: 2
+                                      }, 1024),
+                                      createVNode(VListItemSubtitle, { class: "text-caption text-medium-emphasis" }, {
+                                        default: withCtx(() => [
+                                          createTextVNode(toDisplayString(file.ext || "sans extension"), 1)
+                                        ]),
+                                        _: 2
+                                      }, 1024)
+                                    ]),
+                                    _: 2
+                                  }, 1024);
+                                }), 128))
+                              ]),
+                              _: 1
+                            })
+                          ]),
+                          _: 1
+                        })
+                      ])) : createCommentVNode("", true),
+                      showDistribution.value ? (openBlock(), createElementBlock("div", _hoisted_68, [
+                        createVNode(VCard, {
+                          variant: "outlined",
+                          class: "distribution-card pa-3"
+                        }, {
+                          default: withCtx(() => [
+                            createBaseVNode("div", _hoisted_69, [
+                              _cache[54] || (_cache[54] = createBaseVNode("div", { class: "text-subtitle-2" }, "Repartition par dossier racine", -1)),
+                              createBaseVNode("div", _hoisted_70, [
+                                createBaseVNode("div", _hoisted_71, "Top " + toDisplayString(rootDistribution.value.length), 1)
+                              ])
+                            ]),
+                            createBaseVNode("div", _hoisted_72, [
+                              (openBlock(true), createElementBlock(Fragment, null, renderList(rootDistribution.value, (entry) => {
+                                return openBlock(), createElementBlock("button", {
+                                  key: `dashboard-root-${entry.key}`,
+                                  type: "button",
+                                  class: "mini-chart__row mini-chart__row--interactive",
+                                  onClick: ($event) => openDistributionFolder(entry)
+                                }, [
+                                  createBaseVNode("div", _hoisted_74, toDisplayString(entry.label), 1),
+                                  createBaseVNode("div", _hoisted_75, [
+                                    createBaseVNode("div", {
+                                      class: "mini-chart__bar mini-chart__bar--folder",
+                                      style: normalizeStyle({ width: `${entry.percent}%` })
+                                    }, null, 4)
+                                  ]),
+                                  createBaseVNode("div", _hoisted_76, toDisplayString(entry.size_display), 1)
+                                ], 8, _hoisted_73);
+                              }), 128))
+                            ])
+                          ]),
+                          _: 1
+                        }),
+                        createVNode(VCard, {
+                          variant: "outlined",
+                          class: "distribution-card pa-3"
+                        }, {
+                          default: withCtx(() => [
+                            createBaseVNode("div", _hoisted_77, [
+                              _cache[55] || (_cache[55] = createBaseVNode("div", { class: "text-subtitle-2" }, "Repartition par type", -1)),
+                              createBaseVNode("div", _hoisted_78, [
+                                activeTypeFilter.value ? (openBlock(), createBlock(VChip, {
+                                  key: 0,
+                                  size: "x-small",
+                                  color: "info",
+                                  variant: "tonal"
+                                }, {
+                                  default: withCtx(() => [
+                                    createTextVNode("Type " + toDisplayString(activeTypeFilter.value), 1)
+                                  ]),
+                                  _: 1
+                                })) : createCommentVNode("", true),
+                                createBaseVNode("div", _hoisted_79, "Top " + toDisplayString(fileTypeDistribution.value.length), 1)
+                              ])
+                            ]),
+                            createBaseVNode("div", _hoisted_80, [
+                              (openBlock(true), createElementBlock(Fragment, null, renderList(fileTypeDistribution.value, (entry) => {
+                                return openBlock(), createElementBlock("button", {
+                                  key: `dashboard-type-${entry.key}`,
+                                  type: "button",
+                                  class: normalizeClass(["mini-chart__row mini-chart__row--interactive", { "mini-chart__row--active": activeTypeFilter.value === entry.key }]),
+                                  onClick: ($event) => toggleTypeFilter(entry.key)
+                                }, [
+                                  createBaseVNode("div", _hoisted_82, toDisplayString(entry.label), 1),
+                                  createBaseVNode("div", _hoisted_83, [
+                                    createBaseVNode("div", {
+                                      class: "mini-chart__bar mini-chart__bar--type",
+                                      style: normalizeStyle({ width: `${entry.percent}%` })
+                                    }, null, 4)
+                                  ]),
+                                  createBaseVNode("div", _hoisted_84, toDisplayString(entry.size_display), 1)
+                                ], 10, _hoisted_81);
+                              }), 128))
+                            ])
+                          ]),
+                          _: 1
+                        })
+                      ])) : createCommentVNode("", true),
                       createVNode(VCard, {
                         variant: "outlined",
                         class: "mt-4 pa-3"
                       }, {
                         default: withCtx(() => [
-                          _cache[21] || (_cache[21] = createBaseVNode("div", { class: "text-subtitle-2 mb-2" }, "Derniers fichiers analyses", -1)),
+                          _cache[57] || (_cache[57] = createBaseVNode("div", { class: "text-subtitle-2 mb-2" }, "Derniers fichiers analyses", -1)),
                           createVNode(VList, {
                             density: "compact",
                             class: "recent-files-list"
@@ -24597,7 +25768,7 @@ const _sfc_main$1 = {
                               }, {
                                 default: withCtx(() => [
                                   createVNode(VListItemTitle, { class: "text-body-2 text-medium-emphasis" }, {
-                                    default: withCtx(() => [..._cache[20] || (_cache[20] = [
+                                    default: withCtx(() => [..._cache[56] || (_cache[56] = [
                                       createTextVNode("Aucun fichier encore remonte par l analyse.", -1)
                                     ])]),
                                     _: 1
@@ -24611,8 +25782,8 @@ const _sfc_main$1 = {
                         ]),
                         _: 1
                       }),
-                      createBaseVNode("div", _hoisted_21, [
-                        _cache[23] || (_cache[23] = createBaseVNode("div", { class: "text-subtitle-2" }, "Journal complet du chargement", -1)),
+                      createBaseVNode("div", _hoisted_85, [
+                        _cache[59] || (_cache[59] = createBaseVNode("div", { class: "text-subtitle-2" }, "Journal complet du chargement", -1)),
                         createVNode(VBtn, {
                           variant: "text",
                           size: "small",
@@ -24620,7 +25791,7 @@ const _sfc_main$1 = {
                           disabled: loading.value || progressEvents.value.length === 0,
                           onClick: clearProgressHistory
                         }, {
-                          default: withCtx(() => [..._cache[22] || (_cache[22] = [
+                          default: withCtx(() => [..._cache[58] || (_cache[58] = [
                             createTextVNode(" Effacer ", -1)
                           ])]),
                           _: 1
@@ -24640,12 +25811,12 @@ const _sfc_main$1 = {
                               size: "small"
                             }, {
                               default: withCtx(() => [
-                                createBaseVNode("div", _hoisted_22, [
+                                createBaseVNode("div", _hoisted_86, [
                                   createBaseVNode("div", null, [
-                                    createBaseVNode("div", _hoisted_23, toDisplayString(progressStageLabel(entry.stage)), 1),
-                                    createBaseVNode("div", _hoisted_24, toDisplayString(entry.message), 1)
+                                    createBaseVNode("div", _hoisted_87, toDisplayString(progressStageLabel(entry.stage)), 1),
+                                    createBaseVNode("div", _hoisted_88, toDisplayString(entry.message), 1)
                                   ]),
-                                  createBaseVNode("div", _hoisted_25, toDisplayString(formatProgressTime(entry.timestamp)), 1)
+                                  createBaseVNode("div", _hoisted_89, toDisplayString(formatProgressTime(entry.timestamp)), 1)
                                 ])
                               ]),
                               _: 2
@@ -24663,37 +25834,253 @@ const _sfc_main$1 = {
             ]),
             _: 1
           })) : createCommentVNode("", true),
-          createBaseVNode("div", _hoisted_26, [
+          createBaseVNode("div", _hoisted_90, [
             !loading.value && folders.value.length ? (openBlock(), createBlock(VCard, {
               key: 0,
-              variant: "outlined"
+              variant: "outlined",
+              class: "tree-surface"
             }, {
               default: withCtx(() => [
-                createVNode(VList, {
-                  density: "compact",
-                  nav: ""
-                }, {
-                  default: withCtx(() => [
-                    (openBlock(true), createElementBlock(Fragment, null, renderList(folders.value, (folder) => {
-                      return openBlock(), createBlock(FolderItem, {
-                        key: folder.record_number,
-                        folder,
-                        depth: 0,
-                        drive: selectedDrive.value,
-                        "total-size": totalScannedSize.value,
-                        "expanded-ids": expandedIds.value,
-                        onToggle: toggleFolder
-                      }, null, 8, ["folder", "drive", "total-size", "expanded-ids"]);
+                createBaseVNode("div", _hoisted_91, [
+                  createBaseVNode("div", _hoisted_92, [
+                    createVNode(VBtn, {
+                      icon: "mdi-arrow-up",
+                      size: "small",
+                      variant: "text",
+                      density: "comfortable",
+                      disabled: currentPathSegments.value.length === 0,
+                      onClick: goUp
+                    }, null, 8, ["disabled"]),
+                    createBaseVNode("button", {
+                      type: "button",
+                      class: normalizeClass(["explorer-breadcrumb__item", { "explorer-breadcrumb__item--active": currentPathSegments.value.length === 0 }]),
+                      onClick: _cache[1] || (_cache[1] = ($event) => goToSegment(-1))
+                    }, [
+                      createVNode(VIcon, { size: "16" }, {
+                        default: withCtx(() => [..._cache[60] || (_cache[60] = [
+                          createTextVNode("mdi-harddisk", -1)
+                        ])]),
+                        _: 1
+                      }),
+                      createTextVNode(" " + toDisplayString(selectedDrive.value) + ": ", 1)
+                    ], 2),
+                    (openBlock(true), createElementBlock(Fragment, null, renderList(currentPathSegments.value, (seg, idx) => {
+                      return openBlock(), createElementBlock(Fragment, {
+                        key: seg.record_number
+                      }, [
+                        createVNode(VIcon, {
+                          size: "14",
+                          class: "explorer-breadcrumb__sep"
+                        }, {
+                          default: withCtx(() => [..._cache[61] || (_cache[61] = [
+                            createTextVNode("mdi-chevron-right", -1)
+                          ])]),
+                          _: 1
+                        }),
+                        createBaseVNode("button", {
+                          type: "button",
+                          class: normalizeClass(["explorer-breadcrumb__item", { "explorer-breadcrumb__item--active": idx === currentPathSegments.value.length - 1 }]),
+                          onClick: ($event) => goToSegment(idx)
+                        }, toDisplayString(seg.name), 11, _hoisted_93)
+                      ], 64);
                     }), 128))
                   ]),
-                  _: 1
-                })
+                  createBaseVNode("div", _hoisted_94, [
+                    activeTypeFilter.value ? (openBlock(), createBlock(VChip, {
+                      key: 0,
+                      color: "info",
+                      variant: "tonal",
+                      size: "small",
+                      closable: "",
+                      "onClick:close": _cache[2] || (_cache[2] = ($event) => activeTypeFilter.value = null)
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode(" Type: " + toDisplayString(activeTypeFilter.value), 1)
+                      ]),
+                      _: 1
+                    })) : createCommentVNode("", true),
+                    activeSizeFilter.value !== "all" ? (openBlock(), createBlock(VChip, {
+                      key: 1,
+                      color: "warning",
+                      variant: "tonal",
+                      size: "small",
+                      closable: "",
+                      "onClick:close": _cache[3] || (_cache[3] = ($event) => activeSizeFilter.value = "all")
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode(" Taille: " + toDisplayString(sizeFilterLabel.value), 1)
+                      ]),
+                      _: 1
+                    })) : createCommentVNode("", true),
+                    createVNode(VBtnToggle, {
+                      modelValue: viewMode.value,
+                      "onUpdate:modelValue": _cache[4] || (_cache[4] = ($event) => viewMode.value = $event),
+                      mandatory: "",
+                      divided: "",
+                      density: "comfortable",
+                      variant: "outlined"
+                    }, {
+                      default: withCtx(() => [
+                        createVNode(VBtn, {
+                          value: "list",
+                          icon: "mdi-view-list-outline"
+                        }),
+                        createVNode(VBtn, {
+                          value: "grid",
+                          icon: "mdi-view-grid-outline"
+                        })
+                      ]),
+                      _: 1
+                    }, 8, ["modelValue"]),
+                    createVNode(VSelect, {
+                      modelValue: selectedDrive.value,
+                      "onUpdate:modelValue": _cache[5] || (_cache[5] = ($event) => selectedDrive.value = $event),
+                      items: drives.value,
+                      label: "Lecteur",
+                      density: "compact",
+                      variant: "outlined",
+                      "hide-details": "",
+                      class: "explorer-toolbar__select"
+                    }, null, 8, ["modelValue", "items"]),
+                    createVNode(VSelect, {
+                      modelValue: activeSizeFilter.value,
+                      "onUpdate:modelValue": _cache[6] || (_cache[6] = ($event) => activeSizeFilter.value = $event),
+                      items: sizeFilterOptions,
+                      label: "Taille",
+                      density: "compact",
+                      variant: "outlined",
+                      "hide-details": "",
+                      class: "explorer-toolbar__select explorer-toolbar__select--wide"
+                    }, null, 8, ["modelValue"]),
+                    createVNode(VBtn, {
+                      color: "primary",
+                      loading: loading.value,
+                      disabled: loading.value,
+                      "prepend-icon": "mdi-magnify-scan",
+                      class: "explorer-toolbar__scan",
+                      onClick: startScan
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode(" Scanner " + toDisplayString(selectedDrive.value) + ":\\ ", 1)
+                      ]),
+                      _: 1
+                    }, 8, ["loading", "disabled"]),
+                    createVNode(VChip, {
+                      color: "success",
+                      variant: "tonal",
+                      size: "small"
+                    }, {
+                      default: withCtx(() => [
+                        createTextVNode(toDisplayString(currentLevelSummaryLabel.value), 1)
+                      ]),
+                      _: 1
+                    })
+                  ])
+                ]),
+                explorerBusy.value ? (openBlock(), createElementBlock("div", _hoisted_95, [
+                  createVNode(VProgressCircular, {
+                    indeterminate: "",
+                    color: "primary",
+                    size: "26",
+                    width: "2"
+                  }),
+                  _cache[62] || (_cache[62] = createBaseVNode("span", { class: "text-body-2 text-medium-emphasis" }, "Chargement du dossier...", -1))
+                ])) : viewMode.value === "list" && sortedRows.value.length ? (openBlock(), createElementBlock("div", _hoisted_96, [
+                  createBaseVNode("table", _hoisted_97, [
+                    createBaseVNode("thead", null, [
+                      createBaseVNode("tr", null, [
+                        createBaseVNode("th", {
+                          class: "explorer-table__col-name",
+                          onClick: _cache[7] || (_cache[7] = ($event) => setSort("name"))
+                        }, [
+                          _cache[63] || (_cache[63] = createTextVNode(" Nom ", -1)),
+                          sortKey.value === "name" ? (openBlock(), createBlock(VIcon, {
+                            key: 0,
+                            size: "14"
+                          }, {
+                            default: withCtx(() => [
+                              createTextVNode(toDisplayString(sortDir.value === "asc" ? "mdi-arrow-up" : "mdi-arrow-down"), 1)
+                            ]),
+                            _: 1
+                          })) : createCommentVNode("", true)
+                        ]),
+                        createBaseVNode("th", {
+                          class: "explorer-table__col-type",
+                          onClick: _cache[8] || (_cache[8] = ($event) => setSort("type"))
+                        }, [
+                          _cache[64] || (_cache[64] = createTextVNode(" Type ", -1)),
+                          sortKey.value === "type" ? (openBlock(), createBlock(VIcon, {
+                            key: 0,
+                            size: "14"
+                          }, {
+                            default: withCtx(() => [
+                              createTextVNode(toDisplayString(sortDir.value === "asc" ? "mdi-arrow-up" : "mdi-arrow-down"), 1)
+                            ]),
+                            _: 1
+                          })) : createCommentVNode("", true)
+                        ]),
+                        createBaseVNode("th", {
+                          class: "explorer-table__col-size",
+                          onClick: _cache[9] || (_cache[9] = ($event) => setSort("size"))
+                        }, [
+                          _cache[65] || (_cache[65] = createTextVNode(" Taille ", -1)),
+                          sortKey.value === "size" ? (openBlock(), createBlock(VIcon, {
+                            key: 0,
+                            size: "14"
+                          }, {
+                            default: withCtx(() => [
+                              createTextVNode(toDisplayString(sortDir.value === "asc" ? "mdi-arrow-up" : "mdi-arrow-down"), 1)
+                            ]),
+                            _: 1
+                          })) : createCommentVNode("", true)
+                        ])
+                      ])
+                    ]),
+                    createBaseVNode("tbody", null, [
+                      (openBlock(true), createElementBlock(Fragment, null, renderList(sortedRows.value, (row) => {
+                        return openBlock(), createBlock(ExplorerRow, {
+                          key: row.record_number,
+                          item: row,
+                          selected: selectedItem.value === row.record_number,
+                          onSelect: ($event) => selectedItem.value = row.record_number,
+                          onOpen: ($event) => row.is_dir !== false ? enterFolder(row) : previewPath(row.path),
+                          onContextmenu: ($event) => openContextMenu({ event: $event, item: row })
+                        }, null, 8, ["item", "selected", "onSelect", "onOpen", "onContextmenu"]);
+                      }), 128))
+                    ])
+                  ])
+                ])) : sortedRows.value.length ? (openBlock(), createElementBlock("div", _hoisted_98, [
+                  createBaseVNode("div", _hoisted_99, [
+                    (openBlock(true), createElementBlock(Fragment, null, renderList(sortedRows.value, (row) => {
+                      return openBlock(), createBlock(ExplorerRow, {
+                        key: row.record_number,
+                        variant: "grid",
+                        item: row,
+                        selected: selectedItem.value === row.record_number,
+                        onSelect: ($event) => selectedItem.value = row.record_number,
+                        onOpen: ($event) => row.is_dir !== false ? enterFolder(row) : previewPath(row.path),
+                        onContextmenu: ($event) => openContextMenu({ event: $event, item: row })
+                      }, null, 8, ["item", "selected", "onSelect", "onOpen", "onContextmenu"]);
+                    }), 128))
+                  ])
+                ])) : (openBlock(), createElementBlock("div", _hoisted_100, [
+                  createVNode(VIcon, {
+                    size: "48",
+                    color: "medium-emphasis"
+                  }, {
+                    default: withCtx(() => [..._cache[66] || (_cache[66] = [
+                      createTextVNode("mdi-folder-open-outline", -1)
+                    ])]),
+                    _: 1
+                  }),
+                  createBaseVNode("p", null, toDisplayString(hasActiveFilters.value ? "Aucun element ne correspond aux filtres actifs." : "Ce dossier est vide."), 1)
+                ]))
               ]),
               _: 1
             })) : createCommentVNode("", true)
           ]),
           !loading.value && !folders.value.length && !error.value ? (openBlock(), createBlock(VRow, {
-            key: 2,
+            key: 4,
             justify: "center",
             class: "my-8"
           }, {
@@ -24707,25 +26094,193 @@ const _sfc_main$1 = {
                     size: "64",
                     color: "medium-emphasis"
                   }, {
-                    default: withCtx(() => [..._cache[24] || (_cache[24] = [
+                    default: withCtx(() => [..._cache[67] || (_cache[67] = [
                       createTextVNode("mdi-folder-search-outline", -1)
                     ])]),
                     _: 1
                   }),
-                  _cache[25] || (_cache[25] = createBaseVNode("p", { class: "mt-3 text-medium-emphasis" }, "Lance un scan pour voir l'arborescence", -1))
+                  _cache[68] || (_cache[68] = createBaseVNode("p", { class: "mt-3 text-medium-emphasis" }, "Lance un scan pour voir l arborescence", -1))
                 ]),
                 _: 1
               })
             ]),
             _: 1
-          })) : createCommentVNode("", true)
+          })) : createCommentVNode("", true),
+          createVNode(VDialog, {
+            modelValue: previewDialog.value.open,
+            "onUpdate:modelValue": _cache[12] || (_cache[12] = ($event) => previewDialog.value.open = $event),
+            "max-width": "980"
+          }, {
+            default: withCtx(() => [
+              createVNode(VCard, null, {
+                default: withCtx(() => [
+                  createVNode(VCardTitle, { class: "d-flex align-center justify-space-between gap-3" }, {
+                    default: withCtx(() => [
+                      createBaseVNode("span", _hoisted_101, toDisplayString(previewDialog.value.name || "Apercu"), 1),
+                      createVNode(VBtn, {
+                        icon: "mdi-close",
+                        variant: "text",
+                        onClick: closePreview
+                      })
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCardSubtitle, null, {
+                    default: withCtx(() => [
+                      createTextVNode(toDisplayString(previewDialog.value.path), 1)
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCardText, null, {
+                    default: withCtx(() => [
+                      previewDialog.value.message ? (openBlock(), createBlock(VAlert, {
+                        key: 0,
+                        type: "info",
+                        variant: "tonal",
+                        class: "mb-4"
+                      }, {
+                        default: withCtx(() => [
+                          createTextVNode(toDisplayString(previewDialog.value.message), 1)
+                        ]),
+                        _: 1
+                      })) : createCommentVNode("", true),
+                      previewDialog.value.kind === "image" && previewDialog.value.content ? (openBlock(), createElementBlock("div", _hoisted_102, [
+                        createBaseVNode("img", {
+                          src: previewImageSrc.value,
+                          alt: "Apercu",
+                          class: "preview-image"
+                        }, null, 8, _hoisted_103)
+                      ])) : previewDialog.value.kind === "text" ? (openBlock(), createElementBlock("pre", _hoisted_104, toDisplayString(previewDialog.value.content), 1)) : (openBlock(), createElementBlock("div", _hoisted_105, "Aucun apercu direct disponible.")),
+                      previewDialog.value.truncated ? (openBlock(), createElementBlock("div", _hoisted_106, "Le contenu a ete tronque pour conserver de bonnes performances.")) : createCommentVNode("", true)
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCardActions, null, {
+                    default: withCtx(() => [
+                      createVNode(VSpacer),
+                      createVNode(VBtn, {
+                        variant: "text",
+                        "prepend-icon": "mdi-content-copy",
+                        onClick: _cache[10] || (_cache[10] = ($event) => copyPath(previewDialog.value.path))
+                      }, {
+                        default: withCtx(() => [..._cache[69] || (_cache[69] = [
+                          createTextVNode("Copier le chemin", -1)
+                        ])]),
+                        _: 1
+                      }),
+                      createVNode(VBtn, {
+                        color: "primary",
+                        "prepend-icon": "mdi-open-in-new",
+                        onClick: _cache[11] || (_cache[11] = ($event) => openPath(previewDialog.value.path, "file"))
+                      }, {
+                        default: withCtx(() => [..._cache[70] || (_cache[70] = [
+                          createTextVNode("Ouvrir", -1)
+                        ])]),
+                        _: 1
+                      })
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              })
+            ]),
+            _: 1
+          }, 8, ["modelValue"]),
+          createVNode(VDialog, {
+            modelValue: deleteDialog.value.open,
+            "onUpdate:modelValue": _cache[13] || (_cache[13] = ($event) => deleteDialog.value.open = $event),
+            "max-width": "520"
+          }, {
+            default: withCtx(() => [
+              createVNode(VCard, null, {
+                default: withCtx(() => [
+                  createVNode(VCardTitle, null, {
+                    default: withCtx(() => [..._cache[71] || (_cache[71] = [
+                      createTextVNode("Supprimer cet element ?", -1)
+                    ])]),
+                    _: 1
+                  }),
+                  createVNode(VCardText, null, {
+                    default: withCtx(() => [
+                      createBaseVNode("div", _hoisted_107, toDisplayString(deleteDialog.value.path), 1),
+                      _cache[72] || (_cache[72] = createBaseVNode("div", { class: "text-caption text-medium-emphasis mt-2" }, "L element sera envoye dans la corbeille Windows.", -1))
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(VCardActions, null, {
+                    default: withCtx(() => [
+                      createVNode(VSpacer),
+                      createVNode(VBtn, {
+                        variant: "text",
+                        onClick: closeDeleteDialog
+                      }, {
+                        default: withCtx(() => [..._cache[73] || (_cache[73] = [
+                          createTextVNode("Annuler", -1)
+                        ])]),
+                        _: 1
+                      }),
+                      createVNode(VBtn, {
+                        color: "error",
+                        "prepend-icon": "mdi-delete-outline",
+                        loading: deleteDialog.value.loading,
+                        onClick: confirmDelete
+                      }, {
+                        default: withCtx(() => [..._cache[74] || (_cache[74] = [
+                          createTextVNode("Supprimer", -1)
+                        ])]),
+                        _: 1
+                      }, 8, ["loading"])
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              })
+            ]),
+            _: 1
+          }, 8, ["modelValue"]),
+          contextMenu.value.open ? (openBlock(), createElementBlock("div", {
+            key: 5,
+            class: "context-menu",
+            style: normalizeStyle({ left: `${contextMenu.value.x}px`, top: `${contextMenu.value.y}px` }),
+            onClick: _cache[19] || (_cache[19] = withModifiers(() => {
+            }, ["stop"]))
+          }, [
+            createBaseVNode("button", {
+              type: "button",
+              class: "context-menu__item",
+              onClick: _cache[14] || (_cache[14] = ($event) => triggerContextAction("open"))
+            }, "Ouvrir"),
+            createBaseVNode("button", {
+              type: "button",
+              class: "context-menu__item",
+              onClick: _cache[15] || (_cache[15] = ($event) => triggerContextAction("reveal"))
+            }, "Afficher dans le dossier"),
+            createBaseVNode("button", {
+              type: "button",
+              class: "context-menu__item",
+              onClick: _cache[16] || (_cache[16] = ($event) => triggerContextAction("copy"))
+            }, "Copier le chemin"),
+            contextMenu.value.item?.is_dir === false ? (openBlock(), createElementBlock("button", {
+              key: 0,
+              type: "button",
+              class: "context-menu__item",
+              onClick: _cache[17] || (_cache[17] = ($event) => triggerContextAction("preview"))
+            }, "Lire")) : createCommentVNode("", true),
+            createBaseVNode("button", {
+              type: "button",
+              class: "context-menu__item context-menu__item--danger",
+              onClick: _cache[18] || (_cache[18] = ($event) => triggerContextAction("delete"))
+            }, "Supprimer")
+          ], 4)) : createCommentVNode("", true)
         ]),
         _: 1
       });
     };
   }
 };
-const DiskTree = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-1f456f0e"]]);
+const DiskTree = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-60cdcd25"]]);
 const makeVAppProps = propsFactory({
   ...makeComponentProps(),
   ...omit(makeLayoutProps(), ["fullHeight"]),
@@ -24802,15 +26357,113 @@ const VMain = genericComponent()({
     return {};
   }
 });
+const _hoisted_1 = { class: "app-topbar" };
+const _hoisted_2 = ["title"];
+const _hoisted_3 = { class: "app-topbar__usage-meta" };
+const _hoisted_4 = { class: "app-topbar__usage-drive" };
+const _hoisted_5 = { class: "app-topbar__usage-percent" };
+const _hoisted_6 = { class: "app-topbar__usage-capacity" };
+const _hoisted_7 = { class: "app-topbar__usage-bar" };
+const _hoisted_8 = { class: "app-window-controls" };
+const _hoisted_9 = ["aria-label"];
 const _sfc_main = {
   __name: "App",
   setup(__props) {
+    const isMaximized = /* @__PURE__ */ ref(false);
+    const diskUsage = /* @__PURE__ */ ref(null);
+    let removeWindowStateListener = null;
+    function updateDiskUsage(payload) {
+      diskUsage.value = payload?.drive ? payload : null;
+    }
+    async function minimizeWindow() {
+      await window.mftAPI.minimizeWindow();
+    }
+    async function toggleMaximizeWindow() {
+      const result = await window.mftAPI.toggleMaximizeWindow();
+      isMaximized.value = Boolean(result?.isMaximized);
+    }
+    async function closeWindow() {
+      await window.mftAPI.closeWindow();
+    }
+    onMounted(async () => {
+      removeWindowStateListener = window.mftAPI.onWindowState((payload) => {
+        isMaximized.value = Boolean(payload?.isMaximized);
+      });
+      const state = await window.mftAPI.getWindowState();
+      isMaximized.value = Boolean(state?.isMaximized);
+    });
+    onBeforeUnmount(() => {
+      removeWindowStateListener?.();
+      removeWindowStateListener = null;
+    });
     return (_ctx, _cache) => {
-      return openBlock(), createBlock(VApp, null, {
+      return openBlock(), createBlock(VApp, { class: "app-shell" }, {
         default: withCtx(() => [
-          createVNode(VMain, null, {
+          createBaseVNode("header", _hoisted_1, [
+            _cache[2] || (_cache[2] = createBaseVNode("div", { class: "app-topbar__drag" }, null, -1)),
+            _cache[3] || (_cache[3] = createBaseVNode("button", {
+              type: "button",
+              class: "app-topbar__menu",
+              "aria-label": "Menu principal"
+            }, [
+              createBaseVNode("span", { class: "app-topbar__menu-line" }),
+              createBaseVNode("span", { class: "app-topbar__menu-line" }),
+              createBaseVNode("span", { class: "app-topbar__menu-line" })
+            ], -1)),
+            _cache[4] || (_cache[4] = createBaseVNode("div", { class: "app-topbar__brand-wrap" }, [
+              createBaseVNode("div", { class: "app-topbar__brand-dot" }),
+              createBaseVNode("div", { class: "app-topbar__brand" }, "StorageAnalyse")
+            ], -1)),
+            _cache[5] || (_cache[5] = createBaseVNode("div", { class: "app-topbar__spacer" }, null, -1)),
+            diskUsage.value?.drive ? (openBlock(), createElementBlock("div", {
+              key: 0,
+              class: "app-topbar__usage",
+              title: `${diskUsage.value.drive}: ${diskUsage.value.usedDisplay} / ${diskUsage.value.totalDisplay}`
+            }, [
+              createBaseVNode("div", _hoisted_3, [
+                createBaseVNode("span", _hoisted_4, toDisplayString(diskUsage.value.drive) + ":", 1),
+                createBaseVNode("span", _hoisted_5, toDisplayString(diskUsage.value.usedPercent) + "%", 1),
+                createBaseVNode("span", _hoisted_6, toDisplayString(diskUsage.value.usedDisplay) + " / " + toDisplayString(diskUsage.value.totalDisplay), 1)
+              ]),
+              createBaseVNode("div", _hoisted_7, [
+                createBaseVNode("div", {
+                  class: "app-topbar__usage-bar-fill",
+                  style: normalizeStyle({ width: `${diskUsage.value.usedPercent}%` })
+                }, null, 4)
+              ])
+            ], 8, _hoisted_2)) : createCommentVNode("", true),
+            createBaseVNode("div", _hoisted_8, [
+              createBaseVNode("button", {
+                type: "button",
+                class: "app-window-controls__button",
+                "aria-label": "Minimiser",
+                onClick: minimizeWindow
+              }, [..._cache[0] || (_cache[0] = [
+                createBaseVNode("span", { class: "app-window-controls__glyph app-window-controls__glyph--minimize" }, null, -1)
+              ])]),
+              createBaseVNode("button", {
+                type: "button",
+                class: "app-window-controls__button",
+                "aria-label": isMaximized.value ? "Restaurer" : "Maximiser",
+                onClick: toggleMaximizeWindow
+              }, [
+                createBaseVNode("span", {
+                  class: normalizeClass(["app-window-controls__glyph", isMaximized.value ? "app-window-controls__glyph--restore" : "app-window-controls__glyph--maximize"])
+                }, null, 2)
+              ], 8, _hoisted_9),
+              createBaseVNode("button", {
+                type: "button",
+                class: "app-window-controls__button app-window-controls__button--close",
+                "aria-label": "Fermer",
+                onClick: closeWindow
+              }, [..._cache[1] || (_cache[1] = [
+                createBaseVNode("span", { class: "app-window-controls__glyph app-window-controls__glyph--close" }, null, -1)
+              ])])
+            ])
+          ]),
+          createVNode(VMain, { class: "app-main" }, {
             default: withCtx(() => [
-              createVNode(DiskTree)
+              createVNode(DiskTree, { onDiskUsageChange: updateDiskUsage })
             ]),
             _: 1
           })
@@ -24820,7 +26473,8 @@ const _sfc_main = {
     };
   }
 };
-const app = createApp(_sfc_main);
+const App = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-e5f2ad14"]]);
+const app = createApp(App);
 registerPlugins(app);
 app.use(api);
 app.use(pinia);

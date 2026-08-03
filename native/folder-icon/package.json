@@ -1,0 +1,14 @@
+{
+  "name": "folder-icon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Native Windows jumbo/extra-large shell icon extraction (folder content-peek thumbnails included).",
+  "main": "index.js",
+  "gypfile": true,
+  "scripts": {
+    "install": "node-gyp rebuild"
+  },
+  "dependencies": {
+    "node-addon-api": "^8.5.0"
+  }
+}
